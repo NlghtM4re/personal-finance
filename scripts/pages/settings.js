@@ -58,9 +58,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('testBtn')?.addEventListener('click', async () => {
     const url = document.getElementById('apiUrl').value.trim();
     const key = document.getElementById('apiKey').value.trim();
+    const btn = document.getElementById('testBtn');
+    btn.classList.add('btn--loading');
+    btn.disabled = true;
     setBanner('checking', 'Testing…');
     const result = await testConnection(url, key);
     setBanner(result.ok ? 'ok' : 'error', result.message);
+    btn.classList.remove('btn--loading');
+    btn.disabled = false;
   });
 
   /* Save form */

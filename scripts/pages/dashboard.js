@@ -2,7 +2,40 @@
    dashboard.js — Dashboard page logic (async)
    ============================================================ */
 
+function showSkeletons() {
+  const skeletonCard = `
+    <div style="padding:4px 0">
+      <div class="skeleton skeleton-title" style="width:60%"></div>
+      <div class="skeleton skeleton-text"  style="width:40%"></div>
+    </div>`;
+  ['totalBalance','monthIncome','monthExpense','monthNet'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<div class="skeleton skeleton-title" style="width:70%;display:inline-block;"></div>`;
+  });
+  const recentEl = document.getElementById('recentTransactions');
+  if (recentEl) recentEl.innerHTML = [1,2,3].map(() => `
+    <div class="tx-item">
+      <div class="skeleton" style="width:40px;height:40px;border-radius:8px;flex-shrink:0;"></div>
+      <div class="tx-info">
+        <div class="skeleton skeleton-text" style="width:55%"></div>
+        <div class="skeleton skeleton-text" style="width:35%"></div>
+      </div>
+      <div class="skeleton skeleton-text" style="width:60px"></div>
+    </div>`).join('');
+  const accEl = document.getElementById('accountList');
+  if (accEl) accEl.innerHTML = [1,2].map(() => `
+    <div class="account-item">
+      <div class="skeleton" style="width:12px;height:12px;border-radius:50%;flex-shrink:0;"></div>
+      <div class="account-info">
+        <div class="skeleton skeleton-text" style="width:50%"></div>
+        <div class="skeleton skeleton-text" style="width:30%"></div>
+      </div>
+      <div class="skeleton skeleton-text" style="width:70px"></div>
+    </div>`).join('');
+}
+
 async function initDashboard() {
+  showSkeletons();
   const [allTx, accounts, monthTx] = await Promise.all([
     TransactionStore.getAll(),
     AccountStore.getAll(),

@@ -35,6 +35,17 @@ async function renderTransactions() {
   const el = document.getElementById('txListFull');
   if (!el) return;
 
+  /* Show skeleton while fetching */
+  el.innerHTML = [1,2,3,4,5].map(() => `
+    <div class="tx-item">
+      <div class="skeleton" style="width:40px;height:40px;border-radius:8px;flex-shrink:0;"></div>
+      <div class="tx-info">
+        <div class="skeleton skeleton-text" style="width:50%"></div>
+        <div class="skeleton skeleton-text" style="width:30%"></div>
+      </div>
+      <div class="skeleton skeleton-text" style="width:65px"></div>
+    </div>`).join('');
+
   const all   = await TransactionStore.query(currentFilters);
   const start = (currentPage - 1) * PAGE_SIZE;
   const page  = all.slice(start, start + PAGE_SIZE);

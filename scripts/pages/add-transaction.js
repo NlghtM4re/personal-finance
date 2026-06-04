@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     if (!validateForm()) return;
     const btn = document.getElementById('submitBtn');
+    btn.classList.add('btn--loading');
     btn.disabled = true;
     try {
       const data = {
@@ -130,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => window.location.href = 'transactions.html', 500);
     } catch (err) {
       showToast(err.message || 'Something went wrong', 'error');
+      btn.classList.remove('btn--loading');
       btn.disabled = false;
     }
   });

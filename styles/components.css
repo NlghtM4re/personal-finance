@@ -448,7 +448,29 @@ select.form-control {
   to   { transform: translateX(0);    opacity: 1; }
 }
 
-/* --- Loader --- */
+/* --- Touch targets (min 44x44px on mobile) --- */
+@media (max-width: 768px) {
+  .btn, .nav-item, .bottom-nav__item, .type-btn,
+  .category-btn, .page-btn, .tx-action-btn, .modal-close {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .tx-action-btn {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .category-btn {
+    padding: 12px 8px;
+  }
+  select.form-control, input.form-control {
+    min-height: 44px;
+  }
+}
+
+/* --- Loader / Skeleton --- */
 .spinner {
   width: 24px; height: 24px;
   border: 3px solid var(--color-border);
@@ -458,3 +480,42 @@ select.form-control {
   margin: 0 auto;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-surface-2) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-text  { height: 14px; margin-bottom: 8px; }
+.skeleton-title { height: 28px; margin-bottom: 6px; }
+.skeleton-card  { height: 80px; border-radius: var(--radius-md); }
+
+/* Loading button state */
+.btn--loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+.btn--loading::after {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}

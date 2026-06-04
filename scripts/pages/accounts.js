@@ -14,8 +14,16 @@ async function initAccounts() {
 }
 
 async function renderAccountsGrid() {
-  const el       = document.getElementById('accountsGrid');
+  const el = document.getElementById('accountsGrid');
   if (!el) return;
+
+  el.innerHTML = [1,2,3].map(() => `
+    <div class="card" style="padding:20px;">
+      <div class="skeleton skeleton-text" style="width:40%;margin-bottom:4px;"></div>
+      <div class="skeleton skeleton-text" style="width:25%;margin-bottom:20px;"></div>
+      <div class="skeleton skeleton-title" style="width:55%;"></div>
+    </div>`).join('');
+
   const accounts = await AccountStore.getAll();
   const balances = await Promise.all(accounts.map(a => AccountStore.getBalance(a.id)));
 
