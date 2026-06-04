@@ -137,7 +137,9 @@ function openDeleteModal(id) {
 
 function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await SupaAuth.requireAuth();
+  if (!user) return;
   initTransactions();
 
   document.getElementById('searchInput')?.addEventListener('input', e => {

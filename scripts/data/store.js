@@ -1,28 +1,48 @@
 /* ============================================================
-   store.js — Data layer
-   Uses backend API when FINTRACK_API is configured,
-   falls back to localStorage for offline / local use.
+   store.js — Data layer (Supabase)
    ============================================================ */
 
-/* ---- Shared helpers ---- */
-function uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+/* ---- Helpers ---- */
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+
 function currentMonthRange() {
   const now  = new Date();
   const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   return { from, to: todayISO() };
 }
 
-/* ---- localStorage helpers (offline fallback) ---- */
-const LS = {
-  load(key)       { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } },
-  save(key, data) { localStorage.setItem(key, JSON.stringify(data)); },
-};
-const KEYS = { transactions: 'ft_transactions', accounts: 'ft_accounts', categories: 'ft_categories' };
+async function userId() {
+  const user = await SupaAuth.getUser();
+  return user?.id;
+}
+
+/* ---- camelCase mappers ---- */
+function accountToCamel(r) {
+  return {
+    id:             r.id,
+    name:           r.name,
+    type:           r.type,
+    initialBalance: Number(r.initial_balance),
+    color:          r.color,
+    createdAt:      r.created_at,
+  };
+}
+
+function txToCamel(r) {
+  return {
+    id:          r.id,
+    date:        r.date,
+    amount:      Number(r.amount),
+    type:        r.type,
+    categoryId:  r.category_id,
+    accountId:   r.account_id,
+    toAccountId: r.to_account_id,
+    note:        r.note,
+    tags:        r.tags || [],
+    createdAt:   r.created_at,
+    updatedAt:   r.updated_at,
+  };
+}
 
 /* ============================================================
    TRANSACTION STORE
@@ -30,64 +50,68 @@ const KEYS = { transactions: 'ft_transactions', accounts: 'ft_accounts', categor
 const TransactionStore = {
 
   async getAll() {
-    if (API.isConfigured()) return API.get('/transactions');
-    return LS.load(KEYS.transactions).sort((a, b) => b.date.localeCompare(a.date));
+    const { data, error } = await sb.from('transactions').select('*').order('date', { ascending: false }).order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data || []).map(txToCamel);
   },
 
   async getById(id) {
-    if (API.isConfigured()) return API.get(`/transactions/${id}`);
-    return LS.load(KEYS.transactions).find(t => t.id === id) || null;
+    const { data, error } = await sb.from('transactions').select('*').eq('id', id).single();
+    if (error) return null;
+    return txToCamel(data);
   },
 
   async add(data) {
-    if (API.isConfigured()) return API.post('/transactions', data);
-    const tx = {
-      id: uid(), date: data.date || todayISO(),
-      amount: Math.abs(Number(data.amount)), type: data.type || 'expense',
-      categoryId: data.categoryId || '', accountId: data.accountId || '',
-      toAccountId: data.toAccountId || null, note: data.note || '',
-      tags: data.tags || [], createdAt: new Date().toISOString(),
-    };
-    const all = LS.load(KEYS.transactions);
-    all.push(tx);
-    LS.save(KEYS.transactions, all);
-    return tx;
+    const uid = await userId();
+    const { data: row, error } = await sb.from('transactions').insert({
+      user_id:       uid,
+      date:          data.date || todayISO(),
+      amount:        Math.abs(Number(data.amount)),
+      type:          data.type || 'expense',
+      category_id:   data.categoryId  || null,
+      account_id:    data.accountId   || null,
+      to_account_id: data.toAccountId || null,
+      note:          data.note        || '',
+      tags:          data.tags        || [],
+    }).select().single();
+    if (error) throw new Error(error.message);
+    return txToCamel(row);
   },
 
   async update(id, data) {
-    if (API.isConfigured()) return API.put(`/transactions/${id}`, data);
-    const all = LS.load(KEYS.transactions);
-    const idx = all.findIndex(t => t.id === id);
-    if (idx === -1) return null;
-    all[idx] = { ...all[idx], ...data, id, updatedAt: new Date().toISOString() };
-    LS.save(KEYS.transactions, all);
-    return all[idx];
+    const patch = {};
+    if (data.date        !== undefined) patch.date          = data.date;
+    if (data.amount      !== undefined) patch.amount        = Math.abs(Number(data.amount));
+    if (data.type        !== undefined) patch.type          = data.type;
+    if (data.categoryId  !== undefined) patch.category_id   = data.categoryId;
+    if (data.accountId   !== undefined) patch.account_id    = data.accountId;
+    if (data.toAccountId !== undefined) patch.to_account_id = data.toAccountId;
+    if (data.note        !== undefined) patch.note          = data.note;
+    if (data.tags        !== undefined) patch.tags          = data.tags;
+    patch.updated_at = new Date().toISOString();
+
+    const { data: row, error } = await sb.from('transactions').update(patch).eq('id', id).select().single();
+    if (error) throw new Error(error.message);
+    return txToCamel(row);
   },
 
   async delete(id) {
-    if (API.isConfigured()) return API.delete(`/transactions/${id}`);
-    LS.save(KEYS.transactions, LS.load(KEYS.transactions).filter(t => t.id !== id));
+    const { error } = await sb.from('transactions').delete().eq('id', id);
+    if (error) throw new Error(error.message);
   },
 
   async query({ from, to, categoryId, accountId, type, search } = {}) {
-    if (API.isConfigured()) {
-      const params = new URLSearchParams();
-      if (from)       params.set('from', from);
-      if (to)         params.set('to', to);
-      if (categoryId) params.set('categoryId', categoryId);
-      if (accountId)  params.set('accountId', accountId);
-      if (type)       params.set('type', type);
-      if (search)     params.set('search', search);
-      return API.get(`/transactions?${params}`);
-    }
-    let list = LS.load(KEYS.transactions);
-    if (from)       list = list.filter(t => t.date >= from);
-    if (to)         list = list.filter(t => t.date <= to);
-    if (categoryId) list = list.filter(t => t.categoryId === categoryId);
-    if (accountId)  list = list.filter(t => t.accountId === accountId || t.toAccountId === accountId);
-    if (type)       list = list.filter(t => t.type === type);
-    if (search)     list = list.filter(t => t.note.toLowerCase().includes(search.toLowerCase()));
-    return list.sort((a, b) => b.date.localeCompare(a.date));
+    let q = sb.from('transactions').select('*');
+    if (from)       q = q.gte('date', from);
+    if (to)         q = q.lte('date', to);
+    if (categoryId) q = q.eq('category_id', categoryId);
+    if (accountId)  q = q.or(`account_id.eq.${accountId},to_account_id.eq.${accountId}`);
+    if (type)       q = q.eq('type', type);
+    if (search)     q = q.ilike('note', `%${search}%`);
+    q = q.order('date', { ascending: false }).order('created_at', { ascending: false });
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return (data || []).map(txToCamel);
   },
 
   async thisMonth() {
@@ -102,58 +126,56 @@ const TransactionStore = {
 const AccountStore = {
 
   async getAll() {
-    if (API.isConfigured()) return API.get('/accounts');
-    return LS.load(KEYS.accounts);
+    const { data, error } = await sb.from('accounts').select('*').order('created_at');
+    if (error) throw new Error(error.message);
+    return (data || []).map(accountToCamel);
   },
 
   async getById(id) {
-    if (API.isConfigured()) return API.get(`/accounts/${id}`);
-    return LS.load(KEYS.accounts).find(a => a.id === id) || null;
+    const { data, error } = await sb.from('accounts').select('*').eq('id', id).single();
+    if (error) return null;
+    return accountToCamel(data);
   },
 
   async add(data) {
-    if (API.isConfigured()) return API.post('/accounts', data);
-    const account = {
-      id: uid(), name: data.name || 'Account', type: data.type || 'bank',
-      initialBalance: Number(data.initialBalance) || 0, color: data.color || '#6366f1',
-      createdAt: new Date().toISOString(),
-    };
-    const all = LS.load(KEYS.accounts);
-    all.push(account);
-    LS.save(KEYS.accounts, all);
-    return account;
+    const uid = await userId();
+    const { data: row, error } = await sb.from('accounts').insert({
+      user_id:         uid,
+      name:            data.name || 'Account',
+      type:            data.type || 'bank',
+      initial_balance: Number(data.initialBalance) || 0,
+      color:           data.color || '#6366f1',
+    }).select().single();
+    if (error) throw new Error(error.message);
+    return accountToCamel(row);
   },
 
   async update(id, data) {
-    if (API.isConfigured()) return API.put(`/accounts/${id}`, data);
-    const all = LS.load(KEYS.accounts);
-    const idx = all.findIndex(a => a.id === id);
-    if (idx === -1) return null;
-    all[idx] = { ...all[idx], ...data, id };
-    LS.save(KEYS.accounts, all);
-    return all[idx];
+    const patch = {};
+    if (data.name            !== undefined) patch.name            = data.name;
+    if (data.type            !== undefined) patch.type            = data.type;
+    if (data.initialBalance  !== undefined) patch.initial_balance = Number(data.initialBalance);
+    if (data.color           !== undefined) patch.color           = data.color;
+    const { data: row, error } = await sb.from('accounts').update(patch).eq('id', id).select().single();
+    if (error) throw new Error(error.message);
+    return accountToCamel(row);
   },
 
   async delete(id) {
-    if (API.isConfigured()) return API.delete(`/accounts/${id}`);
-    LS.save(KEYS.accounts, LS.load(KEYS.accounts).filter(a => a.id !== id));
+    const { error } = await sb.from('accounts').delete().eq('id', id);
+    if (error) throw new Error(error.message);
   },
 
   async getBalance(accountId) {
-    if (API.isConfigured()) {
-      const { balance } = await API.get(`/accounts/${accountId}/balance`);
-      return balance;
-    }
-    const account = LS.load(KEYS.accounts).find(a => a.id === accountId);
+    const account = await this.getById(accountId);
     if (!account) return 0;
-    const txs = LS.load(KEYS.transactions).filter(
-      t => t.accountId === accountId || t.toAccountId === accountId
-    );
-    return txs.reduce((bal, t) => {
-      if (t.type === 'income'   && t.accountId    === accountId) return bal + t.amount;
-      if (t.type === 'expense'  && t.accountId    === accountId) return bal - t.amount;
-      if (t.type === 'transfer' && t.accountId    === accountId) return bal - t.amount;
-      if (t.type === 'transfer' && t.toAccountId  === accountId) return bal + t.amount;
+    const { data: txs, error } = await sb.from('transactions').select('type, amount, account_id, to_account_id').or(`account_id.eq.${accountId},to_account_id.eq.${accountId}`);
+    if (error) return account.initialBalance;
+    return (txs || []).reduce((bal, t) => {
+      if (t.type === 'income'   && t.account_id    === accountId) return bal + Number(t.amount);
+      if (t.type === 'expense'  && t.account_id    === accountId) return bal - Number(t.amount);
+      if (t.type === 'transfer' && t.account_id    === accountId) return bal - Number(t.amount);
+      if (t.type === 'transfer' && t.to_account_id === accountId) return bal + Number(t.amount);
       return bal;
     }, account.initialBalance);
   },
@@ -166,50 +188,29 @@ const AccountStore = {
 };
 
 /* ============================================================
-   CATEGORY STORE
+   CATEGORY STORE (hardcoded defaults, no DB)
    ============================================================ */
 const DEFAULT_CATEGORIES = [
-  { id: 'cat-salary',     name: 'Salary',      icon: '💼', type: 'income'  },
-  { id: 'cat-freelance',  name: 'Freelance',   icon: '💻', type: 'income'  },
-  { id: 'cat-gift',       name: 'Gift',        icon: '🎁', type: 'income'  },
-  { id: 'cat-invest',     name: 'Investment',  icon: '📈', type: 'income'  },
-  { id: 'cat-food',       name: 'Food',        icon: '🍔', type: 'expense' },
-  { id: 'cat-rent',       name: 'Rent',        icon: '🏠', type: 'expense' },
-  { id: 'cat-transport',  name: 'Transport',   icon: '🚗', type: 'expense' },
-  { id: 'cat-health',     name: 'Health',      icon: '❤️', type: 'expense' },
-  { id: 'cat-shopping',   name: 'Shopping',    icon: '🛍️', type: 'expense' },
-  { id: 'cat-entertain',  name: 'Fun',         icon: '🎮', type: 'expense' },
-  { id: 'cat-bills',      name: 'Bills',       icon: '⚡', type: 'expense' },
-  { id: 'cat-education',  name: 'Education',   icon: '📚', type: 'expense' },
-  { id: 'cat-travel',     name: 'Travel',      icon: '✈️', type: 'expense' },
-  { id: 'cat-other',      name: 'Other',       icon: '📦', type: 'both'   },
+  { id: 'cat-salary',    name: 'Salary',     icon: '💼', type: 'income'  },
+  { id: 'cat-freelance', name: 'Freelance',  icon: '💻', type: 'income'  },
+  { id: 'cat-gift',      name: 'Gift',       icon: '🎁', type: 'income'  },
+  { id: 'cat-invest',    name: 'Investment', icon: '📈', type: 'income'  },
+  { id: 'cat-food',      name: 'Food',       icon: '🍔', type: 'expense' },
+  { id: 'cat-rent',      name: 'Rent',       icon: '🏠', type: 'expense' },
+  { id: 'cat-transport', name: 'Transport',  icon: '🚗', type: 'expense' },
+  { id: 'cat-health',    name: 'Health',     icon: '❤️', type: 'expense' },
+  { id: 'cat-shopping',  name: 'Shopping',   icon: '🛍️', type: 'expense' },
+  { id: 'cat-entertain', name: 'Fun',        icon: '🎮', type: 'expense' },
+  { id: 'cat-bills',     name: 'Bills',      icon: '⚡', type: 'expense' },
+  { id: 'cat-education', name: 'Education',  icon: '📚', type: 'expense' },
+  { id: 'cat-travel',    name: 'Travel',     icon: '✈️', type: 'expense' },
+  { id: 'cat-other',     name: 'Other',      icon: '📦', type: 'both'   },
 ];
 
 const CategoryStore = {
-  _cache: null,
-
-  async getAll() {
-    if (API.isConfigured()) {
-      if (!this._cache) this._cache = await API.get('/categories');
-      return this._cache;
-    }
-    const custom = LS.load(KEYS.categories);
-    const merged = [...DEFAULT_CATEGORIES];
-    custom.forEach(c => { if (!merged.find(d => d.id === c.id)) merged.push(c); });
-    return merged;
-  },
-
-  async getById(id) {
-    const all = await this.getAll();
-    return all.find(c => c.id === id) || null;
-  },
-
-  async getByType(type) {
-    const all = await this.getAll();
-    return all.filter(c => c.type === type || c.type === 'both');
-  },
-
-  invalidateCache() { this._cache = null; },
+  async getAll()        { return DEFAULT_CATEGORIES; },
+  async getById(id)     { return DEFAULT_CATEGORIES.find(c => c.id === id) || null; },
+  async getByType(type) { return DEFAULT_CATEGORIES.filter(c => c.type === type || c.type === 'both'); },
 };
 
 /* ============================================================
@@ -235,7 +236,6 @@ function formatDateShort(isoDate) {
   });
 }
 
-/* Toast notification */
 function showToast(message, type = '') {
   const container = document.getElementById('toastContainer') || (() => {
     const el = document.createElement('div');

@@ -24,6 +24,21 @@ router.get('/', (req, res) => {
   res.json(rows.map(toCamel));
 });
 
+/* GET summary totals for a date range — must be before /:id */
+router.get('/summary/totals', (req, res) => {
+  const { from, to, accountId } = req.query;
+  let sql    = "SELECT type, SUM(amount) as total FROM transactions WHERE type IN ('income','expense')";
+  const args = [];
+  if (from)      { sql += ' AND date >= ?'; args.push(from); }
+  if (to)        { sql += ' AND date <= ?'; args.push(to); }
+  if (accountId) { sql += ' AND account_id = ?'; args.push(accountId); }
+  sql += ' GROUP BY type';
+  const rows   = db.prepare(sql).all(...args);
+  const income  = rows.find(r => r.type === 'income')?.total  || 0;
+  const expense = rows.find(r => r.type === 'expense')?.total || 0;
+  res.json({ income, expense, net: income - expense });
+});
+
 /* GET single transaction */
 router.get('/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM transactions WHERE id = ?').get(req.params.id);
@@ -86,20 +101,6 @@ router.delete('/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-/* GET summary totals for a date range */
-router.get('/summary/totals', (req, res) => {
-  const { from, to, accountId } = req.query;
-  let sql    = "SELECT type, SUM(amount) as total FROM transactions WHERE type IN ('income','expense')";
-  const args = [];
-  if (from)      { sql += ' AND date >= ?'; args.push(from); }
-  if (to)        { sql += ' AND date <= ?'; args.push(to); }
-  if (accountId) { sql += ' AND account_id = ?'; args.push(accountId); }
-  sql += ' GROUP BY type';
-  const rows   = db.prepare(sql).all(...args);
-  const income  = rows.find(r => r.type === 'income')?.total  || 0;
-  const expense = rows.find(r => r.type === 'expense')?.total || 0;
-  res.json({ income, expense, net: income - expense });
-});
 
 function toCamel(row) {
   return {

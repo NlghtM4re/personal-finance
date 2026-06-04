@@ -102,7 +102,9 @@ function clearErrors() {
 function setValue(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await SupaAuth.requireAuth();
+  if (!user) return;
   initForm();
 
   document.querySelectorAll('.type-btn').forEach(btn => {

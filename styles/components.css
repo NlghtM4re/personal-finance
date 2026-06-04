@@ -9,11 +9,7 @@
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
   padding: 20px;
-  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
-}
-
-.card:hover {
-  box-shadow: var(--shadow-md);
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .card-header {
@@ -24,7 +20,7 @@
 }
 
 .card-title {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-text);
 }
@@ -34,15 +30,16 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 18px;
+  padding: 9px 16px;
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   border: none;
   transition: background var(--transition), opacity var(--transition), box-shadow var(--transition);
   text-decoration: none;
   white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .btn--primary {
@@ -51,25 +48,25 @@
 }
 .btn--primary:hover {
   background: var(--color-primary-dark);
-  box-shadow: 0 4px 12px rgba(99,102,241,.35);
+  box-shadow: 0 2px 8px rgba(79,70,229,.3);
   text-decoration: none;
   color: #ffffff;
 }
 
 .btn--secondary {
-  background: var(--color-surface-2);
+  background: var(--color-surface);
   color: var(--color-text);
   border: 1px solid var(--color-border);
 }
 .btn--secondary:hover {
-  background: var(--color-border);
+  background: var(--color-surface-2);
   text-decoration: none;
 }
 
 .btn--danger {
   background: var(--color-expense-light);
   color: var(--color-expense);
-  border: 1px solid var(--color-expense);
+  border: 1px solid transparent;
 }
 .btn--danger:hover {
   background: var(--color-expense);
@@ -96,7 +93,7 @@
 .btn--full { width: 100%; justify-content: center; }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -113,7 +110,7 @@
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .form-label {
@@ -124,8 +121,8 @@
 
 .form-control {
   width: 100%;
-  padding: 10px 14px;
-  border: 1.5px solid var(--color-border);
+  padding: 9px 13px;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);
@@ -136,63 +133,57 @@
 
 .form-control:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.1);
 }
 
 .form-control::placeholder { color: var(--color-text-light); }
 
 .form-control--error { border-color: var(--color-expense); }
-.form-control--error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,.12); }
+.form-control--error:focus { box-shadow: 0 0 0 3px rgba(220,38,38,.1); }
 
 .form-error {
   font-size: 0.75rem;
   color: var(--color-expense);
-  margin-top: 2px;
 }
 
 .form-hint {
   font-size: 0.75rem;
   color: var(--color-text-light);
-  margin-top: 2px;
 }
 
 /* Amount input with currency prefix */
-.input-with-prefix {
-  position: relative;
-}
+.input-with-prefix { position: relative; }
 .input-prefix {
   position: absolute;
-  left: 14px;
+  left: 13px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-text-muted);
   font-weight: 600;
   pointer-events: none;
 }
-.input-with-prefix .form-control {
-  padding-left: 28px;
-}
+.input-with-prefix .form-control { padding-left: 26px; }
 
 /* Select */
 select.form-control {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
-  padding-right: 36px;
+  padding-right: 34px;
   cursor: pointer;
 }
 
 .select--sm {
-  padding: 5px 30px 5px 10px;
-  border: 1.5px solid var(--color-border);
+  padding: 5px 28px 5px 10px;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);
   font-size: 0.8125rem;
   font-weight: 500;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
   cursor: pointer;
@@ -204,39 +195,42 @@ select.form-control {
 /* Type toggle (Income / Expense / Transfer) */
 .type-toggle {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .type-btn {
   flex: 1;
-  padding: 10px;
+  padding: 9px;
   border-radius: var(--radius-sm);
-  border: 2px solid var(--color-border);
+  border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-muted);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 500;
   text-align: center;
   cursor: pointer;
   transition: all var(--transition);
 }
 
-.type-btn:hover { border-color: var(--color-text-light); }
+.type-btn:hover { border-color: var(--color-text-light); color: var(--color-text); }
 
 .type-btn.active[data-type="income"] {
   border-color: var(--color-income);
   background: var(--color-income-light);
   color: var(--color-income);
+  font-weight: 600;
 }
 .type-btn.active[data-type="expense"] {
   border-color: var(--color-expense);
   background: var(--color-expense-light);
   color: var(--color-expense);
+  font-weight: 600;
 }
 .type-btn.active[data-type="transfer"] {
   border-color: var(--color-transfer);
   background: var(--color-transfer-light);
   color: var(--color-transfer);
+  font-weight: 600;
 }
 
 /* --- Badge --- */
@@ -244,10 +238,10 @@ select.form-control {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 2px 8px;
   border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .badge--income   { background: var(--color-income-light);   color: var(--color-income); }
@@ -260,20 +254,20 @@ select.form-control {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
+  padding: 11px 0;
+  border-bottom: 1px solid var(--color-border-light);
   transition: background var(--transition);
 }
-.tx-item:last-child { border-bottom: none; padding-bottom: 0; }
+.tx-item:last-child  { border-bottom: none; padding-bottom: 0; }
 .tx-item:first-child { padding-top: 0; }
 
 .tx-icon {
-  width: 40px; height: 40px;
+  width: 38px; height: 38px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1rem;
   flex-shrink: 0;
 }
 .tx-icon--income   { background: var(--color-income-light); }
@@ -292,12 +286,12 @@ select.form-control {
 .tx-meta {
   font-size: 0.75rem;
   color: var(--color-text-muted);
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .tx-amount {
   font-size: 0.9375rem;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 .tx-amount--income   { color: var(--color-income); }
@@ -309,26 +303,26 @@ select.form-control {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border);
+  padding: 11px 0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 .account-item:last-child { border-bottom: none; padding-bottom: 0; }
 .account-item:first-child { padding-top: 0; }
 
 .account-dot {
-  width: 12px; height: 12px;
+  width: 10px; height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.account-info { flex: 1; }
-.account-name { font-size: 0.875rem; font-weight: 500; }
-.account-type { font-size: 0.75rem; color: var(--color-text-muted); }
-.account-balance { font-size: 0.9375rem; font-weight: 700; }
+.account-info    { flex: 1; }
+.account-name    { font-size: 0.875rem; font-weight: 500; }
+.account-type    { font-size: 0.75rem; color: var(--color-text-muted); }
+.account-balance { font-size: 0.9375rem; font-weight: 600; }
 
 /* --- Filter bar --- */
 .filter-bar {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   align-items: center;
 }
@@ -340,23 +334,22 @@ select.form-control {
 }
 .search-input .search-icon {
   position: absolute;
-  left: 12px;
+  left: 11px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-text-muted);
-  font-size: 1rem;
+  font-size: 0.875rem;
   pointer-events: none;
 }
-.search-input .form-control {
-  padding-left: 36px;
-}
+.search-input .form-control { padding-left: 34px; }
 
 /* --- Empty state --- */
 .empty-state {
-  padding: 32px;
+  padding: 40px 24px;
   text-align: center;
   color: var(--color-text-muted);
   font-size: 0.875rem;
+  line-height: 1.7;
 }
 .empty-state a { color: var(--color-primary); }
 
@@ -364,7 +357,7 @@ select.form-control {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.5);
+  background: rgba(0,0,0,.45);
   z-index: 500;
   display: flex;
   align-items: center;
@@ -382,11 +375,11 @@ select.form-control {
 .modal {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
-  padding: 28px;
+  padding: 24px;
   width: 100%;
-  max-width: 440px;
+  max-width: 420px;
   box-shadow: var(--shadow-lg);
-  transform: translateY(16px);
+  transform: translateY(12px);
   transition: transform var(--transition);
 }
 .modal-overlay.open .modal { transform: translateY(0); }
@@ -395,17 +388,17 @@ select.form-control {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 .modal-title {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 .modal-close {
-  width: 32px; height: 32px;
+  width: 30px; height: 30px;
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
-  font-size: 1.1rem;
+  font-size: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -414,31 +407,32 @@ select.form-control {
 .modal-close:hover { background: var(--color-surface-2); }
 .modal-footer {
   display: flex;
-  gap: 10px;
-  margin-top: 24px;
+  gap: 8px;
+  margin-top: 20px;
   justify-content: flex-end;
 }
 
 /* --- Toast notification --- */
 .toast-container {
   position: fixed;
-  bottom: 80px;
+  bottom: 76px;
   right: 20px;
   z-index: 600;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .toast {
   background: var(--color-text);
   color: var(--color-surface);
-  padding: 12px 16px;
+  padding: 10px 16px;
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
   font-weight: 500;
   box-shadow: var(--shadow-lg);
-  animation: slideIn 0.3s ease;
+  animation: slideIn 0.2s ease;
+  max-width: 280px;
 }
 .toast--success { background: var(--color-income); }
 .toast--error   { background: var(--color-expense); }
@@ -456,24 +450,19 @@ select.form-control {
     min-width: 44px;
   }
   .tx-action-btn {
-    width: 44px;
-    height: 44px;
+    width: 44px; height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  .category-btn {
-    padding: 12px 8px;
-  }
-  select.form-control, input.form-control {
-    min-height: 44px;
-  }
+  .category-btn { padding: 12px 8px; }
+  select.form-control, input.form-control { min-height: 44px; }
 }
 
 /* --- Loader / Skeleton --- */
 .spinner {
-  width: 24px; height: 24px;
-  border: 3px solid var(--color-border);
+  width: 22px; height: 22px;
+  border: 2px solid var(--color-border);
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -498,9 +487,9 @@ select.form-control {
   100% { background-position: -200% 0; }
 }
 
-.skeleton-text  { height: 14px; margin-bottom: 8px; }
-.skeleton-title { height: 28px; margin-bottom: 6px; }
-.skeleton-card  { height: 80px; border-radius: var(--radius-md); }
+.skeleton-text  { height: 13px; margin-bottom: 8px; }
+.skeleton-title { height: 26px; margin-bottom: 6px; }
+.skeleton-card  { height: 76px; border-radius: var(--radius-md); }
 
 /* Loading button state */
 .btn--loading {
@@ -511,10 +500,10 @@ select.form-control {
 .btn--loading::after {
   content: '';
   position: absolute;
-  width: 16px; height: 16px;
+  width: 14px; height: 14px;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  border: 2px solid rgba(255,255,255,.4);
+  border: 2px solid rgba(255,255,255,.3);
   border-top-color: #ffffff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;

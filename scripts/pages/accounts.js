@@ -102,7 +102,9 @@ async function deleteAccount(id) {
 function setValue(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
 function capitalize(str)   { return str ? str[0].toUpperCase() + str.slice(1) : ''; }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await SupaAuth.requireAuth();
+  if (!user) return;
   initAccounts();
 
   document.getElementById('accForm')?.addEventListener('submit', async e => {

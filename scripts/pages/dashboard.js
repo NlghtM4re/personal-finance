@@ -161,7 +161,9 @@ function txItemHTML(t, cat) {
 function capitalize(str) { return str ? str[0].toUpperCase() + str.slice(1) : ''; }
 function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await SupaAuth.requireAuth();
+  if (!user) return;
   initDashboard();
   document.getElementById('balanceChartRange')?.addEventListener('change', initDashboard);
   document.getElementById('monthlyYear')?.addEventListener('change', initDashboard);

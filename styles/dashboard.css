@@ -6,41 +6,25 @@
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 14px;
 }
 
 .summary-card {
-  padding: 20px;
-  position: relative;
-  overflow: hidden;
+  padding: 18px 20px;
   cursor: default;
 }
 
-.summary-card::before {
-  content: '';
-  position: absolute;
-  top: -20px; right: -20px;
-  width: 80px; height: 80px;
-  border-radius: 50%;
-  opacity: 0.08;
-}
-
-.summary-card--balance::before  { background: var(--color-primary); }
-.summary-card--income::before   { background: var(--color-income);  }
-.summary-card--expense::before  { background: var(--color-expense); }
-.summary-card--savings::before  { background: var(--color-transfer);}
-
 .summary-card__label {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .summary-card__amount {
-  font-size: 1.75rem;
+  font-size: 1.625rem;
   font-weight: 700;
   color: var(--color-text);
   line-height: 1;
@@ -48,38 +32,39 @@
   letter-spacing: -0.02em;
 }
 
-.summary-card--balance  .summary-card__amount { color: var(--color-primary); }
-.summary-card--income   .summary-card__amount { color: var(--color-income);  }
-.summary-card--expense  .summary-card__amount { color: var(--color-expense); }
+.summary-card--balance .summary-card__amount { color: var(--color-primary); }
+.summary-card--income  .summary-card__amount { color: var(--color-income);  }
+.summary-card--expense .summary-card__amount { color: var(--color-expense); }
 
 .summary-card__sub {
   font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
+/* Thin left accent bar per card type */
+.summary-card--balance { border-left: 3px solid var(--color-primary); }
+.summary-card--income  { border-left: 3px solid var(--color-income);  }
+.summary-card--expense { border-left: 3px solid var(--color-expense); }
+.summary-card--savings { border-left: 3px solid var(--color-transfer);}
+
 /* --- Charts row --- */
 .charts-row {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 16px;
+  grid-template-columns: 1fr 320px;
+  gap: 14px;
 }
 
-.chart-card {
-  padding: 20px;
-}
-
-.chart-card--full {
-  width: 100%;
-}
+.chart-card { padding: 20px; }
+.chart-card--full { width: 100%; }
 
 .chart-container {
   position: relative;
-  height: 220px;
+  height: 210px;
   width: 100%;
 }
 
 .chart-container--donut {
-  height: 180px;
+  height: 170px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -95,7 +80,6 @@
   padding: 16px;
   color: var(--color-text-muted);
   font-size: 0.8125rem;
-  background: var(--color-surface);
   border-radius: var(--radius-sm);
 }
 .chart-empty[hidden] { display: none; }
@@ -104,8 +88,8 @@
 .legend {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 12px;
+  gap: 7px;
+  margin-top: 14px;
 }
 
 .legend-item {
@@ -117,7 +101,7 @@
 }
 
 .legend-dot {
-  width: 10px; height: 10px;
+  width: 8px; height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -133,51 +117,35 @@
 
 .legend-amount {
   color: var(--color-text-muted);
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
+  font-size: 0.8125rem;
 }
 
 /* --- Bottom row --- */
 .bottom-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 14px;
 }
 
 /* --- Responsive --- */
 @media (max-width: 1200px) {
-  .summary-cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .charts-row {
-    grid-template-columns: 1fr;
-  }
+  .summary-cards { grid-template-columns: repeat(2, 1fr); }
+  .charts-row    { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
   .summary-cards {
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 10px;
   }
-  .summary-card__amount {
-    font-size: 1.375rem;
-  }
-  .charts-row {
-    grid-template-columns: 1fr;
-  }
-  .bottom-row {
-    grid-template-columns: 1fr;
-  }
+  .summary-card__amount { font-size: 1.25rem; }
+  .charts-row    { grid-template-columns: 1fr; }
+  .bottom-row    { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {
-  .summary-cards {
-    grid-template-columns: 1fr 1fr;
-  }
-  .summary-card {
-    padding: 14px;
-  }
-  .summary-card__amount {
-    font-size: 1.1rem;
-  }
+  .summary-card { padding: 14px 16px; }
+  .summary-card__amount { font-size: 1.1rem; }
 }
