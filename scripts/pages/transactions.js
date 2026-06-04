@@ -140,7 +140,12 @@ function setText(id, text) { const el = document.getElementById(id); if (el) el.
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
-  initTransactions();
+  try {
+    await initTransactions();
+  } catch (err) {
+    console.error('Transactions error:', err);
+    document.getElementById('txListFull').innerHTML = `<div class="empty-state" style="color:var(--color-expense)">Error: ${err.message}</div>`;
+  }
 
   document.getElementById('searchInput')?.addEventListener('input', e => {
     currentFilters.search = e.target.value; currentPage = 1;

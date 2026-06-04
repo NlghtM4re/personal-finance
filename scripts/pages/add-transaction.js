@@ -105,7 +105,12 @@ function todayISO() { return new Date().toISOString().slice(0, 10); }
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
-  initForm();
+  try {
+    await initForm();
+  } catch (err) {
+    console.error('Form error:', err);
+    showToast('Error loading form: ' + err.message, 'error');
+  }
 
   document.querySelectorAll('.type-btn').forEach(btn => {
     btn.addEventListener('click', () => setType(btn.dataset.type));

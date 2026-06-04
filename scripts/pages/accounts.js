@@ -105,7 +105,12 @@ function capitalize(str)   { return str ? str[0].toUpperCase() + str.slice(1) : 
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
-  initAccounts();
+  try {
+    await initAccounts();
+  } catch (err) {
+    console.error('Accounts error:', err);
+    document.getElementById('accountsGrid').innerHTML = `<div class="empty-state" style="color:var(--color-expense)">Error: ${err.message}</div>`;
+  }
 
   document.getElementById('accForm')?.addEventListener('submit', async e => {
     e.preventDefault();

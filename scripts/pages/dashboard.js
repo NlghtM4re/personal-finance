@@ -164,7 +164,13 @@ function setText(id, text) { const el = document.getElementById(id); if (el) el.
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
-  initDashboard();
-  document.getElementById('balanceChartRange')?.addEventListener('change', initDashboard);
-  document.getElementById('monthlyYear')?.addEventListener('change', initDashboard);
+  try {
+    await initDashboard();
+  } catch (err) {
+    console.error('Dashboard error:', err);
+    showToast('Error loading data: ' + err.message, 'error');
+    ['totalBalance','monthIncome','monthExpense','monthNet'].forEach(id => setText(id, '—'));
+  }
+  document.getElementById('balanceChartRange')?.addEventListener('change', () => initDashboard().catch(console.error));
+  document.getElementById('monthlyYear')?.addEventListener('change', () => initDashboard().catch(console.error));
 });
