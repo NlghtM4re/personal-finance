@@ -1,25 +1,28 @@
 /* ============================================================
    MAIN.CSS — Design tokens, reset, base typography
-   Default theme: dark
+   Font: IBM Plex Sans (financial, trustworthy)
+   Default theme: dark (OLED)
    ============================================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
 :root {
-  /* --- Dark palette (default) --- */
-  --color-bg:           #080808;
-  --color-surface:      #111111;
-  --color-surface-2:    #1a1a1a;
-  --color-border:       #242424;
-  --color-border-light: #1c1c1c;
-  --color-text:         #f0f0f0;
-  --color-text-muted:   #777777;
-  --color-text-light:   #444444;
+  /* --- Dark palette (OLED default) --- */
+  --color-bg:           #020617;
+  --color-surface:      #0f172a;
+  --color-surface-2:    #1e293b;
+  --color-border:       #1e293b;
+  --color-border-light: #0f172a;
+  --color-text:         #f8fafc;
+  --color-text-muted:   #64748b;
+  --color-text-light:   #334155;
 
   /* Sidebar */
-  --color-sidebar-bg:          #000000;
-  --color-sidebar-border:      #181818;
-  --color-sidebar-text:        #555555;
-  --color-sidebar-active-bg:   #141414;
-  --color-sidebar-active-text: #ffffff;
+  --color-sidebar-bg:          #080f1e;
+  --color-sidebar-border:      #1e293b;
+  --color-sidebar-text:        #475569;
+  --color-sidebar-active-bg:   rgba(59,130,246,.1);
+  --color-sidebar-active-text: #93c5fd;
 
   /* Brand */
   --color-primary:       #3b82f6;
@@ -35,38 +38,43 @@
   --color-transfer-light:rgba(245,158,11,.12);
 
   /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(0,0,0,.5);
-  --shadow-md:  0 4px 20px rgba(0,0,0,.6);
-  --shadow-lg:  0 12px 48px rgba(0,0,0,.8);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.6);
+  --shadow-md:  0 4px 24px rgba(0,0,0,.7);
+  --shadow-lg:  0 12px 48px rgba(0,0,0,.9);
+
+  /* Glow accents */
+  --glow-primary:  0 0 20px rgba(59,130,246,.2);
+  --glow-income:   0 0 20px rgba(34,197,94,.2);
+  --glow-expense:  0 0 20px rgba(239,68,68,.2);
 
   /* Layout */
-  --sidebar-width:     240px;
+  --sidebar-width:     248px;
   --topbar-height:     56px;
-  --bottom-nav-height: 60px;
+  --bottom-nav-height: 64px;
   --radius-sm:  6px;
   --radius-md:  10px;
   --radius-lg:  14px;
   --radius-xl:  20px;
 
   /* Transitions */
-  --transition: 0.15s ease;
+  --transition:      0.15s ease;
   --transition-slow: 0.3s ease;
 }
 
 /* --- Light mode override --- */
 [data-theme="light"] {
-  --color-bg:           #f7f8fa;
+  --color-bg:           #f0f4f8;
   --color-surface:      #ffffff;
-  --color-surface-2:    #f3f4f6;
-  --color-border:       #e5e7eb;
-  --color-border-light: #f0f1f3;
-  --color-text:         #111827;
-  --color-text-muted:   #6b7280;
-  --color-text-light:   #9ca3af;
+  --color-surface-2:    #f8fafc;
+  --color-border:       #e2e8f0;
+  --color-border-light: #f1f5f9;
+  --color-text:         #0f172a;
+  --color-text-muted:   #475569;
+  --color-text-light:   #94a3b8;
 
   --color-sidebar-bg:          #ffffff;
-  --color-sidebar-border:      #e5e7eb;
-  --color-sidebar-text:        #6b7280;
+  --color-sidebar-border:      #e2e8f0;
+  --color-sidebar-text:        #64748b;
   --color-sidebar-active-bg:   #eff6ff;
   --color-sidebar-active-text: #2563eb;
 
@@ -75,9 +83,13 @@
   --color-expense-light: #fee2e2;
   --color-transfer-light:#fef3c7;
 
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,.06);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,.10);
+  --glow-primary:  0 0 0 rgba(59,130,246,0);
+  --glow-income:   0 0 0 rgba(34,197,94,0);
+  --glow-expense:  0 0 0 rgba(239,68,68,0);
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.03);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.04);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.06);
 }
 
 /* --- Reset --- */
@@ -86,26 +98,16 @@
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
   line-height: 1.6;
   color: var(--color-text);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   transition: background var(--transition-slow), color var(--transition-slow);
-  animation: pageIn 0.22s ease both;
 }
 
-@keyframes pageIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-body.page-exit {
-  opacity: 0;
-  transform: translateY(-4px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
 
 a { color: var(--color-primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -118,9 +120,9 @@ ul, ol { list-style: none; }
 img    { max-width: 100%; display: block; }
 
 /* --- Typography --- */
-h1 { font-size: 1.5rem;    font-weight: 700; letter-spacing: -0.02em; }
-h2 { font-size: 1.125rem;  font-weight: 600; letter-spacing: -0.01em; }
-h3 { font-size: 0.9375rem; font-weight: 600; }
+h1 { font-size: 1.5rem;    font-weight: 700; letter-spacing: -0.03em; }
+h2 { font-size: 1.125rem;  font-weight: 600; letter-spacing: -0.02em; }
+h3 { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
 
 .text-muted   { color: var(--color-text-muted); }
 .text-light   { color: var(--color-text-light); }

@@ -7,10 +7,10 @@
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; flex-wrap: wrap;
 }
-.transactions-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.transactions-stats { display: flex; gap: 8px; flex-wrap: wrap; }
 .stat-chip {
   display: flex; align-items: center; gap: 5px;
-  padding: 5px 10px; border-radius: 999px;
+  padding: 5px 11px; border-radius: 999px;
   font-size: 0.8125rem; font-weight: 500;
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
@@ -22,6 +22,7 @@
 /* Transaction list */
 .tx-list-full { display: flex; flex-direction: column; }
 .tx-list-full .tx-item { padding: 13px 0; cursor: pointer; }
+.tx-list-full .tx-item:hover { background: transparent; }
 .tx-list-full .tx-item:hover .tx-name { color: var(--color-primary); }
 
 .tx-actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
@@ -31,8 +32,10 @@
   width: 28px; height: 28px;
   border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.875rem; color: var(--color-text-muted);
+  color: var(--color-text-muted);
   transition: background var(--transition), color var(--transition);
+  cursor: pointer;
+  line-height: 0;
 }
 .tx-action-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
 .tx-action-btn--delete:hover { background: var(--color-expense-light); color: var(--color-expense); }
@@ -66,7 +69,7 @@
 .page-btn:hover, .page-btn.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
 .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* --- Accounts --- */
+/* --- Accounts grid --- */
 .accounts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -74,26 +77,26 @@
 }
 
 .account-card {
-  padding: 18px 20px; border-radius: var(--radius-md);
+  padding: 20px; border-radius: var(--radius-lg);
   position: relative; overflow: hidden; cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition);
 }
 .account-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 
 .account-card__stripe { position: absolute; top: 0; left: 0; width: 3px; height: 100%; }
-.account-card__header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
-.account-card__name   { font-size: 0.9375rem; font-weight: 600; }
+.account-card__header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+.account-card__name   { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
 .account-card__type   { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px; }
 .account-card__actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
 .account-card:hover .account-card__actions { opacity: 1; }
-.account-card__balance-label { font-size: 0.6875rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 3px; }
-.account-card__balance { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+.account-card__balance-label { font-size: 0.6875rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+.account-card__balance { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.03em; }
 
 .account-card--add {
   border: 1.5px dashed var(--color-border);
   display: flex; align-items: center; justify-content: center;
-  flex-direction: column; gap: 6px;
-  color: var(--color-text-muted); min-height: 130px; cursor: pointer;
+  flex-direction: column; gap: 8px;
+  color: var(--color-text-muted); min-height: 140px; cursor: pointer;
   transition: border-color var(--transition), color var(--transition), background var(--transition);
 }
 .account-card--add:hover {
@@ -102,7 +105,7 @@
   background: var(--color-primary-light);
   transform: none; box-shadow: none;
 }
-.account-card--add .add-icon { font-size: 1.75rem; line-height: 1; }
+.account-card--add .add-icon { line-height: 0; }
 .account-card--add span      { font-size: 0.875rem; font-weight: 500; }
 
 /* --- Add transaction form --- */
@@ -142,6 +145,17 @@
 }
 
 /* --- Settings page --- */
+.settings-user-avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-primary);
+  flex-shrink: 0;
+  line-height: 0;
+}
+
 .status-banner {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 16px; border-radius: var(--radius-md);
