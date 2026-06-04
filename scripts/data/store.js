@@ -1,161 +1,172 @@
 /* ============================================================
-   store.js — localStorage CRUD for all data entities
+   store.js — Data layer
+   Uses backend API when FINTRACK_API is configured,
+   falls back to localStorage for offline / local use.
    ============================================================ */
 
-const KEYS = {
-  transactions: 'ft_transactions',
-  accounts:     'ft_accounts',
-  categories:   'ft_categories',
-};
-
-/* --- Helpers --- */
-function load(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key)) || [];
-  } catch {
-    return [];
-  }
-}
-
-function save(key, data) {
-  localStorage.setItem(key, JSON.stringify(data));
-}
-
+/* ---- Shared helpers ---- */
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+function currentMonthRange() {
+  const now  = new Date();
+  const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  return { from, to: todayISO() };
+}
+
+/* ---- localStorage helpers (offline fallback) ---- */
+const LS = {
+  load(key)       { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } },
+  save(key, data) { localStorage.setItem(key, JSON.stringify(data)); },
+};
+const KEYS = { transactions: 'ft_transactions', accounts: 'ft_accounts', categories: 'ft_categories' };
 
 /* ============================================================
-   TRANSACTIONS
+   TRANSACTION STORE
    ============================================================ */
 const TransactionStore = {
-  getAll() {
-    return load(KEYS.transactions);
+
+  async getAll() {
+    if (API.isConfigured()) return API.get('/transactions');
+    return LS.load(KEYS.transactions).sort((a, b) => b.date.localeCompare(a.date));
   },
 
-  getById(id) {
-    return this.getAll().find(t => t.id === id) || null;
+  async getById(id) {
+    if (API.isConfigured()) return API.get(`/transactions/${id}`);
+    return LS.load(KEYS.transactions).find(t => t.id === id) || null;
   },
 
-  add(data) {
+  async add(data) {
+    if (API.isConfigured()) return API.post('/transactions', data);
     const tx = {
-      id:          uid(),
-      date:        data.date        || new Date().toISOString().slice(0, 10),
-      amount:      Math.abs(Number(data.amount)),
-      type:        data.type        || 'expense',
-      categoryId:  data.categoryId  || '',
-      accountId:   data.accountId   || '',
-      toAccountId: data.toAccountId || null,
-      note:        data.note        || '',
-      tags:        data.tags        || [],
-      createdAt:   new Date().toISOString(),
+      id: uid(), date: data.date || todayISO(),
+      amount: Math.abs(Number(data.amount)), type: data.type || 'expense',
+      categoryId: data.categoryId || '', accountId: data.accountId || '',
+      toAccountId: data.toAccountId || null, note: data.note || '',
+      tags: data.tags || [], createdAt: new Date().toISOString(),
     };
-    const all = this.getAll();
+    const all = LS.load(KEYS.transactions);
     all.push(tx);
-    save(KEYS.transactions, all);
+    LS.save(KEYS.transactions, all);
     return tx;
   },
 
-  update(id, data) {
-    const all = this.getAll();
+  async update(id, data) {
+    if (API.isConfigured()) return API.put(`/transactions/${id}`, data);
+    const all = LS.load(KEYS.transactions);
     const idx = all.findIndex(t => t.id === id);
     if (idx === -1) return null;
     all[idx] = { ...all[idx], ...data, id, updatedAt: new Date().toISOString() };
-    save(KEYS.transactions, all);
+    LS.save(KEYS.transactions, all);
     return all[idx];
   },
 
-  delete(id) {
-    const all = this.getAll().filter(t => t.id !== id);
-    save(KEYS.transactions, all);
+  async delete(id) {
+    if (API.isConfigured()) return API.delete(`/transactions/${id}`);
+    LS.save(KEYS.transactions, LS.load(KEYS.transactions).filter(t => t.id !== id));
   },
 
-  /* Filter helpers */
-  query({ from, to, categoryId, accountId, type, search } = {}) {
-    let list = this.getAll();
+  async query({ from, to, categoryId, accountId, type, search } = {}) {
+    if (API.isConfigured()) {
+      const params = new URLSearchParams();
+      if (from)       params.set('from', from);
+      if (to)         params.set('to', to);
+      if (categoryId) params.set('categoryId', categoryId);
+      if (accountId)  params.set('accountId', accountId);
+      if (type)       params.set('type', type);
+      if (search)     params.set('search', search);
+      return API.get(`/transactions?${params}`);
+    }
+    let list = LS.load(KEYS.transactions);
     if (from)       list = list.filter(t => t.date >= from);
     if (to)         list = list.filter(t => t.date <= to);
     if (categoryId) list = list.filter(t => t.categoryId === categoryId);
     if (accountId)  list = list.filter(t => t.accountId === accountId || t.toAccountId === accountId);
     if (type)       list = list.filter(t => t.type === type);
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(t => t.note.toLowerCase().includes(q));
-    }
+    if (search)     list = list.filter(t => t.note.toLowerCase().includes(search.toLowerCase()));
     return list.sort((a, b) => b.date.localeCompare(a.date));
   },
 
-  thisMonth() {
-    const now  = new Date();
-    const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    const to   = new Date().toISOString().slice(0, 10);
+  async thisMonth() {
+    const { from, to } = currentMonthRange();
     return this.query({ from, to });
   },
 };
 
 /* ============================================================
-   ACCOUNTS
+   ACCOUNT STORE
    ============================================================ */
 const AccountStore = {
-  getAll() {
-    return load(KEYS.accounts);
+
+  async getAll() {
+    if (API.isConfigured()) return API.get('/accounts');
+    return LS.load(KEYS.accounts);
   },
 
-  getById(id) {
-    return this.getAll().find(a => a.id === id) || null;
+  async getById(id) {
+    if (API.isConfigured()) return API.get(`/accounts/${id}`);
+    return LS.load(KEYS.accounts).find(a => a.id === id) || null;
   },
 
-  add(data) {
+  async add(data) {
+    if (API.isConfigured()) return API.post('/accounts', data);
     const account = {
-      id:             uid(),
-      name:           data.name           || 'Account',
-      type:           data.type           || 'bank',
-      initialBalance: Number(data.initialBalance) || 0,
-      color:          data.color          || '#6366f1',
-      createdAt:      new Date().toISOString(),
+      id: uid(), name: data.name || 'Account', type: data.type || 'bank',
+      initialBalance: Number(data.initialBalance) || 0, color: data.color || '#6366f1',
+      createdAt: new Date().toISOString(),
     };
-    const all = this.getAll();
+    const all = LS.load(KEYS.accounts);
     all.push(account);
-    save(KEYS.accounts, all);
+    LS.save(KEYS.accounts, all);
     return account;
   },
 
-  update(id, data) {
-    const all = this.getAll();
+  async update(id, data) {
+    if (API.isConfigured()) return API.put(`/accounts/${id}`, data);
+    const all = LS.load(KEYS.accounts);
     const idx = all.findIndex(a => a.id === id);
     if (idx === -1) return null;
     all[idx] = { ...all[idx], ...data, id };
-    save(KEYS.accounts, all);
+    LS.save(KEYS.accounts, all);
     return all[idx];
   },
 
-  delete(id) {
-    const all = this.getAll().filter(a => a.id !== id);
-    save(KEYS.accounts, all);
+  async delete(id) {
+    if (API.isConfigured()) return API.delete(`/accounts/${id}`);
+    LS.save(KEYS.accounts, LS.load(KEYS.accounts).filter(a => a.id !== id));
   },
 
-  getBalance(accountId) {
-    const account = this.getById(accountId);
+  async getBalance(accountId) {
+    if (API.isConfigured()) {
+      const { balance } = await API.get(`/accounts/${accountId}/balance`);
+      return balance;
+    }
+    const account = LS.load(KEYS.accounts).find(a => a.id === accountId);
     if (!account) return 0;
-    const txs = TransactionStore.getAll().filter(
+    const txs = LS.load(KEYS.transactions).filter(
       t => t.accountId === accountId || t.toAccountId === accountId
     );
     return txs.reduce((bal, t) => {
-      if (t.type === 'income'   && t.accountId === accountId) return bal + t.amount;
-      if (t.type === 'expense'  && t.accountId === accountId) return bal - t.amount;
-      if (t.type === 'transfer' && t.accountId === accountId) return bal - t.amount;
-      if (t.type === 'transfer' && t.toAccountId === accountId) return bal + t.amount;
+      if (t.type === 'income'   && t.accountId    === accountId) return bal + t.amount;
+      if (t.type === 'expense'  && t.accountId    === accountId) return bal - t.amount;
+      if (t.type === 'transfer' && t.accountId    === accountId) return bal - t.amount;
+      if (t.type === 'transfer' && t.toAccountId  === accountId) return bal + t.amount;
       return bal;
     }, account.initialBalance);
   },
 
-  getTotalBalance() {
-    return this.getAll().reduce((sum, a) => sum + this.getBalance(a.id), 0);
+  async getTotalBalance() {
+    const accounts = await this.getAll();
+    const balances = await Promise.all(accounts.map(a => this.getBalance(a.id)));
+    return balances.reduce((s, b) => s + b, 0);
   },
 };
 
 /* ============================================================
-   CATEGORIES
+   CATEGORY STORE
    ============================================================ */
 const DEFAULT_CATEGORIES = [
   { id: 'cat-salary',     name: 'Salary',      icon: '💼', type: 'income'  },
@@ -175,73 +186,56 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const CategoryStore = {
-  getAll() {
-    const custom = load(KEYS.categories);
+  _cache: null,
+
+  async getAll() {
+    if (API.isConfigured()) {
+      if (!this._cache) this._cache = await API.get('/categories');
+      return this._cache;
+    }
+    const custom = LS.load(KEYS.categories);
     const merged = [...DEFAULT_CATEGORIES];
-    custom.forEach(c => {
-      if (!merged.find(d => d.id === c.id)) merged.push(c);
-    });
+    custom.forEach(c => { if (!merged.find(d => d.id === c.id)) merged.push(c); });
     return merged;
   },
 
-  getById(id) {
-    return this.getAll().find(c => c.id === id) || null;
+  async getById(id) {
+    const all = await this.getAll();
+    return all.find(c => c.id === id) || null;
   },
 
-  getByType(type) {
-    return this.getAll().filter(c => c.type === type || c.type === 'both');
+  async getByType(type) {
+    const all = await this.getAll();
+    return all.filter(c => c.type === type || c.type === 'both');
   },
 
-  addCustom(data) {
-    const custom = load(KEYS.categories);
-    const cat = {
-      id:   uid(),
-      name: data.name || 'Custom',
-      icon: data.icon || '📦',
-      type: data.type || 'expense',
-    };
-    custom.push(cat);
-    save(KEYS.categories, custom);
-    return cat;
-  },
+  invalidateCache() { this._cache = null; },
 };
 
 /* ============================================================
-   FORMAT HELPERS (shared across pages)
+   FORMAT HELPERS
    ============================================================ */
-function formatCurrency(amount, sign = '') {
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD', minimumFractionDigits: 2,
   }).format(Math.abs(amount));
-  return sign + formatted;
 }
 
 function formatDate(isoDate) {
   if (!isoDate) return '';
-  const d = new Date(isoDate + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(isoDate + 'T00:00:00').toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  });
 }
 
 function formatDateShort(isoDate) {
   if (!isoDate) return '';
-  const d = new Date(isoDate + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(isoDate + 'T00:00:00').toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric',
+  });
 }
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function currentMonthRange() {
-  const now  = new Date();
-  const from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const to   = todayISO();
-  return { from, to };
-}
-
-/* Toast utility */
+/* Toast notification */
 function showToast(message, type = '') {
   const container = document.getElementById('toastContainer') || (() => {
     const el = document.createElement('div');

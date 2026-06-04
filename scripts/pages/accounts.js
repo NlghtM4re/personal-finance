@@ -1,5 +1,5 @@
 /* ============================================================
-   accounts.js — Accounts page logic
+   accounts.js — Accounts page (async)
    ============================================================ */
 
 const ACCOUNT_COLORS = [
@@ -9,17 +9,18 @@ const ACCOUNT_COLORS = [
 
 let editingAccountId = null;
 
-function initAccounts() {
-  renderAccountsGrid();
+async function initAccounts() {
+  await renderAccountsGrid();
 }
 
-function renderAccountsGrid() {
-  const el = document.getElementById('accountsGrid');
+async function renderAccountsGrid() {
+  const el       = document.getElementById('accountsGrid');
   if (!el) return;
-  const accounts = AccountStore.getAll();
+  const accounts = await AccountStore.getAll();
+  const balances = await Promise.all(accounts.map(a => AccountStore.getBalance(a.id)));
 
-  el.innerHTML = accounts.map(a => {
-    const bal = AccountStore.getBalance(a.id);
+  el.innerHTML = accounts.map((a, i) => {
+    const bal = balances[i];
     return `
       <div class="card account-card" data-id="${a.id}">
         <div class="account-card__stripe" style="background:${a.color}"></div>
@@ -46,7 +47,6 @@ function renderAccountsGrid() {
     </div>
   `;
 
-  /* Attach events */
   document.getElementById('addAccountCard')?.addEventListener('click', () => openAccountModal(null));
   el.querySelectorAll('[data-action="edit-acc"]').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); openAccountModal(btn.dataset.id); });
@@ -56,14 +56,13 @@ function renderAccountsGrid() {
   });
 }
 
-function openAccountModal(id) {
+async function openAccountModal(id) {
   editingAccountId = id || null;
   const modal = document.getElementById('accountModal');
   const title = document.getElementById('accountModalTitle');
   if (!modal) return;
-
   if (id) {
-    const acc = AccountStore.getById(id);
+    const acc = await AccountStore.getById(id);
     if (acc) {
       setValue('accName',    acc.name);
       setValue('accType',    acc.type);
@@ -73,38 +72,32 @@ function openAccountModal(id) {
     if (title) title.textContent = 'Edit Account';
   } else {
     document.getElementById('accForm')?.reset();
-    setValue('accColor', ACCOUNT_COLORS[AccountStore.getAll().length % ACCOUNT_COLORS.length]);
+    const accounts = await AccountStore.getAll();
+    setValue('accColor', ACCOUNT_COLORS[accounts.length % ACCOUNT_COLORS.length]);
     if (title) title.textContent = 'New Account';
   }
-
   modal.classList.add('open');
 }
 
-function deleteAccount(id) {
-  const txCount = TransactionStore.getAll().filter(t => t.accountId === id || t.toAccountId === id).length;
+async function deleteAccount(id) {
+  const allTx   = await TransactionStore.getAll();
+  const txCount = allTx.filter(t => t.accountId === id || t.toAccountId === id).length;
   const msg     = txCount
     ? `This account has ${txCount} transactions. Deleting it will not remove those transactions. Continue?`
     : 'Delete this account?';
-  if (confirm(msg)) {
-    AccountStore.delete(id);
-    renderAccountsGrid();
-    showToast('Account deleted');
-  }
+  if (!confirm(msg)) return;
+  await AccountStore.delete(id);
+  showToast('Account deleted');
+  await renderAccountsGrid();
 }
 
-function setValue(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.value = val;
-}
-
-function capitalize(str) {
-  return str ? str[0].toUpperCase() + str.slice(1) : '';
-}
+function setValue(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
+function capitalize(str)   { return str ? str[0].toUpperCase() + str.slice(1) : ''; }
 
 document.addEventListener('DOMContentLoaded', () => {
   initAccounts();
 
-  document.getElementById('accForm')?.addEventListener('submit', e => {
+  document.getElementById('accForm')?.addEventListener('submit', async e => {
     e.preventDefault();
     const data = {
       name:           document.getElementById('accName').value.trim(),
@@ -113,23 +106,12 @@ document.addEventListener('DOMContentLoaded', () => {
       color:          document.getElementById('accColor').value,
     };
     if (!data.name) return;
-
-    if (editingAccountId) {
-      AccountStore.update(editingAccountId, data);
-      showToast('Account updated', 'success');
-    } else {
-      AccountStore.add(data);
-      showToast('Account created', 'success');
-    }
-
+    if (editingAccountId) { await AccountStore.update(editingAccountId, data); showToast('Account updated', 'success'); }
+    else                  { await AccountStore.add(data);                      showToast('Account created', 'success'); }
     document.getElementById('accountModal')?.classList.remove('open');
-    renderAccountsGrid();
+    await renderAccountsGrid();
   });
 
-  document.getElementById('closeAccountModal')?.addEventListener('click', () => {
-    document.getElementById('accountModal')?.classList.remove('open');
-  });
-  document.getElementById('cancelAccount')?.addEventListener('click', () => {
-    document.getElementById('accountModal')?.classList.remove('open');
-  });
+  document.getElementById('closeAccountModal')?.addEventListener('click', () => document.getElementById('accountModal')?.classList.remove('open'));
+  document.getElementById('cancelAccount')?.addEventListener('click',     () => document.getElementById('accountModal')?.classList.remove('open'));
 });

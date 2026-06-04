@@ -1,50 +1,50 @@
 /* ============================================================
-   add-transaction.js — Add / Edit transaction form logic
+   add-transaction.js — Add / Edit form (async)
    ============================================================ */
 
 let selectedType     = 'expense';
 let selectedCategory = '';
 let editId           = null;
 
-function initForm() {
+async function initForm() {
   const params = new URLSearchParams(window.location.search);
   editId       = params.get('id');
 
-  populateAccountSelect();
-  renderCategoryPicker();
+  await populateAccountSelects();
+  await renderCategoryPicker();
 
   if (editId) {
-    const tx = TransactionStore.getById(editId);
-    if (tx) prefillForm(tx);
-    document.getElementById('formTitle').textContent     = 'Edit Transaction';
-    document.getElementById('submitBtn').textContent     = 'Save Changes';
-    document.getElementById('deleteBtn').style.display   = 'inline-flex';
+    const tx = await TransactionStore.getById(editId);
+    if (tx) await prefillForm(tx);
+    document.getElementById('formTitle').textContent   = 'Edit Transaction';
+    document.getElementById('submitBtn').textContent   = 'Save Changes';
+    document.getElementById('deleteBtn').style.display = 'inline-flex';
   }
 
-  /* Default date to today */
   const dateInput = document.getElementById('txDate');
   if (dateInput && !dateInput.value) dateInput.value = todayISO();
 }
 
-function populateAccountSelect() {
-  const sel = document.getElementById('txAccount');
-  if (!sel) return;
-  const accounts = AccountStore.getAll();
-  if (!accounts.length) {
-    sel.innerHTML = `<option value="">No accounts — create one first</option>`;
-    return;
-  }
-  sel.innerHTML = accounts.map(a =>
-    `<option value="${a.id}">${a.name}</option>`
-  ).join('');
+async function populateAccountSelects() {
+  const accounts = await AccountStore.getAll();
+  const sel      = document.getElementById('txAccount');
+  const toSel    = document.getElementById('txToAccount');
+  const opts     = accounts.length
+    ? accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('')
+    : `<option value="">No accounts — create one first</option>`;
+  if (sel)   sel.innerHTML   = opts;
+  if (toSel) toSel.innerHTML = opts;
+
+  const tip = document.getElementById('noAccountTip');
+  if (tip) tip.style.display = accounts.length ? 'none' : 'block';
 }
 
-function renderCategoryPicker() {
+async function renderCategoryPicker() {
   const container = document.getElementById('categoryPicker');
   if (!container) return;
-  const cats = CategoryStore.getAll().filter(c =>
-    selectedType === 'transfer' ? false : c.type === selectedType || c.type === 'both'
-  );
+  const cats = selectedType === 'transfer'
+    ? []
+    : await CategoryStore.getByType(selectedType);
   container.innerHTML = cats.map(c => `
     <button type="button" class="category-btn${selectedCategory === c.id ? ' selected' : ''}" data-cat="${c.id}">
       <span class="cat-icon">${c.icon}</span>
@@ -52,50 +52,37 @@ function renderCategoryPicker() {
     </button>
   `).join('');
   container.querySelectorAll('.category-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      selectedCategory = btn.dataset.cat;
-      renderCategoryPicker();
-    });
+    btn.addEventListener('click', () => { selectedCategory = btn.dataset.cat; renderCategoryPicker(); });
   });
 }
 
-function prefillForm(tx) {
-  setValue('txAmount',   tx.amount);
-  setValue('txDate',     tx.date);
-  setValue('txNote',     tx.note);
-  setValue('txAccount',  tx.accountId);
-  setValue('txToAccount',tx.toAccountId || '');
-  selectedCategory = tx.categoryId;
+async function prefillForm(tx) {
+  setValue('txAmount',    tx.amount);
+  setValue('txDate',      tx.date);
+  setValue('txNote',      tx.note);
+  setValue('txAccount',   tx.accountId);
+  setValue('txToAccount', tx.toAccountId || '');
+  selectedCategory = tx.categoryId || '';
   setType(tx.type);
 }
 
 function setType(type) {
   selectedType = type;
-  document.querySelectorAll('.type-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.type === type);
-  });
+  document.querySelectorAll('.type-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.type === type));
   const toGroup = document.getElementById('toAccountGroup');
   if (toGroup) toGroup.style.display = type === 'transfer' ? 'flex' : 'none';
   renderCategoryPicker();
 }
 
 function validateForm() {
-  const amount   = parseFloat(document.getElementById('txAmount')?.value);
+  const amount    = parseFloat(document.getElementById('txAmount')?.value);
   const accountId = document.getElementById('txAccount')?.value;
-  let valid = true;
-
   clearErrors();
-  if (!amount || amount <= 0) {
-    showError('txAmount', 'Enter a valid amount greater than 0');
-    valid = false;
-  }
-  if (!accountId) {
-    showError('txAccount', 'Select an account');
-    valid = false;
-  }
+  let valid = true;
+  if (!amount || amount <= 0) { showError('txAmount', 'Enter a valid amount greater than 0'); valid = false; }
+  if (!accountId)             { showError('txAccount', 'Select an account'); valid = false; }
   if (selectedType === 'transfer' && !document.getElementById('txToAccount')?.value) {
-    showError('txToAccount', 'Select a destination account');
-    valid = false;
+    showError('txToAccount', 'Select a destination account'); valid = false;
   }
   return valid;
 }
@@ -105,69 +92,55 @@ function showError(fieldId, message) {
   if (!field) return;
   field.classList.add('form-control--error');
   const err = document.createElement('div');
-  err.className = 'form-error';
-  err.textContent = message;
+  err.className = 'form-error'; err.textContent = message;
   field.parentNode.appendChild(err);
 }
-
 function clearErrors() {
   document.querySelectorAll('.form-control--error').forEach(el => el.classList.remove('form-control--error'));
   document.querySelectorAll('.form-error').forEach(el => el.remove());
 }
-
-function setValue(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.value = val;
-}
+function setValue(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
+function todayISO() { return new Date().toISOString().slice(0, 10); }
 
 document.addEventListener('DOMContentLoaded', () => {
   initForm();
 
-  /* Type toggle buttons */
   document.querySelectorAll('.type-btn').forEach(btn => {
     btn.addEventListener('click', () => setType(btn.dataset.type));
   });
 
-  /* Form submit */
-  document.getElementById('txForm')?.addEventListener('submit', e => {
+  document.getElementById('txForm')?.addEventListener('submit', async e => {
     e.preventDefault();
     if (!validateForm()) return;
-
-    const data = {
-      amount:      parseFloat(document.getElementById('txAmount').value),
-      date:        document.getElementById('txDate').value,
-      note:        document.getElementById('txNote').value.trim(),
-      accountId:   document.getElementById('txAccount').value,
-      toAccountId: document.getElementById('txToAccount')?.value || null,
-      categoryId:  selectedCategory,
-      type:        selectedType,
-      tags:        [],
-    };
-
-    if (editId) {
-      TransactionStore.update(editId, data);
-      showToast('Transaction updated', 'success');
-    } else {
-      TransactionStore.add(data);
-      showToast('Transaction added', 'success');
-    }
-
-    setTimeout(() => {
-      window.location.href = 'transactions.html';
-    }, 500);
-  });
-
-  /* Delete (edit mode) */
-  document.getElementById('deleteBtn')?.addEventListener('click', () => {
-    if (!editId) return;
-    if (confirm('Delete this transaction?')) {
-      TransactionStore.delete(editId);
-      showToast('Transaction deleted', 'success');
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    try {
+      const data = {
+        amount:      parseFloat(document.getElementById('txAmount').value),
+        date:        document.getElementById('txDate').value,
+        note:        document.getElementById('txNote').value.trim(),
+        accountId:   document.getElementById('txAccount').value,
+        toAccountId: document.getElementById('txToAccount')?.value || null,
+        categoryId:  selectedCategory,
+        type:        selectedType,
+        tags:        [],
+      };
+      if (editId) { await TransactionStore.update(editId, data); showToast('Transaction updated', 'success'); }
+      else        { await TransactionStore.add(data);            showToast('Transaction added',   'success'); }
       setTimeout(() => window.location.href = 'transactions.html', 500);
+    } catch (err) {
+      showToast(err.message || 'Something went wrong', 'error');
+      btn.disabled = false;
     }
   });
 
-  /* Cancel */
+  document.getElementById('deleteBtn')?.addEventListener('click', async () => {
+    if (!editId || !confirm('Delete this transaction?')) return;
+    await TransactionStore.delete(editId);
+    showToast('Transaction deleted', 'success');
+    setTimeout(() => window.location.href = 'transactions.html', 500);
+  });
+
   document.getElementById('cancelBtn')?.addEventListener('click', () => {
     history.length > 1 ? history.back() : window.location.href = 'transactions.html';
   });

@@ -1,45 +1,41 @@
 /* ============================================================
-   transactions.js — Transaction list page logic
+   transactions.js — Transaction list page (async)
    ============================================================ */
 
 let currentFilters = { search: '', categoryId: '', accountId: '', type: '', from: '', to: '' };
 let currentPage    = 1;
 const PAGE_SIZE    = 20;
 
-function initTransactions() {
-  populateFilters();
-  renderTransactions();
-  renderStats();
+async function initTransactions() {
+  await populateFilters();
+  await Promise.all([renderTransactions(), renderStats()]);
 }
 
-function populateFilters() {
+async function populateFilters() {
+  const [cats, accounts] = await Promise.all([CategoryStore.getAll(), AccountStore.getAll()]);
   const catSel = document.getElementById('filterCategory');
   const accSel = document.getElementById('filterAccount');
-  if (catSel) {
-    catSel.innerHTML = `<option value="">All Categories</option>` +
-      CategoryStore.getAll().map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
-  }
-  if (accSel) {
-    accSel.innerHTML = `<option value="">All Accounts</option>` +
-      AccountStore.getAll().map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-  }
+  if (catSel) catSel.innerHTML = `<option value="">All Categories</option>` +
+    cats.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+  if (accSel) accSel.innerHTML = `<option value="">All Accounts</option>` +
+    accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
 }
 
-function renderStats() {
-  const txs       = TransactionStore.query(currentFilters);
-  const totals    = SummaryEngine.getTotals(txs);
-  const net       = totals.income - totals.expense;
+async function renderStats() {
+  const txs    = await TransactionStore.query(currentFilters);
+  const totals = SummaryEngine.getTotals(txs);
+  const net    = totals.income - totals.expense;
   setText('statCount',   `${txs.length} transactions`);
   setText('statIncome',  formatCurrency(totals.income));
   setText('statExpense', formatCurrency(totals.expense));
   setText('statNet',     (net >= 0 ? '+' : '') + formatCurrency(net));
 }
 
-function renderTransactions() {
-  const el  = document.getElementById('txListFull');
+async function renderTransactions() {
+  const el = document.getElementById('txListFull');
   if (!el) return;
 
-  const all   = TransactionStore.query(currentFilters);
+  const all   = await TransactionStore.query(currentFilters);
   const start = (currentPage - 1) * PAGE_SIZE;
   const page  = all.slice(start, start + PAGE_SIZE);
 
@@ -48,6 +44,13 @@ function renderTransactions() {
     renderPagination(0);
     return;
   }
+
+  /* Fetch all categories needed */
+  const catIds  = [...new Set(page.map(t => t.categoryId).filter(Boolean))];
+  const accIds  = [...new Set(page.map(t => t.accountId).filter(Boolean))];
+  const [cats, accounts] = await Promise.all([CategoryStore.getAll(), AccountStore.getAll()]);
+  const catMap  = Object.fromEntries(cats.map(c => [c.id, c]));
+  const accMap  = Object.fromEntries(accounts.map(a => [a.id, a]));
 
   /* Group by date */
   const grouped = {};
@@ -58,16 +61,14 @@ function renderTransactions() {
 
   el.innerHTML = Object.entries(grouped).map(([date, txs]) => `
     <div class="tx-date-group">${formatDate(date)}</div>
-    ${txs.map(t => txItemFullHTML(t)).join('')}
+    ${txs.map(t => txItemFullHTML(t, catMap[t.categoryId], accMap[t.accountId])).join('')}
   `).join('');
 
   renderPagination(all.length);
   attachTxEvents();
 }
 
-function txItemFullHTML(t) {
-  const cat  = CategoryStore.getById(t.categoryId);
-  const acc  = AccountStore.getById(t.accountId);
+function txItemFullHTML(t, cat, acc) {
   const sign = t.type === 'income' ? '+' : t.type === 'expense' ? '−' : '↔';
   return `
     <div class="tx-item" data-id="${t.id}">
@@ -86,104 +87,72 @@ function txItemFullHTML(t) {
 }
 
 function renderPagination(total) {
-  const el = document.getElementById('pagination');
+  const el    = document.getElementById('pagination');
   if (!el) return;
   const pages = Math.ceil(total / PAGE_SIZE);
   if (pages <= 1) { el.innerHTML = ''; return; }
-
-  let html = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">‹</button>`;
-  for (let i = 1; i <= pages; i++) {
-    html += `<button class="page-btn${i === currentPage ? ' active' : ''}" data-page="${i}">${i}</button>`;
-  }
-  html += `<button class="page-btn" ${currentPage === pages ? 'disabled' : ''} data-page="${currentPage + 1}">›</button>`;
+  let html = `<button class="page-btn" ${currentPage===1?'disabled':''} data-page="${currentPage-1}">‹</button>`;
+  for (let i = 1; i <= pages; i++)
+    html += `<button class="page-btn${i===currentPage?' active':''}" data-page="${i}">${i}</button>`;
+  html += `<button class="page-btn" ${currentPage===pages?'disabled':''} data-page="${currentPage+1}">›</button>`;
   el.innerHTML = html;
-
   el.querySelectorAll('[data-page]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentPage = parseInt(btn.dataset.page);
-      renderTransactions();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    btn.addEventListener('click', () => { currentPage = parseInt(btn.dataset.page); renderTransactions(); window.scrollTo({ top: 0 }); });
   });
 }
 
 function attachTxEvents() {
   document.querySelectorAll('[data-action="edit"]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      window.location.href = `add-transaction.html?id=${btn.dataset.id}`;
-    });
+    btn.addEventListener('click', e => { e.stopPropagation(); window.location.href = `add-transaction.html?id=${btn.dataset.id}`; });
   });
   document.querySelectorAll('[data-action="delete"]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      openDeleteModal(btn.dataset.id);
-    });
+    btn.addEventListener('click', e => { e.stopPropagation(); openDeleteModal(btn.dataset.id); });
   });
 }
 
-/* Delete modal */
 function openDeleteModal(id) {
-  const modal  = document.getElementById('deleteModal');
+  const modal      = document.getElementById('deleteModal');
   const confirmBtn = document.getElementById('confirmDelete');
   if (!modal || !confirmBtn) return;
   modal.classList.add('open');
-  confirmBtn.onclick = () => {
-    TransactionStore.delete(id);
+  confirmBtn.onclick = async () => {
+    await TransactionStore.delete(id);
     modal.classList.remove('open');
     currentPage = 1;
-    renderTransactions();
-    renderStats();
+    await Promise.all([renderTransactions(), renderStats()]);
     showToast('Transaction deleted', 'success');
   };
 }
 
-function setText(id, text) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = text;
-}
+function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
 
 document.addEventListener('DOMContentLoaded', () => {
   initTransactions();
 
-  /* Search */
   document.getElementById('searchInput')?.addEventListener('input', e => {
-    currentFilters.search = e.target.value;
-    currentPage = 1;
-    renderTransactions();
-    renderStats();
+    currentFilters.search = e.target.value; currentPage = 1;
+    renderTransactions(); renderStats();
   });
 
-  /* Filter selects */
-  ['filterCategory', 'filterAccount', 'filterType'].forEach(id => {
+  ['filterCategory','filterAccount','filterType'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', e => {
-      const key = id.replace('filter', '').toLowerCase();
-      currentFilters[key === 'category' ? 'categoryId' : key === 'account' ? 'accountId' : 'type'] = e.target.value;
-      currentPage = 1;
-      renderTransactions();
-      renderStats();
+      const key = id === 'filterCategory' ? 'categoryId' : id === 'filterAccount' ? 'accountId' : 'type';
+      currentFilters[key] = e.target.value; currentPage = 1;
+      renderTransactions(); renderStats();
     });
   });
 
-  /* Date range */
   document.getElementById('filterFrom')?.addEventListener('change', e => { currentFilters.from = e.target.value; currentPage = 1; renderTransactions(); renderStats(); });
-  document.getElementById('filterTo')?.addEventListener('change', e => { currentFilters.to = e.target.value; currentPage = 1; renderTransactions(); renderStats(); });
+  document.getElementById('filterTo')?.addEventListener('change',   e => { currentFilters.to   = e.target.value; currentPage = 1; renderTransactions(); renderStats(); });
 
-  /* Clear filters */
   document.getElementById('clearFilters')?.addEventListener('click', () => {
     currentFilters = { search: '', categoryId: '', accountId: '', type: '', from: '', to: '' };
     currentPage    = 1;
-    document.querySelectorAll('.filter-bar select, .filter-bar input').forEach(el => el.value = '');
+    document.querySelectorAll('.filter-bar select, .filter-bar input[type="date"]').forEach(el => el.value = '');
     document.getElementById('searchInput').value = '';
-    renderTransactions();
-    renderStats();
+    renderTransactions(); renderStats();
   });
 
-  /* Delete modal close */
-  document.getElementById('closeDeleteModal')?.addEventListener('click', () => {
-    document.getElementById('deleteModal')?.classList.remove('open');
-  });
-  document.getElementById('cancelDelete')?.addEventListener('click', () => {
-    document.getElementById('deleteModal')?.classList.remove('open');
-  });
+  document.getElementById('closeDeleteModal')?.addEventListener('click', () => document.getElementById('deleteModal')?.classList.remove('open'));
+  document.getElementById('cancelDelete')?.addEventListener('click',     () => document.getElementById('deleteModal')?.classList.remove('open'));
 });

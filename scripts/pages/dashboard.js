@@ -1,17 +1,17 @@
 /* ============================================================
-   dashboard.js — Dashboard page logic
+   dashboard.js — Dashboard page logic (async)
    ============================================================ */
 
-function initDashboard() {
-  const allTx     = TransactionStore.getAll();
-  const accounts  = AccountStore.getAll();
-  const monthTx   = TransactionStore.thisMonth();
-  const { from: mFrom, to: mTo } = currentMonthRange();
+async function initDashboard() {
+  const [allTx, accounts, monthTx] = await Promise.all([
+    TransactionStore.getAll(),
+    AccountStore.getAll(),
+    TransactionStore.thisMonth(),
+  ]);
 
-  /* --- Summary cards --- */
-  const totalBalance  = AccountStore.getTotalBalance();
-  const monthTotals   = SummaryEngine.getTotals(monthTx);
-  const net           = monthTotals.income - monthTotals.expense;
+  const totalBalance = await AccountStore.getTotalBalance();
+  const monthTotals  = SummaryEngine.getTotals(monthTx);
+  const net          = monthTotals.income - monthTotals.expense;
 
   setText('totalBalance', formatCurrency(totalBalance));
   setText('monthIncome',  formatCurrency(monthTotals.income));
@@ -24,30 +24,31 @@ function initDashboard() {
   const netEl = document.getElementById('monthNet');
   if (netEl) netEl.style.color = net >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
 
-  /* --- Balance over time chart --- */
-  const balanceDays  = parseInt(document.getElementById('balanceChartRange')?.value || '30');
-  const balancePoints = SummaryEngine.getBalanceOverTime(allTx, accounts, balanceDays);
+  /* Balance over time chart */
+  const days          = parseInt(document.getElementById('balanceChartRange')?.value || '30');
+  const balancePoints = SummaryEngine.getBalanceOverTime(allTx, accounts, days);
   const balanceEmpty  = document.getElementById('balanceChartEmpty');
-  if (balancePoints.length > 0 && allTx.length > 0) {
+  if (allTx.length > 0) {
     balanceEmpty?.setAttribute('hidden', '');
     Charts.drawLineChart('balanceCanvas', balancePoints);
   } else {
     balanceEmpty?.removeAttribute('hidden');
   }
 
-  /* --- Category donut chart --- */
-  const byCategory   = SummaryEngine.getByCategory(monthTx);
-  const catEmpty     = document.getElementById('categoryChartEmpty');
-  const legendEl     = document.getElementById('categoryLegend');
+  /* Category donut */
+  const byCategory = SummaryEngine.getByCategory(monthTx);
+  const catEmpty   = document.getElementById('categoryChartEmpty');
+  const legendEl   = document.getElementById('categoryLegend');
   if (byCategory.length > 0) {
     catEmpty?.setAttribute('hidden', '');
-    const slices = byCategory.slice(0, 8).map(b => ({
-      label: CategoryStore.getById(b.categoryId)?.name || 'Other',
+    const catNames = await Promise.all(
+      byCategory.slice(0, 8).map(b => CategoryStore.getById(b.categoryId))
+    );
+    const slices = byCategory.slice(0, 8).map((b, i) => ({
+      label: catNames[i]?.name || 'Other',
       value: b.total,
     }));
     Charts.drawDonutChart('categoryCanvas', slices);
-
-    /* Legend */
     if (legendEl) {
       legendEl.innerHTML = slices.map((sl, i) => `
         <div class="legend-item">
@@ -62,62 +63,56 @@ function initDashboard() {
     if (legendEl) legendEl.innerHTML = '';
   }
 
-  /* --- Monthly bar chart --- */
-  const year        = parseInt(document.getElementById('monthlyYear')?.value || new Date().getFullYear());
-  const monthly     = SummaryEngine.getMonthlyRollup(allTx, year);
+  /* Monthly bar chart */
+  const year         = parseInt(document.getElementById('monthlyYear')?.value || new Date().getFullYear());
+  const monthly      = SummaryEngine.getMonthlyRollup(allTx, year);
   const monthlyEmpty = document.getElementById('monthlyChartEmpty');
-  const hasMonthly   = monthly.some(m => m.income > 0 || m.expense > 0);
-  if (hasMonthly) {
+  if (monthly.some(m => m.income > 0 || m.expense > 0)) {
     monthlyEmpty?.setAttribute('hidden', '');
     Charts.drawBarChart('monthlyCanvas', monthly);
   } else {
     monthlyEmpty?.removeAttribute('hidden');
   }
 
-  /* --- Account list --- */
   renderAccounts(accounts);
-
-  /* --- Recent transactions (last 5) --- */
   renderRecentTransactions(allTx.slice(0, 5));
 }
 
-function renderAccounts(accounts) {
+async function renderAccounts(accounts) {
   const el = document.getElementById('accountList');
   if (!el) return;
   if (!accounts.length) {
     el.innerHTML = `<div class="empty-state">No accounts. <a href="pages/accounts.html">Add one →</a></div>`;
     return;
   }
-  el.innerHTML = accounts.map(a => {
-    const bal = AccountStore.getBalance(a.id);
-    return `
-      <div class="account-item">
-        <span class="account-dot" style="background:${a.color}"></span>
-        <div class="account-info">
-          <div class="account-name">${a.name}</div>
-          <div class="account-type">${capitalize(a.type)}</div>
-        </div>
-        <div class="account-balance" style="color:${bal >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}">
-          ${formatCurrency(bal)}
-        </div>
+  const balances = await Promise.all(accounts.map(a => AccountStore.getBalance(a.id)));
+  el.innerHTML = accounts.map((a, i) => `
+    <div class="account-item">
+      <span class="account-dot" style="background:${a.color}"></span>
+      <div class="account-info">
+        <div class="account-name">${a.name}</div>
+        <div class="account-type">${capitalize(a.type)}</div>
       </div>
-    `;
-  }).join('');
+      <div class="account-balance" style="color:${balances[i] >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}">
+        ${formatCurrency(balances[i])}
+      </div>
+    </div>
+  `).join('');
 }
 
-function renderRecentTransactions(txs) {
+async function renderRecentTransactions(txs) {
   const el = document.getElementById('recentTransactions');
   if (!el) return;
   if (!txs.length) {
     el.innerHTML = `<div class="empty-state">No transactions yet. <a href="pages/add-transaction.html">Add one →</a></div>`;
     return;
   }
-  el.innerHTML = txs.map(t => txItemHTML(t)).join('');
+  const cats = await Promise.all(txs.map(t => CategoryStore.getById(t.categoryId)));
+  el.innerHTML = txs.map((t, i) => txItemHTML(t, cats[i])).join('');
 }
 
-function txItemHTML(t) {
-  const cat   = CategoryStore.getById(t.categoryId);
-  const sign  = t.type === 'income' ? '+' : t.type === 'expense' ? '−' : '↔';
+function txItemHTML(t, cat) {
+  const sign = t.type === 'income' ? '+' : t.type === 'expense' ? '−' : '↔';
   return `
     <div class="tx-item">
       <div class="tx-icon tx-icon--${t.type}">${cat?.icon || '📦'}</div>
@@ -130,19 +125,11 @@ function txItemHTML(t) {
   `;
 }
 
-function capitalize(str) {
-  return str ? str[0].toUpperCase() + str.slice(1) : '';
-}
+function capitalize(str) { return str ? str[0].toUpperCase() + str.slice(1) : ''; }
+function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
 
-function setText(id, text) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = text;
-}
-
-/* --- Event listeners --- */
 document.addEventListener('DOMContentLoaded', () => {
   initDashboard();
-
   document.getElementById('balanceChartRange')?.addEventListener('change', initDashboard);
   document.getElementById('monthlyYear')?.addEventListener('change', initDashboard);
 });
