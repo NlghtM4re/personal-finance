@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinTrack — Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+  <link rel="stylesheet" href="../styles/layout.css" />
+  <link rel="stylesheet" href="../styles/components.css" />
+  <link rel="stylesheet" href="../styles/pages.css" />
+</head>
+<body>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">💰</span>
+        <span class="logo-text">FinTrack</span>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle">✕</button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../index.html" class="nav-item">
+        <span class="nav-icon">⊞</span><span class="nav-label">Dashboard</span>
+      </a>
+      <a href="transactions.html" class="nav-item">
+        <span class="nav-icon">↕</span><span class="nav-label">Transactions</span>
+      </a>
+      <a href="accounts.html" class="nav-item">
+        <span class="nav-icon">◈</span><span class="nav-label">Accounts</span>
+      </a>
+      <a href="add-transaction.html" class="nav-item nav-item--accent">
+        <span class="nav-icon">+</span><span class="nav-label">Add Transaction</span>
+      </a>
+      <a href="settings.html" class="nav-item active">
+        <span class="nav-icon">⚙</span><span class="nav-label">Settings</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="theme-toggle" id="themeToggle">
+        <span class="theme-icon" id="themeIcon">🌙</span>
+        <span>Dark Mode</span>
+      </button>
+    </div>
+  </aside>
+  <div class="overlay" id="overlay"></div>
+
+  <div class="main-wrapper">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn">☰</button>
+      <div class="topbar-title">Settings</div>
+    </header>
+
+    <main class="main-content">
+      <div class="form-page">
+
+        <!-- Connection status banner -->
+        <div id="statusBanner" class="status-banner status-banner--checking">
+          <span id="statusIcon">⏳</span>
+          <span id="statusText">Checking connection…</span>
+        </div>
+
+        <!-- Sync settings -->
+        <div class="card form-card">
+          <h2 class="card-title" style="margin-bottom:6px;">Backend Sync</h2>
+          <p style="color:var(--color-text-muted);font-size:.875rem;margin-bottom:20px;">
+            Connect to your Railway server so all your devices share the same data.
+          </p>
+
+          <form id="settingsForm" novalidate>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+
+              <div class="form-group">
+                <label class="form-label" for="apiUrl">Server URL</label>
+                <input type="url" id="apiUrl" class="form-control"
+                  placeholder="https://your-app.up.railway.app/api" />
+                <div class="form-hint">The full /api URL from your Railway deployment.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="apiKey">API Key</label>
+                <div class="input-with-prefix" style="position:relative;">
+                  <input type="password" id="apiKey" class="form-control"
+                    placeholder="Your secret key" autocomplete="current-password" />
+                  <button type="button" id="toggleKey" style="
+                    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                    background:none;border:none;cursor:pointer;color:var(--color-text-muted);
+                    font-size:1rem;padding:4px;">👁</button>
+                </div>
+                <div class="form-hint">The API_KEY you set in Railway environment variables.</div>
+              </div>
+
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button type="submit" class="btn btn--primary" style="flex:1;">
+                  Save &amp; Connect
+                </button>
+                <button type="button" id="testBtn" class="btn btn--ghost">
+                  Test Connection
+                </button>
+                <button type="button" id="clearBtn" class="btn btn--danger btn--sm">
+                  Disconnect
+                </button>
+              </div>
+
+            </div>
+          </form>
+        </div>
+
+        <!-- Data mode info -->
+        <div class="card" style="margin-top:0;">
+          <h3 style="margin-bottom:12px;">How it works</h3>
+          <div class="info-steps">
+            <div class="info-step">
+              <span class="info-step__icon info-step__icon--green">✓</span>
+              <div>
+                <div class="info-step__title">Connected to server</div>
+                <div class="info-step__desc">All devices share the same data in real time. Add a transaction on your phone, see it on your laptop instantly.</div>
+              </div>
+            </div>
+            <div class="info-step">
+              <span class="info-step__icon info-step__icon--yellow">○</span>
+              <div>
+                <div class="info-step__title">No server configured</div>
+                <div class="info-step__desc">Data saves in this browser only (localStorage). Works fine for single-device use.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="card" style="border-color:var(--color-expense);margin-top:0;">
+          <h3 style="margin-bottom:4px;color:var(--color-expense);">Danger Zone</h3>
+          <p style="color:var(--color-text-muted);font-size:.875rem;margin-bottom:16px;">
+            Clear all locally stored data on this device. Does not affect the server database.
+          </p>
+          <button type="button" id="clearLocalBtn" class="btn btn--danger btn--sm">
+            Clear Local Data
+          </button>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <a href="../index.html" class="bottom-nav__item">
+      <span class="bottom-nav__icon">⊞</span><span class="bottom-nav__label">Dashboard</span>
+    </a>
+    <a href="transactions.html" class="bottom-nav__item">
+      <span class="bottom-nav__icon">↕</span><span class="bottom-nav__label">Transactions</span>
+    </a>
+    <a href="add-transaction.html" class="bottom-nav__item bottom-nav__item--add">
+      <span class="bottom-nav__icon">+</span>
+    </a>
+    <a href="accounts.html" class="bottom-nav__item">
+      <span class="bottom-nav__icon">◈</span><span class="bottom-nav__label">Accounts</span>
+    </a>
+    <a href="settings.html" class="bottom-nav__item active">
+      <span class="bottom-nav__icon">⚙</span><span class="bottom-nav__label">Settings</span>
+    </a>
+  </nav>
+
+  <script src="../scripts/data/api.js"></script>
+  <script src="../scripts/components/ui.js"></script>
+  <script src="../scripts/pages/settings.js"></script>
+</body>
+</html>
