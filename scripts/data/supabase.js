@@ -3,8 +3,8 @@
    Must be loaded after the Supabase CDN script
    ============================================================ */
 
-const SUPABASE_URL = 'https://imnlobgrlrzsduzvwlvm.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_bjSU9Pn7R7DE_RIPmlYrXw_sEWE6YBl';
+const SUPABASE_URL = 'https://grttprtovyzmlaicowsv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_igJ6qp6In8SlzseId0S3yA_oTDZjeJS';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
