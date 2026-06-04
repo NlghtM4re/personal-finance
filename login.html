@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,151 +9,184 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: 'Inter', -apple-system, sans-serif;
       font-size: 14px;
-      background: #f7f8fa;
-      color: #111827;
+      background: #080808;
+      color: #f0f0f0;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 24px;
       -webkit-font-smoothing: antialiased;
+      animation: fadeIn .25s ease both;
     }
-    .login-card {
-      background: #ffffff;
-      border: 1px solid #e5e7eb;
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-8px); }
+      40%     { transform: translateX(8px); }
+      60%     { transform: translateX(-5px); }
+      80%     { transform: translateX(5px); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .card {
+      background: #111111;
+      border: 1px solid #242424;
       border-radius: 14px;
       padding: 40px;
       width: 100%;
       max-width: 380px;
-      box-shadow: 0 4px 24px rgba(0,0,0,.06);
+      box-shadow: 0 12px 48px rgba(0,0,0,.8);
+      transition: transform .15s ease;
     }
-    .login-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 28px;
-    }
-    .login-logo-icon { font-size: 1.75rem; line-height: 1; }
-    .login-logo-text { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
-    .login-title {
-      font-size: 1.125rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-      letter-spacing: -0.01em;
-    }
-    .login-sub {
-      font-size: 0.875rem;
-      color: #6b7280;
-      margin-bottom: 28px;
-    }
-    .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
-    .form-label { font-size: 0.8125rem; font-weight: 500; color: #6b7280; }
+    .card.shake { animation: shake .4s ease; }
+
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+    .logo-icon { font-size: 1.5rem; }
+    .logo-text { font-size: 1.125rem; font-weight: 700; letter-spacing: -0.02em; }
+
+    .card-title { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px; }
+    .card-sub   { font-size: 0.875rem; color: #666; margin-bottom: 28px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-label { font-size: 0.8125rem; font-weight: 500; color: #888; }
+
     .form-control {
-      width: 100%;
-      padding: 10px 13px;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      font-family: inherit;
-      font-size: 0.875rem;
-      color: #111827;
-      background: #fff;
-      outline: none;
-      transition: border-color .15s;
+      width: 100%; padding: 11px 14px;
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 8px; color: #f0f0f0;
+      font-family: inherit; font-size: 0.875rem; outline: none;
+      transition: border-color .15s, box-shadow .15s;
     }
-    .form-control:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
-    .btn-primary {
-      width: 100%;
-      padding: 10px;
-      background: #4f46e5;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-family: inherit;
-      font-size: 0.875rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 6px;
-      transition: background .15s;
+    .form-control:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+    }
+    .form-control::placeholder { color: #444; }
+
+    .btn {
+      width: 100%; padding: 12px;
+      background: #3b82f6; color: #fff;
+      border: none; border-radius: 8px;
+      font-family: inherit; font-size: 0.9375rem; font-weight: 600;
+      cursor: pointer; margin-top: 8px;
+      transition: background .15s, box-shadow .15s, transform .1s;
       letter-spacing: -0.01em;
+      position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .btn-primary:hover { background: #4338ca; }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn:hover  { background: #2563eb; box-shadow: 0 0 20px rgba(59,130,246,.35); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      flex-shrink: 0;
+    }
+
     .toggle-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      margin-top: 20px;
-      font-size: 0.875rem;
-      color: #6b7280;
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; margin-top: 20px;
+      font-size: 0.875rem; color: #555;
     }
     .toggle-link {
-      color: #4f46e5;
-      font-weight: 500;
-      cursor: pointer;
-      background: none;
-      border: none;
-      font-family: inherit;
-      font-size: inherit;
-      padding: 0;
+      color: #3b82f6; font-weight: 500; cursor: pointer;
+      background: none; border: none; font-family: inherit; font-size: inherit;
+      padding: 0; transition: color .15s;
     }
-    .toggle-link:hover { text-decoration: underline; }
-    .error-msg {
-      background: #fee2e2;
-      color: #dc2626;
-      border: 1px solid #fca5a5;
-      border-radius: 6px;
-      padding: 10px 13px;
-      font-size: 0.8125rem;
-      margin-bottom: 14px;
-      display: none;
+    .toggle-link:hover { color: #60a5fa; }
+
+    .msg {
+      padding: 11px 14px; border-radius: 8px;
+      font-size: 0.875rem; font-weight: 500;
+      margin-bottom: 16px; display: none;
+      animation: fadeIn .2s ease both;
     }
-    .error-msg.show { display: block; }
-    .success-msg {
-      background: #dcfce7;
-      color: #16a34a;
-      border: 1px solid #86efac;
-      border-radius: 6px;
-      padding: 10px 13px;
-      font-size: 0.8125rem;
-      margin-bottom: 14px;
-      display: none;
+    .msg.show   { display: block; }
+    .msg--error { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); color: #ef4444; }
+    .msg--info  { background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.3); color: #60a5fa; }
+
+    /* Success screen */
+    .success-screen {
+      display: none; text-align: center;
+      animation: fadeIn .3s ease both;
     }
-    .success-msg.show { display: block; }
+    .success-screen.show { display: block; }
+    .success-icon {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.3);
+      color: #22c55e; font-size: 1.5rem;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .success-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .success-sub   { font-size: 0.875rem; color: #666; line-height: 1.6; }
+
+    .divider {
+      height: 1px; background: #1e1e1e;
+      margin: 24px 0;
+    }
   </style>
 </head>
 <body>
-
-  <div class="login-card">
-    <div class="login-logo">
-      <span class="login-logo-icon">💰</span>
-      <span class="login-logo-text">FinTrack</span>
+  <div class="card" id="card">
+    <div class="logo">
+      <span class="logo-icon">💰</span>
+      <span class="logo-text">FinTrack</span>
     </div>
 
-    <div class="login-title" id="cardTitle">Welcome back</div>
-    <div class="login-sub"   id="cardSub">Sign in to your account</div>
+    <!-- Auth form -->
+    <div id="formView">
+      <div class="card-title" id="cardTitle">Welcome back</div>
+      <div class="card-sub"   id="cardSub">Sign in to your account</div>
 
-    <div class="error-msg"   id="errorMsg"></div>
-    <div class="success-msg" id="successMsg"></div>
+      <div class="msg msg--error" id="errorMsg"></div>
+      <div class="msg msg--info"  id="infoMsg"></div>
 
-    <form id="authForm" novalidate>
-      <div class="form-group">
-        <label class="form-label" for="email">Email</label>
-        <input class="form-control" type="email" id="email" placeholder="you@example.com" autocomplete="email" required />
+      <form id="authForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input class="form-control" type="email" id="email"
+            placeholder="you@example.com" autocomplete="email" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-control" type="password" id="password"
+            placeholder="••••••••" autocomplete="current-password" required />
+        </div>
+        <button class="btn" type="submit" id="submitBtn">
+          <span id="btnText">Sign in</span>
+        </button>
+      </form>
+
+      <div class="toggle-row">
+        <span id="toggleText">Don't have an account?</span>
+        <button class="toggle-link" id="toggleBtn">Create one</button>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="password">Password</label>
-        <input class="form-control" type="password" id="password" placeholder="••••••••" autocomplete="current-password" required />
-      </div>
-      <button class="btn-primary" type="submit" id="submitBtn">Sign in</button>
-    </form>
+    </div>
 
-    <div class="toggle-row">
-      <span id="toggleText">Don't have an account?</span>
-      <button class="toggle-link" id="toggleBtn">Create one</button>
+    <!-- Success screen (shown after sign up) -->
+    <div class="success-screen" id="successView">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Check your email</div>
+      <div class="success-sub">
+        We sent a confirmation link to<br/>
+        <strong id="confirmedEmail" style="color:#f0f0f0;"></strong><br/><br/>
+        Click the link in the email, then come back to sign in.
+      </div>
+      <div class="divider"></div>
+      <button class="toggle-link" id="backToLogin" style="font-size:.875rem;">← Back to sign in</button>
     </div>
   </div>
 
@@ -161,56 +194,96 @@
   <script src="scripts/data/supabase.js"></script>
   <script>
     (async () => {
-      // Already logged in → go to dashboard
       const { data: { session } } = await sb.auth.getSession();
       if (session) window.location.replace('index.html');
     })();
 
     let isSignUp = false;
 
-    function showError(msg)   { const el = document.getElementById('errorMsg');   el.textContent = msg; el.classList.add('show'); document.getElementById('successMsg').classList.remove('show'); }
-    function showSuccess(msg) { const el = document.getElementById('successMsg'); el.textContent = msg; el.classList.add('show'); document.getElementById('errorMsg').classList.remove('show'); }
-    function clearMessages()  { document.getElementById('errorMsg').classList.remove('show'); document.getElementById('successMsg').classList.remove('show'); }
+    const card       = document.getElementById('card');
+    const errorMsg   = document.getElementById('errorMsg');
+    const infoMsg    = document.getElementById('infoMsg');
+    const formView   = document.getElementById('formView');
+    const successView = document.getElementById('successView');
+
+    function clearMsgs() {
+      errorMsg.classList.remove('show');
+      infoMsg.classList.remove('show');
+    }
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.add('show');
+      infoMsg.classList.remove('show');
+      card.classList.remove('shake');
+      void card.offsetWidth; // reflow to restart animation
+      card.classList.add('shake');
+    }
+    function showInfo(msg) {
+      infoMsg.textContent = msg;
+      infoMsg.classList.add('show');
+      errorMsg.classList.remove('show');
+    }
+    function setLoading(loading) {
+      const btn     = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+      btn.disabled  = loading;
+      if (loading) {
+        btn.innerHTML = `<span class="btn-spinner"></span><span>${isSignUp ? 'Creating account…' : 'Signing in…'}</span>`;
+      } else {
+        btn.innerHTML = `<span id="btnText">${isSignUp ? 'Create account' : 'Sign in'}</span>`;
+      }
+    }
 
     document.getElementById('toggleBtn').addEventListener('click', () => {
       isSignUp = !isSignUp;
-      clearMessages();
-      document.getElementById('cardTitle').textContent  = isSignUp ? 'Create account'    : 'Welcome back';
+      clearMsgs();
+      document.getElementById('cardTitle').textContent  = isSignUp ? 'Create account' : 'Welcome back';
       document.getElementById('cardSub').textContent    = isSignUp ? 'Start tracking your finances' : 'Sign in to your account';
-      document.getElementById('submitBtn').textContent  = isSignUp ? 'Create account'    : 'Sign in';
+      document.getElementById('submitBtn').innerHTML    = `<span id="btnText">${isSignUp ? 'Create account' : 'Sign in'}</span>`;
       document.getElementById('toggleText').textContent = isSignUp ? 'Already have an account?' : "Don't have an account?";
-      document.getElementById('toggleBtn').textContent  = isSignUp ? 'Sign in'           : 'Create one';
-      document.querySelector('input[autocomplete="current-password"]').autocomplete = isSignUp ? 'new-password' : 'current-password';
+      document.getElementById('toggleBtn').textContent  = isSignUp ? 'Sign in' : 'Create one';
+      document.getElementById('password').autocomplete  = isSignUp ? 'new-password' : 'current-password';
+    });
+
+    document.getElementById('backToLogin').addEventListener('click', () => {
+      successView.classList.remove('show');
+      formView.style.display = '';
+      isSignUp = false;
+      document.getElementById('toggleBtn').click();
+      document.getElementById('toggleBtn').click(); // back to sign-in state
     });
 
     document.getElementById('authForm').addEventListener('submit', async e => {
       e.preventDefault();
-      clearMessages();
+      clearMsgs();
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-      const btn      = document.getElementById('submitBtn');
       if (!email || !password) { showError('Please enter your email and password.'); return; }
+      if (isSignUp && password.length < 6) { showError('Password must be at least 6 characters.'); return; }
 
-      btn.disabled = true;
-      btn.textContent = isSignUp ? 'Creating account…' : 'Signing in…';
-
+      setLoading(true);
       try {
         if (isSignUp) {
           const { error } = await sb.auth.signUp({ email, password });
           if (error) throw error;
-          showSuccess('Account created! Check your email to confirm, then sign in.');
-          isSignUp = false;
-          document.getElementById('toggleBtn').click();
+          document.getElementById('confirmedEmail').textContent = email;
+          formView.style.display = 'none';
+          successView.classList.add('show');
         } else {
           const { error } = await sb.auth.signInWithPassword({ email, password });
           if (error) throw error;
+          showInfo('Signing in…');
           window.location.replace('index.html');
         }
       } catch (err) {
-        showError(err.message || 'Something went wrong. Please try again.');
+        const msg = err.message.includes('Invalid login')
+          ? 'Incorrect email or password.'
+          : err.message.includes('already registered')
+          ? 'An account with this email already exists. Sign in instead.'
+          : err.message || 'Something went wrong. Please try again.';
+        showError(msg);
       } finally {
-        btn.disabled = false;
-        btn.textContent = isSignUp ? 'Create account' : 'Sign in';
+        setLoading(false);
       }
     });
   </script>

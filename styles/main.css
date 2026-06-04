@@ -1,10 +1,60 @@
 /* ============================================================
    MAIN.CSS — Design tokens, reset, base typography
+   Default theme: dark
    ============================================================ */
 
-/* --- Design Tokens (Light Mode) --- */
 :root {
-  /* Colors */
+  /* --- Dark palette (default) --- */
+  --color-bg:           #080808;
+  --color-surface:      #111111;
+  --color-surface-2:    #1a1a1a;
+  --color-border:       #242424;
+  --color-border-light: #1c1c1c;
+  --color-text:         #f0f0f0;
+  --color-text-muted:   #777777;
+  --color-text-light:   #444444;
+
+  /* Sidebar */
+  --color-sidebar-bg:          #000000;
+  --color-sidebar-border:      #181818;
+  --color-sidebar-text:        #555555;
+  --color-sidebar-active-bg:   #141414;
+  --color-sidebar-active-text: #ffffff;
+
+  /* Brand */
+  --color-primary:       #3b82f6;
+  --color-primary-dark:  #2563eb;
+  --color-primary-light: rgba(59,130,246,.12);
+
+  /* Semantic */
+  --color-income:        #22c55e;
+  --color-income-light:  rgba(34,197,94,.12);
+  --color-expense:       #ef4444;
+  --color-expense-light: rgba(239,68,68,.12);
+  --color-transfer:      #f59e0b;
+  --color-transfer-light:rgba(245,158,11,.12);
+
+  /* Shadows */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.5);
+  --shadow-md:  0 4px 20px rgba(0,0,0,.6);
+  --shadow-lg:  0 12px 48px rgba(0,0,0,.8);
+
+  /* Layout */
+  --sidebar-width:     240px;
+  --topbar-height:     56px;
+  --bottom-nav-height: 60px;
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  20px;
+
+  /* Transitions */
+  --transition: 0.15s ease;
+  --transition-slow: 0.3s ease;
+}
+
+/* --- Light mode override --- */
+[data-theme="light"] {
   --color-bg:           #f7f8fa;
   --color-surface:      #ffffff;
   --color-surface-2:    #f3f4f6;
@@ -14,77 +64,24 @@
   --color-text-muted:   #6b7280;
   --color-text-light:   #9ca3af;
 
-  /* Sidebar */
   --color-sidebar-bg:          #ffffff;
   --color-sidebar-border:      #e5e7eb;
   --color-sidebar-text:        #6b7280;
-  --color-sidebar-active-bg:   #f0f0ff;
-  --color-sidebar-active-text: #4f46e5;
+  --color-sidebar-active-bg:   #eff6ff;
+  --color-sidebar-active-text: #2563eb;
 
-  /* Brand / Accent */
-  --color-primary:       #4f46e5;
-  --color-primary-dark:  #4338ca;
-  --color-primary-light: #eef2ff;
-
-  /* Semantic */
-  --color-income:        #16a34a;
+  --color-primary-light: rgba(59,130,246,.08);
   --color-income-light:  #dcfce7;
-  --color-expense:       #dc2626;
   --color-expense-light: #fee2e2;
-  --color-transfer:      #d97706;
   --color-transfer-light:#fef3c7;
 
-  /* Shadows — very subtle */
-  --shadow-sm:  0 1px 2px rgba(0,0,0,.04);
-  --shadow-md:  0 4px 12px rgba(0,0,0,.06);
-  --shadow-lg:  0 8px 32px rgba(0,0,0,.10);
-
-  /* Layout */
-  --sidebar-width:      240px;
-  --topbar-height:      56px;
-  --bottom-nav-height:  60px;
-  --radius-sm:  6px;
-  --radius-md:  10px;
-  --radius-lg:  14px;
-  --radius-xl:  20px;
-
-  /* Transitions */
-  --transition: 0.15s ease;
-}
-
-/* --- Dark Mode Tokens --- */
-[data-theme="dark"] {
-  --color-bg:           #0f1117;
-  --color-surface:      #1a1d27;
-  --color-surface-2:    #222536;
-  --color-border:       #2d3148;
-  --color-border-light: #252840;
-  --color-text:         #f1f5f9;
-  --color-text-muted:   #8b92a9;
-  --color-text-light:   #5c637a;
-
-  --color-sidebar-bg:          #13151f;
-  --color-sidebar-border:      #1e2132;
-  --color-sidebar-text:        #8b92a9;
-  --color-sidebar-active-bg:   #1e203a;
-  --color-sidebar-active-text: #818cf8;
-
-  --color-primary-light: #1e2040;
-  --color-income-light:  #052e16;
-  --color-expense-light: #450a0a;
-  --color-transfer-light:#431407;
-
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
-  --shadow-md: 0 4px 12px rgba(0,0,0,.4);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,.5);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.06);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.10);
 }
 
 /* --- Reset --- */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { scroll-behavior: smooth; }
 
@@ -95,34 +92,34 @@ body {
   color: var(--color-text);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
-  transition: background var(--transition), color var(--transition);
+  transition: background var(--transition-slow), color var(--transition-slow);
+  animation: pageIn 0.22s ease both;
 }
 
-a {
-  color: var(--color-primary);
-  text-decoration: none;
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+
+body.page-exit {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+a { color: var(--color-primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-button {
-  font-family: inherit;
-  cursor: pointer;
-  border: none;
-  background: none;
-}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
 
-input, select, textarea {
-  font-family: inherit;
-  font-size: inherit;
-}
+input, select, textarea { font-family: inherit; font-size: inherit; }
 
 ul, ol { list-style: none; }
-
-img { max-width: 100%; display: block; }
+img    { max-width: 100%; display: block; }
 
 /* --- Typography --- */
-h1 { font-size: 1.5rem;   font-weight: 700; letter-spacing: -0.02em; }
-h2 { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-size: 1.5rem;    font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.125rem;  font-weight: 600; letter-spacing: -0.01em; }
 h3 { font-size: 0.9375rem; font-weight: 600; }
 
 .text-muted   { color: var(--color-text-muted); }
@@ -139,25 +136,15 @@ h3 { font-size: 0.9375rem; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
+  body { animation: none; }
 }
 
 /* --- Utility --- */
 .sr-only {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden;
-  clip: rect(0,0,0,0);
-  white-space: nowrap;
-  border: 0;
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
 }
-
-.truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
