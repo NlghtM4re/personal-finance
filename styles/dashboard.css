@@ -1,0 +1,183 @@
+/* ============================================================
+   DASHBOARD.CSS — Summary cards, charts, layout
+   ============================================================ */
+
+/* --- Summary cards grid --- */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.summary-card {
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+}
+
+.summary-card::before {
+  content: '';
+  position: absolute;
+  top: -20px; right: -20px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  opacity: 0.08;
+}
+
+.summary-card--balance::before  { background: var(--color-primary); }
+.summary-card--income::before   { background: var(--color-income);  }
+.summary-card--expense::before  { background: var(--color-expense); }
+.summary-card--savings::before  { background: var(--color-transfer);}
+
+.summary-card__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.summary-card__amount {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.summary-card--balance  .summary-card__amount { color: var(--color-primary); }
+.summary-card--income   .summary-card__amount { color: var(--color-income);  }
+.summary-card--expense  .summary-card__amount { color: var(--color-expense); }
+
+.summary-card__sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* --- Charts row --- */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+}
+
+.chart-card {
+  padding: 20px;
+}
+
+.chart-card--full {
+  width: 100%;
+}
+
+.chart-container {
+  position: relative;
+  height: 220px;
+  width: 100%;
+}
+
+.chart-container--donut {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+.chart-empty[hidden] { display: none; }
+
+/* Category legend */
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  flex: 1;
+  color: var(--color-text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend-amount {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* --- Bottom row --- */
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* --- Responsive --- */
+@media (max-width: 1200px) {
+  .summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .summary-card__amount {
+    font-size: 1.375rem;
+  }
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+  .bottom-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+  .summary-card {
+    padding: 14px;
+  }
+  .summary-card__amount {
+    font-size: 1.1rem;
+  }
+}

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinTrack — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/layout.css" />
+  <link rel="stylesheet" href="styles/components.css" />
+  <link rel="stylesheet" href="styles/dashboard.css" />
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">💰</span>
+        <span class="logo-text">FinTrack</span>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Close sidebar">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="index.html" class="nav-item active">
+        <span class="nav-icon">⊞</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="pages/transactions.html" class="nav-item">
+        <span class="nav-icon">↕</span>
+        <span class="nav-label">Transactions</span>
+      </a>
+      <a href="pages/accounts.html" class="nav-item">
+        <span class="nav-icon">◈</span>
+        <span class="nav-label">Accounts</span>
+      </a>
+      <a href="pages/add-transaction.html" class="nav-item nav-item--accent">
+        <span class="nav-icon">+</span>
+        <span class="nav-label">Add Transaction</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        <span class="theme-icon" id="themeIcon">🌙</span>
+        <span>Dark Mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Overlay for mobile -->
+  <div class="overlay" id="overlay"></div>
+
+  <!-- Main content -->
+  <div class="main-wrapper">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-actions">
+        <a href="pages/add-transaction.html" class="btn btn--primary btn--sm">+ Add</a>
+      </div>
+    </header>
+
+    <main class="main-content">
+
+      <!-- Summary cards -->
+      <section class="summary-cards">
+        <div class="card summary-card summary-card--balance">
+          <div class="summary-card__label">Total Balance</div>
+          <div class="summary-card__amount" id="totalBalance">$0.00</div>
+          <div class="summary-card__sub">Across all accounts</div>
+        </div>
+        <div class="card summary-card summary-card--income">
+          <div class="summary-card__label">Income This Month</div>
+          <div class="summary-card__amount" id="monthIncome">$0.00</div>
+          <div class="summary-card__sub" id="monthIncomeSub">0 transactions</div>
+        </div>
+        <div class="card summary-card summary-card--expense">
+          <div class="summary-card__label">Expenses This Month</div>
+          <div class="summary-card__amount" id="monthExpense">$0.00</div>
+          <div class="summary-card__sub" id="monthExpenseSub">0 transactions</div>
+        </div>
+        <div class="card summary-card summary-card--savings">
+          <div class="summary-card__label">Net This Month</div>
+          <div class="summary-card__amount" id="monthNet">$0.00</div>
+          <div class="summary-card__sub" id="monthNetSub">Saved so far</div>
+        </div>
+      </section>
+
+      <!-- Charts row -->
+      <section class="charts-row">
+        <div class="card chart-card chart-card--wide">
+          <div class="card-header">
+            <h2 class="card-title">Balance Over Time</h2>
+            <select class="select--sm" id="balanceChartRange">
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 3 months</option>
+              <option value="180">Last 6 months</option>
+            </select>
+          </div>
+          <div class="chart-container" id="balanceChart">
+            <canvas id="balanceCanvas"></canvas>
+            <div class="chart-empty" id="balanceChartEmpty">
+              <span>No data yet — add transactions to see your balance trend.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="card-header">
+            <h2 class="card-title">Spending by Category</h2>
+          </div>
+          <div class="chart-container chart-container--donut" id="categoryChart">
+            <canvas id="categoryCanvas"></canvas>
+            <div class="chart-empty" id="categoryChartEmpty">
+              <span>No expenses yet this month.</span>
+            </div>
+          </div>
+          <div class="legend" id="categoryLegend"></div>
+        </div>
+      </section>
+
+      <!-- Monthly bar chart -->
+      <section class="card chart-card chart-card--full">
+        <div class="card-header">
+          <h2 class="card-title">Monthly Overview</h2>
+          <select class="select--sm" id="monthlyYear">
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+          </select>
+        </div>
+        <div class="chart-container" id="monthlyChart">
+          <canvas id="monthlyCanvas"></canvas>
+          <div class="chart-empty" id="monthlyChartEmpty">
+            <span>No transactions yet. Start logging to see your monthly overview.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom row: Accounts + Recent transactions -->
+      <section class="bottom-row">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Accounts</h2>
+            <a href="pages/accounts.html" class="link--sm">View all</a>
+          </div>
+          <div class="account-list" id="accountList">
+            <div class="empty-state">No accounts yet.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Recent Transactions</h2>
+            <a href="pages/transactions.html" class="link--sm">View all</a>
+          </div>
+          <div class="transaction-list" id="recentTransactions">
+            <div class="empty-state">No transactions yet. <a href="pages/add-transaction.html">Add one →</a></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Bottom nav (mobile) -->
+  <nav class="bottom-nav">
+    <a href="index.html" class="bottom-nav__item active">
+      <span class="bottom-nav__icon">⊞</span>
+      <span class="bottom-nav__label">Dashboard</span>
+    </a>
+    <a href="pages/transactions.html" class="bottom-nav__item">
+      <span class="bottom-nav__icon">↕</span>
+      <span class="bottom-nav__label">Transactions</span>
+    </a>
+    <a href="pages/add-transaction.html" class="bottom-nav__item bottom-nav__item--add">
+      <span class="bottom-nav__icon">+</span>
+    </a>
+    <a href="pages/accounts.html" class="bottom-nav__item">
+      <span class="bottom-nav__icon">◈</span>
+      <span class="bottom-nav__label">Accounts</span>
+    </a>
+  </nav>
+
+  <script src="scripts/data/store.js"></script>
+  <script src="scripts/engine/summary.js"></script>
+  <script src="scripts/components/charts.js"></script>
+  <script src="scripts/components/ui.js"></script>
+  <script src="scripts/pages/dashboard.js"></script>
+</body>
+</html>

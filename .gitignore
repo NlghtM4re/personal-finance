@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+
+# Local env / secrets
+.env
+.env.local
+
+# Vercel
+.vercel/
+
+# Temp
+*.tmp
+*.bak

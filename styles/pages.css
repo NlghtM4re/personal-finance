@@ -1,0 +1,293 @@
+/* ============================================================
+   PAGES.CSS — Transactions, Accounts, Add-Transaction pages
+   ============================================================ */
+
+/* --- Transaction list page --- */
+.transactions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.transactions-stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+.stat-chip--income  { background: var(--color-income-light);   color: var(--color-income);  border-color: transparent; }
+.stat-chip--expense { background: var(--color-expense-light);  color: var(--color-expense); border-color: transparent; }
+
+/* Full transaction list */
+.tx-list-full {
+  display: flex;
+  flex-direction: column;
+}
+
+.tx-list-full .tx-item {
+  padding: 14px 0;
+  cursor: pointer;
+}
+.tx-list-full .tx-item:hover .tx-name { color: var(--color-primary); }
+
+/* Transaction actions (edit / delete) */
+.tx-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.tx-item:hover .tx-actions { opacity: 1; }
+
+.tx-action-btn {
+  width: 30px; height: 30px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  transition: background var(--transition), color var(--transition);
+}
+.tx-action-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
+.tx-action-btn--delete:hover { background: var(--color-expense-light); color: var(--color-expense); }
+
+/* Group by date header */
+.tx-date-group {
+  padding: 6px 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--color-border);
+  margin-top: 8px;
+}
+.tx-date-group:first-child { margin-top: 0; }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 16px;
+}
+.page-btn {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.page-btn:hover, .page-btn.active {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+}
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* --- Accounts page --- */
+.accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.account-card {
+  padding: 20px;
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.account-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.account-card__stripe {
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.account-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.account-card__name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.account-card__type {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.account-card__actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.account-card:hover .account-card__actions { opacity: 1; }
+
+.account-card__balance-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.account-card__balance {
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Add account button card */
+.account-card--add {
+  border: 2px dashed var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-text-muted);
+  min-height: 140px;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+.account-card--add:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  transform: none;
+  box-shadow: none;
+}
+.account-card--add .add-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+.account-card--add span {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* --- Add / Edit Transaction page --- */
+.form-page {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.form-card {
+  padding: 28px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-grid .form-group--full {
+  grid-column: 1 / -1;
+}
+
+.form-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+  margin-top: 4px;
+}
+
+/* Category picker */
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
+}
+
+.category-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+.category-btn:hover {
+  border-color: var(--color-text-light);
+  color: var(--color-text);
+}
+.category-btn .cat-icon { font-size: 1.4rem; line-height: 1; }
+.category-btn.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-card {
+    padding: 20px 16px;
+  }
+  .category-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .transactions-stats {
+    width: 100%;
+  }
+  .tx-actions {
+    opacity: 1;
+  }
+  .account-card__actions {
+    opacity: 1;
+  }
+}
