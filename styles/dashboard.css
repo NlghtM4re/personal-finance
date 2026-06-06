@@ -2,6 +2,234 @@
    DASHBOARD.CSS — Summary cards, charts, layout
    ============================================================ */
 
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+.dashboard-hero {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.hero-balance-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hero-balance-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+
+.hero-balance-amount {
+  font-size: 2.75rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--color-accent);
+}
+
+/* Stacked income / expense inside hero card */
+.hero-ie-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.hero-ie-stack__item { display: flex; flex-direction: column; gap: 2px; }
+
+.hero-ie-stack__label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+}
+.hero-ie-stack__item--income  .hero-ie-stack__label { color: var(--color-income); }
+.hero-ie-stack__item--expense .hero-ie-stack__label { color: var(--color-expense); }
+
+.hero-ie-stack__amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.hero-ie-stack__item--income  .hero-ie-stack__amount { color: var(--color-income); }
+.hero-ie-stack__item--expense .hero-ie-stack__amount { color: var(--color-expense); }
+
+.hero-ie-stack__sub { font-size: 0.6875rem; color: var(--color-text-muted); }
+
+.hero-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.hero-stat-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.hero-stat-chip__label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.hero-stat-chip__value {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.hero-stat-chip__sep {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* ============================================================
+   SPENDING PAGE — period bar
+   ============================================================ */
+.spending-period-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.spending-summary-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+   MONTH NAV (prev / label / next)
+   ============================================================ */
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.month-nav__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 120px;
+  text-align: center;
+}
+
+/* ============================================================
+   CARD SUBTITLE
+   ============================================================ */
+.card-title-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+/* ============================================================
+   SPENDING BREAKDOWN
+   ============================================================ */
+.spending-breakdown-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.spending-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.spending-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.spending-item__icon {
+  font-size: 1.25rem;
+  width: 32px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.spending-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.spending-item__name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spending-item__bar-wrap {
+  height: 4px;
+  background: var(--color-surface-2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.spending-item__bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+  min-width: 2px;
+}
+
+.spending-item__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.spending-item__amount {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-expense);
+}
+
+.spending-item__pct {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+/* ============================================================
+   ORIGINAL SUMMARY CARDS (kept for compatibility)
+   ============================================================ */
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -115,19 +343,69 @@
 .legend-label      { flex: 1; color: var(--color-text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .legend-amount     { color: var(--color-text-muted); font-weight: 500; white-space: nowrap; font-size: 0.8125rem; }
 
+/* Monthly summary stats below chart */
+.monthly-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 14px;
+}
+
+.monthly-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.monthly-summary-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+}
+
+.monthly-summary-value {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.monthly-summary-item--income .monthly-summary-value { color: var(--color-income); }
+.monthly-summary-item--expense .monthly-summary-value { color: var(--color-expense); }
+
+/* Mid row: monthly overview + recent transactions side by side */
+.dashboard-mid-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.chart-container--sm { position: relative; height: 220px; width: 100%; }
+.chart-container--sm canvas { display: block; width: 100%; height: 100%; }
+
 .bottom-row        { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 @media (max-width: 1200px) {
-  .summary-cards { grid-template-columns: repeat(2, 1fr); }
-  .charts-row    { grid-template-columns: 1fr; }
+  .summary-cards    { grid-template-columns: repeat(2, 1fr); }
+  .charts-row       { grid-template-columns: 1fr; }
+  .dashboard-hero   { grid-template-columns: 1fr; }
+  .dashboard-mid-row { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
   .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .summary-card__amount { font-size: 1.375rem; }
   .summary-card__icon   { width: 28px; height: 28px; margin-bottom: 10px; }
-  .charts-row  { grid-template-columns: 1fr; }
-  .bottom-row  { grid-template-columns: 1fr; }
+  .charts-row       { grid-template-columns: 1fr; }
+  .bottom-row       { grid-template-columns: 1fr; }
+  .dashboard-mid-row { grid-template-columns: 1fr; }
+  .hero-balance-amount { font-size: 2.125rem; }
+  .hero-balance-card { padding: 20px; }
 }
 
 @media (max-width: 480px) {

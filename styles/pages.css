@@ -6,7 +6,7 @@
    BUDGET PAGE
    ============================================================ */
 
-.budget-page { display: flex; flex-direction: column; gap: 12px; max-width: 800px; }
+.budget-page { display: flex; flex-direction: column; gap: 12px; }
 
 /* Month navigator */
 .budget-month-nav {
@@ -266,6 +266,97 @@
   cursor: pointer; outline: none; flex-shrink: 0;
 }
 .settings-select:focus { border-color: var(--color-text-muted); }
+
+/* --- Dashboard account groups (assets / debts) --- */
+.acc-group { margin-bottom: 14px; }
+.acc-group:last-child { margin-bottom: 0; }
+
+.acc-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.acc-group-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.acc-group-pill--asset { background: var(--color-income-light);   color: var(--color-income); }
+.acc-group-pill--debt  { background: var(--color-expense-light);  color: var(--color-expense); }
+
+.acc-group-total { font-size: 0.9375rem; font-weight: 700; }
+
+.acc-group-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.acc-group-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+.acc-group-name { font-size: 0.875rem; font-weight: 500; color: var(--color-text); }
+
+.acc-group-actions-row { display: flex; gap: 10px; }
+
+.acc-group-balance { font-size: 0.9375rem; font-weight: 600; white-space: nowrap; text-align: right; }
+
+/* --- Combined accounts + transactions layout --- */
+.acctx-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.acctx-accounts { display: flex; flex-direction: column; gap: 12px; }
+.acctx-transactions { display: flex; flex-direction: column; gap: 12px; }
+
+/* --- Account summary card (below accounts list) --- */
+.acc-summary-card { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+
+.acc-summary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.acc-summary-item { display: flex; flex-direction: column; gap: 3px; }
+
+.acc-summary-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.acc-summary-value {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+.acc-summary-value--income  { color: var(--color-income); }
+.acc-summary-value--expense { color: var(--color-expense); }
+
+.acc-summary-divider {
+  height: 1px;
+  background: var(--color-border);
+}
+
+@media (max-width: 960px) {
+  .acctx-layout { grid-template-columns: 1fr; }
+}
 
 /* --- Transactions header --- */
 .transactions-header {

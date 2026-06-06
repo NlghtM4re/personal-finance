@@ -59,6 +59,11 @@
   /* Transitions */
   --transition:      0.15s ease;
   --transition-slow: 0.3s ease;
+
+  /* Accent — teal for key financial figures */
+  --color-accent:       #3ecfb2;
+  --color-accent-light: rgba(62,207,178,.12);
+  --color-accent-dark:  #2db89c;
 }
 
 /* --- Light mode override --- */
@@ -102,10 +107,20 @@ body {
   font-size: 14px;
   line-height: 1.6;
   color: var(--color-text);
-  background: var(--color-bg);
+  background-color: var(--color-bg);
+  background-image:
+    linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+  background-size: 48px 48px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background var(--transition-slow), color var(--transition-slow);
+  transition: background-color var(--transition-slow), color var(--transition-slow);
+}
+[data-theme="light"] body {
+  background-image:
+    linear-gradient(rgba(0,0,0,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,.045) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
 
@@ -124,6 +139,7 @@ h1 { font-size: 1.5rem;    font-weight: 700; letter-spacing: -0.03em; }
 h2 { font-size: 1.125rem;  font-weight: 600; letter-spacing: -0.02em; }
 h3 { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
 
+.text-accent  { color: var(--color-accent); }
 .text-muted   { color: var(--color-text-muted); }
 .text-light   { color: var(--color-text-light); }
 .text-income  { color: var(--color-income); }

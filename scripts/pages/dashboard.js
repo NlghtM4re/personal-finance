@@ -2,12 +2,11 @@
    dashboard.js — Dashboard page logic (async)
    ============================================================ */
 
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+let currentMonthView = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+
 function showSkeletons() {
-  const skeletonCard = `
-    <div style="padding:4px 0">
-      <div class="skeleton skeleton-title" style="width:60%"></div>
-      <div class="skeleton skeleton-text"  style="width:40%"></div>
-    </div>`;
   ['totalBalance','monthIncome','monthExpense','monthNet'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = `<div class="skeleton skeleton-title" style="width:70%;display:inline-block;"></div>`;
@@ -22,25 +21,43 @@ function showSkeletons() {
       </div>
       <div class="skeleton skeleton-text" style="width:60px"></div>
     </div>`).join('');
-  const accEl = document.getElementById('accountList');
-  if (accEl) accEl.innerHTML = [1,2].map(() => `
-    <div class="account-item">
-      <div class="skeleton" style="width:12px;height:12px;border-radius:50%;flex-shrink:0;"></div>
-      <div class="account-info">
-        <div class="skeleton skeleton-text" style="width:50%"></div>
-        <div class="skeleton skeleton-text" style="width:30%"></div>
-      </div>
-      <div class="skeleton skeleton-text" style="width:70px"></div>
-    </div>`).join('');
+}
+
+function getWeeklyRollup(transactions, year, month) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const prefix = `${year}-${String(month).padStart(2, '0')}-`;
+  const weeks = [
+    { label: 'Wk 1', start: 1,  end: 7,             income: 0, expense: 0 },
+    { label: 'Wk 2', start: 8,  end: 14,             income: 0, expense: 0 },
+    { label: 'Wk 3', start: 15, end: 21,             income: 0, expense: 0 },
+    { label: 'Wk 4', start: 22, end: daysInMonth,    income: 0, expense: 0 },
+  ];
+  transactions.forEach(t => {
+    if (!t.date.startsWith(prefix)) return;
+    const day = parseInt(t.date.slice(8));
+    const wk  = weeks.find(w => day >= w.start && day <= w.end);
+    if (!wk) return;
+    if (t.type === 'income')  wk.income  += t.amount;
+    if (t.type === 'expense') wk.expense += t.amount;
+  });
+  return weeks;
+}
+
+function getMonthTransactions(allTx, year, month) {
+  const prefix = `${year}-${String(month).padStart(2, '0')}-`;
+  return allTx.filter(t => t.date.startsWith(prefix));
 }
 
 async function initDashboard() {
   showSkeletons();
-  const [allTx, accounts, monthTx] = await Promise.all([
+  const [allTx, accounts] = await Promise.all([
     TransactionStore.getAll(),
     AccountStore.getAll(),
-    TransactionStore.thisMonth(),
   ]);
+
+  const now = new Date();
+  const thisMonthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-`;
+  const monthTx = allTx.filter(t => t.date.startsWith(thisMonthPrefix));
 
   const totalBalance = await AccountStore.getTotalBalance();
   const monthTotals  = SummaryEngine.getTotals(monthTx);
@@ -50,17 +67,43 @@ async function initDashboard() {
   setText('monthIncome',  formatCurrency(monthTotals.income));
   setText('monthExpense', formatCurrency(monthTotals.expense));
   setText('monthNet',     (net >= 0 ? '+' : '') + formatCurrency(net));
-  setText('monthIncomeSub',  `${monthTx.filter(t => t.type === 'income').length} transactions`);
-  setText('monthExpenseSub', `${monthTx.filter(t => t.type === 'expense').length} transactions`);
-  setText('monthNetSub',     net >= 0 ? 'Saved so far' : 'Over budget');
+  const incomeCount  = monthTx.filter(t => t.type === 'income').length;
+  const expenseCount = monthTx.filter(t => t.type === 'expense').length;
+  setText('monthIncomeSub',  incomeCount  === 1 ? '1 tx' : `${incomeCount} tx`);
+  setText('monthExpenseSub', expenseCount === 1 ? '1 tx' : `${expenseCount} tx`);
 
   const netEl = document.getElementById('monthNet');
   if (netEl) netEl.style.color = net >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
 
+  /* Year & 90-day change */
+  const yearAgoStr   = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+  const ninetyAgoStr = new Date(Date.now() -  90 * 86400000).toISOString().slice(0, 10);
+  const yearNet   = SummaryEngine.getTotals(allTx.filter(t => t.date >= yearAgoStr));
+  const ninetyNet = SummaryEngine.getTotals(allTx.filter(t => t.date >= ninetyAgoStr));
+  const yNet = yearNet.income   - yearNet.expense;
+  const nNet = ninetyNet.income - ninetyNet.expense;
+  setText('yearChange',      (yNet >= 0 ? '+' : '') + formatCurrency(yNet));
+  setText('ninetyDayChange', (nNet >= 0 ? '+' : '') + formatCurrency(nNet));
+  const ycEl  = document.getElementById('yearChange');
+  const ndcEl = document.getElementById('ninetyDayChange');
+  if (ycEl)  ycEl.style.color  = yNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+  if (ndcEl) ndcEl.style.color = nNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+
   /* Balance over time chart */
-  const days          = parseInt(document.getElementById('balanceChartRange')?.value || '30');
-  const balancePoints = SummaryEngine.getBalanceOverTime(allTx, accounts, days);
-  const balanceEmpty  = document.getElementById('balanceChartEmpty');
+  const rangeVal = document.getElementById('balanceChartRange')?.value || 'all';
+  let chartDays;
+  if (rangeVal === 'all') {
+    if (allTx.length > 0) {
+      const firstDate = allTx.map(t => t.date).sort()[0];
+      chartDays = Math.max(1, Math.ceil((Date.now() - new Date(firstDate).getTime()) / 86400000) + 1);
+    } else {
+      chartDays = 30;
+    }
+  } else {
+    chartDays = parseInt(rangeVal);
+  }
+  const balancePoints = SummaryEngine.getBalanceOverTime(allTx, accounts, chartDays);
+  const balanceEmpty = document.getElementById('balanceChartEmpty');
   if (allTx.length > 0) {
     balanceEmpty?.setAttribute('hidden', '');
     Charts.drawLineChart('balanceCanvas', balancePoints);
@@ -68,10 +111,50 @@ async function initDashboard() {
     balanceEmpty?.removeAttribute('hidden');
   }
 
-  /* Category donut */
+  /* Monthly overview — daily bars for current month view */
+  updateMonthNav();
+  await renderMonthlyChart(allTx);
+
+  await renderAccounts(accounts);
+  renderRecentTransactions(allTx.slice(0, 5));
+  await renderRecurringBanner();
+}
+
+function updateMonthNav() {
+  const label = document.getElementById('monthNavLabel');
+  if (label) label.textContent = `${MONTH_NAMES[currentMonthView.month - 1]} ${currentMonthView.year}`;
+}
+
+async function renderMonthlyChart(allTx) {
+  const { year, month } = currentMonthView;
+  const prefix = `${year}-${String(month).padStart(2, '0')}-`;
+  const monthTx = allTx.filter(t => t.date.startsWith(prefix));
+  const weekly = getWeeklyRollup(allTx, year, month);
+  const monthlyEmpty = document.getElementById('monthlyChartEmpty');
+  const hasData = weekly.some(w => w.income > 0 || w.expense > 0);
+  if (hasData) {
+    monthlyEmpty?.setAttribute('hidden', '');
+    Charts.drawBarChart('monthlyCanvas', weekly);
+  } else {
+    monthlyEmpty?.removeAttribute('hidden');
+  }
+
+  const totals = SummaryEngine.getTotals(monthTx);
+  const net = totals.income - totals.expense;
+  setText('monthlyIncome',  formatCurrency(totals.income));
+  setText('monthlyExpense', formatCurrency(totals.expense));
+  setText('monthlyNet',     (net >= 0 ? '+' : '') + formatCurrency(net));
+  setText('monthlyCount',   String(monthTx.filter(t => t.type !== 'transfer').length));
+  const netEl = document.getElementById('monthlyNet');
+  if (netEl) netEl.style.color = net >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+}
+
+async function renderCategoryChart(monthTx) {
   const byCategory = SummaryEngine.getByCategory(monthTx);
   const catEmpty   = document.getElementById('categoryChartEmpty');
   const legendEl   = document.getElementById('categoryLegend');
+  const breakdownEl = document.getElementById('spendingBreakdown');
+
   if (byCategory.length > 0) {
     catEmpty?.setAttribute('hidden', '');
     const catNames = await Promise.all(
@@ -80,6 +163,7 @@ async function initDashboard() {
     const slices = byCategory.slice(0, 8).map((b, i) => ({
       label: catNames[i]?.name || 'Other',
       value: b.total,
+      icon: catNames[i]?.icon || '📦',
     }));
     Charts.drawDonutChart('categoryCanvas', slices);
     if (legendEl) {
@@ -91,36 +175,31 @@ async function initDashboard() {
         </div>
       `).join('');
     }
+    if (breakdownEl) {
+      const total = slices.reduce((s, sl) => s + sl.value, 0);
+      breakdownEl.innerHTML = slices.map((sl, i) => {
+        const pct = total > 0 ? Math.round((sl.value / total) * 100) : 0;
+        return `
+          <div class="spending-item">
+            <div class="spending-item__icon">${sl.icon}</div>
+            <div class="spending-item__info">
+              <div class="spending-item__name">${sl.label}</div>
+              <div class="spending-item__bar-wrap">
+                <div class="spending-item__bar" style="width:${pct}%;background:${Charts.COLORS[i % Charts.COLORS.length]}"></div>
+              </div>
+            </div>
+            <div class="spending-item__meta">
+              <div class="spending-item__amount">${formatCurrency(sl.value)}</div>
+              <div class="spending-item__pct">${pct}%</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
   } else {
     catEmpty?.removeAttribute('hidden');
     if (legendEl) legendEl.innerHTML = '';
+    if (breakdownEl) breakdownEl.innerHTML = '<div class="empty-state">No expenses this month.</div>';
   }
-
-  /* Monthly bar chart */
-  const year         = parseInt(document.getElementById('monthlyYear')?.value || new Date().getFullYear());
-  const monthly      = SummaryEngine.getMonthlyRollup(allTx, year);
-  const monthlyEmpty = document.getElementById('monthlyChartEmpty');
-  if (monthly.some(m => m.income > 0 || m.expense > 0)) {
-    monthlyEmpty?.setAttribute('hidden', '');
-    Charts.drawBarChart('monthlyCanvas', monthly);
-  } else {
-    monthlyEmpty?.removeAttribute('hidden');
-  }
-
-  /* Net Worth History chart */
-  const netWorthPoints = SummaryEngine.getNetWorthHistory(allTx, accounts, 12);
-  const netWorthEmpty  = document.getElementById('netWorthEmpty');
-  const hasHistory     = netWorthPoints.some(p => p.balance !== netWorthPoints[0].balance) || netWorthPoints.length > 1;
-  if (allTx.length > 0) {
-    netWorthEmpty?.setAttribute('hidden', '');
-    Charts.drawLineChart('netWorthCanvas', netWorthPoints);
-  } else {
-    netWorthEmpty?.removeAttribute('hidden');
-  }
-
-  renderAccounts(accounts);
-  renderRecentTransactions(allTx.slice(0, 5));
-  await renderRecurringBanner();
 }
 
 async function renderRecurringBanner() {
@@ -195,25 +274,56 @@ async function renderRecurringBanner() {
 }
 
 async function renderAccounts(accounts) {
-  const el = document.getElementById('accountList');
-  if (!el) return;
+  const assetEl = document.getElementById('assetList');
+  const debtEl  = document.getElementById('debtList');
+  if (!assetEl && !debtEl) return;
+
   if (!accounts.length) {
-    el.innerHTML = `<div class="empty-state">No accounts. <a href="pages/accounts.html">Add one →</a></div>`;
+    if (assetEl) assetEl.innerHTML = `<div class="empty-state">No accounts. <a href="pages/accounts.html">Add one →</a></div>`;
+    if (debtEl)  debtEl.innerHTML  = `<div class="empty-state">No debt accounts.</div>`;
     return;
   }
+
   const balances = await Promise.all(accounts.map(a => AccountStore.getBalance(a.id)));
-  el.innerHTML = accounts.map((a, i) => `
-    <div class="account-item">
-      <span class="account-dot" style="background:${a.color}"></span>
-      <div class="account-info">
-        <div class="account-name">${a.name}</div>
-        <div class="account-type">${capitalize(a.type)}</div>
-      </div>
-      <div class="account-balance" style="color:${balances[i] >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}">
-        ${formatCurrency(balances[i])}
-      </div>
-    </div>
-  `).join('');
+  const withBal  = accounts.map((a, i) => ({ ...a, bal: balances[i] }));
+
+  const debtTypes = new Set(['credit']);
+  const assets    = withBal.filter(a => !debtTypes.has(a.type));
+  const debts     = withBal.filter(a =>  debtTypes.has(a.type));
+
+  const TYPE_LABEL = { bank: 'Bank', cash: 'Cash', savings: 'Savings', investment: 'Investment', credit: 'Credit', other: 'Other' };
+
+  function renderGroups(accs, isDebt) {
+    if (!accs.length) return `<div class="empty-state">${isDebt ? 'No debt accounts.' : 'No asset accounts.'}</div>`;
+    const byType = {};
+    accs.forEach(a => { (byType[a.type] = byType[a.type] || []).push(a); });
+    const color = isDebt ? 'var(--color-expense)' : 'var(--color-income)';
+    const pillClass = isDebt ? 'acc-group-pill--debt' : 'acc-group-pill--asset';
+
+    return Object.entries(byType).map(([type, list]) => {
+      const groupTotal = list.reduce((s, a) => s + Math.abs(a.bal), 0);
+      return `
+        <div class="acc-group">
+          <div class="acc-group-header">
+            <span class="acc-group-pill ${pillClass}">${TYPE_LABEL[type] || type}</span>
+            <span class="acc-group-total" style="color:${color}">${formatCurrency(groupTotal)}</span>
+          </div>
+          ${list.map(a => `
+            <div class="acc-group-item">
+              <div class="acc-group-name">${a.name}</div>
+              <div class="acc-group-actions-row">
+                <a href="pages/accounts.html" class="link--sm">Details</a>
+                <a href="pages/add-transaction.html" class="link--sm">Add</a>
+              </div>
+              <div class="acc-group-balance" style="color:${a.bal < 0 ? 'var(--color-expense)' : color}">${formatCurrency(Math.abs(a.bal))}</div>
+            </div>
+          `).join('')}
+        </div>`;
+    }).join('');
+  }
+
+  if (assetEl) assetEl.innerHTML = renderGroups(assets, false);
+  if (debtEl)  debtEl.innerHTML  = renderGroups(debts,  true);
 }
 
 async function renderRecentTransactions(txs) {
@@ -241,12 +351,12 @@ function txItemHTML(t, cat) {
   `;
 }
 
-function capitalize(str) { return str ? str[0].toUpperCase() + str.slice(1) : ''; }
 function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
 
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
+
   try {
     await initDashboard();
   } catch (err) {
@@ -254,6 +364,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('Error loading data: ' + err.message, 'error');
     ['totalBalance','monthIncome','monthExpense','monthNet'].forEach(id => setText(id, '—'));
   }
+
   document.getElementById('balanceChartRange')?.addEventListener('change', () => initDashboard().catch(console.error));
-  document.getElementById('monthlyYear')?.addEventListener('change', () => initDashboard().catch(console.error));
+
+  document.getElementById('monthNavPrev')?.addEventListener('click', async () => {
+    currentMonthView.month--;
+    if (currentMonthView.month < 1) { currentMonthView.month = 12; currentMonthView.year--; }
+    updateMonthNav();
+    const allTx = await TransactionStore.getAll();
+    await renderMonthlyChart(allTx);
+  });
+
+  document.getElementById('monthNavNext')?.addEventListener('click', async () => {
+    currentMonthView.month++;
+    if (currentMonthView.month > 12) { currentMonthView.month = 1; currentMonthView.year++; }
+    updateMonthNav();
+    const allTx = await TransactionStore.getAll();
+    await renderMonthlyChart(allTx);
+  });
 });

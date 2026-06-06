@@ -11,6 +11,29 @@ let editingAccountId = null;
 
 async function initAccounts() {
   await renderAccountsGrid();
+  await renderAccountSummary();
+}
+
+async function renderAccountSummary() {
+  const accounts = await AccountStore.getAll();
+  const balances = await Promise.all(accounts.map(a => AccountStore.getBalance(a.id)));
+  const withBal  = accounts.map((a, i) => ({ ...a, bal: balances[i] }));
+
+  const debtTypes = new Set(['credit']);
+  const assets = withBal.filter(a => !debtTypes.has(a.type));
+  const debts  = withBal.filter(a =>  debtTypes.has(a.type));
+
+  const totalAssets = assets.reduce((s, a) => s + Math.max(0, a.bal), 0);
+  const totalDebts  = debts.reduce((s, a)  => s + Math.abs(Math.min(0, a.bal)), 0);
+  const netWorth    = totalAssets - totalDebts;
+
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setText('accTotalAssets', formatCurrency(totalAssets));
+  setText('accTotalDebts',  formatCurrency(totalDebts));
+  setText('accCount',       String(accounts.length));
+  setText('accNetWorth',    (netWorth >= 0 ? '+' : '') + formatCurrency(netWorth));
+  const nwEl = document.getElementById('accNetWorth');
+  if (nwEl) nwEl.style.color = netWorth >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
 }
 
 async function renderAccountsGrid() {
@@ -97,6 +120,7 @@ async function deleteAccount(id) {
   await AccountStore.delete(id);
   showToast('Account deleted');
   await renderAccountsGrid();
+  await renderAccountSummary();
 }
 
 function setValue(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
@@ -125,6 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     else                  { await AccountStore.add(data);                      showToast('Account created', 'success'); }
     document.getElementById('accountModal')?.classList.remove('open');
     await renderAccountsGrid();
+    await renderAccountSummary();
   });
 
   document.getElementById('closeAccountModal')?.addEventListener('click', () => document.getElementById('accountModal')?.classList.remove('open'));

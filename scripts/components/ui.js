@@ -44,6 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
     applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   });
 
+  document.getElementById('themeToggleTop')?.addEventListener('click', () => {
+    applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
   /* --- Active nav link --- */
   const currentPath = window.location.pathname.split('/').pop() || 'index.html';
   document.querySelectorAll('.nav-item, .bottom-nav__item').forEach(link => {
