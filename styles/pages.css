@@ -377,6 +377,7 @@
 .form-page { max-width: 580px; margin: 0 auto; }
 .form-card  { padding: 24px 28px; }
 .form-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid > .form-group { min-width: 0; }
 .form-grid .form-group--full { grid-column: 1 / -1; }
 
 .form-section-title {

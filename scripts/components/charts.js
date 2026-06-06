@@ -89,8 +89,9 @@ const Charts = {
       ctx.fillText(this._fmt(v), pad.left - 8, y);
     }
 
-    /* X labels */
-    const labelStep = Math.max(1, Math.floor(points.length / 7));
+    /* X labels — step based on available width so they never overlap */
+    const maxLabels = Math.max(2, Math.floor(cw / 42));
+    const labelStep = Math.max(1, Math.ceil(points.length / maxLabels));
     ctx.fillStyle = this._textColor();
     ctx.font = '11px "IBM Plex Sans", sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
@@ -338,11 +339,14 @@ const Charts = {
         ctx.fill();
       }
 
-      /* Month label */
-      ctx.fillStyle    = isCur ? '#e2e8f0' : this._textColor();
-      ctx.font         = isCur ? 'bold 11px "IBM Plex Sans", sans-serif' : '11px "IBM Plex Sans", sans-serif';
-      ctx.textAlign    = 'center'; ctx.textBaseline = 'top';
-      ctx.fillText(m.label, groupX + barW + gap / 2, pad.top + ch + 10);
+      /* Month label — skip every other on narrow canvases */
+      const barLabelStep = Math.max(1, Math.ceil(months.length / Math.max(2, Math.floor(cw / 28))));
+      if (i % barLabelStep === 0) {
+        ctx.fillStyle    = isCur ? '#e2e8f0' : this._textColor();
+        ctx.font         = isCur ? 'bold 11px "IBM Plex Sans", sans-serif' : '11px "IBM Plex Sans", sans-serif';
+        ctx.textAlign    = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(m.label, groupX + barW + gap / 2, pad.top + ch + 10);
+      }
 
       hitAreas.push({ x: groupX - gap / 2, width: barGroupW });
 

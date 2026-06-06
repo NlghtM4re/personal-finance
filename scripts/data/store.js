@@ -214,7 +214,54 @@ const CategoryStore = {
 };
 
 /* ============================================================
-   BUDGET STORE (localStorage — keyed by YYYY-MM)
+   SETTINGS STORE (Supabase — currency, budgets)
+   ============================================================ */
+const SettingsStore = {
+  _cache: null,
+
+  async _load() {
+    const uid = await userId();
+    if (!uid) return { currency: 'USD', budgets: {} };
+    const { data } = await sb.from('user_settings').select('currency, budgets').eq('user_id', uid).maybeSingle();
+    this._cache = data || { currency: 'USD', budgets: {} };
+    return this._cache;
+  },
+
+  async _save(patch) {
+    const uid = await userId();
+    if (!uid) return;
+    this._cache = { ...(this._cache || {}), ...patch };
+    await sb.from('user_settings').upsert({ user_id: uid, ...this._cache }, { onConflict: 'user_id' });
+  },
+
+  async getCurrency() {
+    const cached = localStorage.getItem('pf_currency');
+    if (cached) return cached;
+    const s = await this._load();
+    localStorage.setItem('pf_currency', s.currency || 'USD');
+    return s.currency || 'USD';
+  },
+
+  async setCurrency(currency) {
+    localStorage.setItem('pf_currency', currency);
+    await this._save({ currency });
+  },
+
+  async getBudgets() {
+    const s = await this._load();
+    const budgets = s.budgets || {};
+    localStorage.setItem('pf_budgets', JSON.stringify(budgets));
+    return budgets;
+  },
+
+  async setBudgets(budgets) {
+    localStorage.setItem('pf_budgets', JSON.stringify(budgets));
+    await this._save({ budgets });
+  },
+};
+
+/* ============================================================
+   BUDGET STORE (syncs to Supabase via SettingsStore)
    ============================================================ */
 const BudgetStore = {
   _key: 'pf_budgets',
@@ -224,23 +271,27 @@ const BudgetStore = {
     catch { return {}; }
   },
 
+  async load() {
+    return SettingsStore.getBudgets();
+  },
+
   getMonth(monthKey) { return this._all()[monthKey] || {}; },
 
-  set(monthKey, categoryId, limit) {
+  async set(monthKey, categoryId, limit) {
     const all = this._all();
     if (!all[monthKey]) all[monthKey] = {};
     if (!limit || limit <= 0) delete all[monthKey][categoryId];
     else all[monthKey][categoryId] = Number(limit);
-    localStorage.setItem(this._key, JSON.stringify(all));
+    await SettingsStore.setBudgets(all);
   },
 
-  copyFromPrevious(monthKey) {
+  async copyFromPrevious(monthKey) {
     const all  = this._all();
     const d    = new Date(monthKey + '-01T00:00:00');
     d.setMonth(d.getMonth() - 1);
     const prev = d.toISOString().slice(0, 7);
     all[monthKey] = { ...(all[prev] || {}) };
-    localStorage.setItem(this._key, JSON.stringify(all));
+    await SettingsStore.setBudgets(all);
     return all[monthKey];
   },
 };

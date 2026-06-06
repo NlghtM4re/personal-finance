@@ -133,7 +133,7 @@ async function renderBudgetPage() {
     if (hasPrev && !hasBudgets) {
       copyWrap.style.display = '';
       copyWrap.querySelector('#copyBtn')?.addEventListener('click', async () => {
-        BudgetStore.copyFromPrevious(currentMonth);
+        await BudgetStore.copyFromPrevious(currentMonth);
         await renderBudgetPage();
         showToast('Budgets copied from last month', 'success');
       });
@@ -192,9 +192,9 @@ function startEdit(displayEl) {
   input.focus();
   if (current > 0) input.select();
 
-  const save = () => {
+  const save = async () => {
     const val = parseFloat(input.value) || 0;
-    BudgetStore.set(currentMonth, catId, val);
+    await BudgetStore.set(currentMonth, catId, val);
     renderBudgetPage().catch(console.error);
   };
 
@@ -217,6 +217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   currentMonth = getMonthKey();
 
   try {
+    await BudgetStore.load();
     await renderBudgetPage();
   } catch (err) {
     console.error('Budget error:', err);

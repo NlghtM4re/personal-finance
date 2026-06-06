@@ -24,9 +24,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   /* Currency selector */
   const currencySelect = document.getElementById('currencySelect');
   if (currencySelect) {
-    currencySelect.value = localStorage.getItem('pf_currency') || 'USD';
-    currencySelect.addEventListener('change', () => {
-      localStorage.setItem('pf_currency', currencySelect.value);
+    SettingsStore.getCurrency().then(c => { currencySelect.value = c; });
+    currencySelect.addEventListener('change', async () => {
+      await SettingsStore.setCurrency(currencySelect.value);
       showToast('Currency updated', 'success');
     });
   }
