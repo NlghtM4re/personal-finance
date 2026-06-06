@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Accounts</title>
+  <title>Budget</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -14,7 +14,6 @@
 </head>
 <body>
 
-  
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <a href="../index.html" class="logo">
@@ -23,23 +22,23 @@
       </a>
     </div>
     <nav class="sidebar-nav">
-      <a href="../index.html" class="nav-item ">
+      <a href="../index.html" class="nav-item">
         <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
         <span class="nav-label">Dashboard</span>
       </a>
-      <a href="transactions.html" class="nav-item ">
+      <a href="transactions.html" class="nav-item">
         <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/></svg></span>
         <span class="nav-label">Transactions</span>
       </a>
-      <a href="accounts.html" class="nav-item active">
+      <a href="accounts.html" class="nav-item">
         <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>
         <span class="nav-label">Accounts</span>
       </a>
-      <a href="budget.html" class="nav-item">
+      <a href="budget.html" class="nav-item active">
         <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
         <span class="nav-label">Budget</span>
       </a>
-      <a href="add-transaction.html" class="nav-item nav-item--accent ">
+      <a href="add-transaction.html" class="nav-item nav-item--accent">
         <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
         <span class="nav-label">Add Transaction</span>
       </a>
@@ -53,22 +52,70 @@
   </aside>
 
   <div class="overlay" id="overlay"></div>
-<div class="main-wrapper">
+  <div class="main-wrapper">
     <header class="topbar">
       <button class="menu-btn" id="menuBtn" aria-label="Open menu"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-      <div class="topbar-title">Accounts</div>
+      <div class="topbar-title">Budget</div>
       <div class="topbar-actions">
         <a href="settings.html" class="topbar-icon-btn" aria-label="Settings"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
-        <button class="btn btn--primary btn--sm" id="newAccountBtn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          New Account
-        </button>
       </div>
     </header>
 
     <main class="main-content">
-      <div class="accounts-grid" id="accountsGrid">
-        <div class="spinner"></div>
+      <div class="budget-page">
+
+        <!-- Month navigator -->
+        <div class="budget-month-nav">
+          <button class="btn btn--ghost btn--sm" id="prevMonthBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Prev
+          </button>
+          <span class="budget-month-label" id="monthLabel">—</span>
+          <button class="btn btn--ghost btn--sm" id="nextMonthBtn">
+            Next
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+
+        <!-- Summary strip -->
+        <div class="budget-summary-strip">
+          <div class="card budget-summary-card">
+            <div class="budget-summary-card__label">Total Budget</div>
+            <div class="budget-summary-card__value" id="summaryBudget">—</div>
+          </div>
+          <div class="card budget-summary-card">
+            <div class="budget-summary-card__label">Spent</div>
+            <div class="budget-summary-card__value budget-summary-card__value--expense" id="summarySpent">—</div>
+          </div>
+          <div class="card budget-summary-card">
+            <div class="budget-summary-card__label" id="summaryRemainingLabel">Remaining</div>
+            <div class="budget-summary-card__value" id="summaryRemaining">—</div>
+          </div>
+        </div>
+
+        <!-- Copy from last month prompt -->
+        <div class="card budget-copy-card" id="copyFromPrev" style="display:none;">
+          <div class="budget-copy-card__text">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            No budgets set for this month
+          </div>
+          <button class="btn btn--ghost btn--sm" id="copyBtn">Copy from last month</button>
+        </div>
+
+        <!-- Category list -->
+        <div class="card budget-list-card">
+          <div class="budget-list-header">
+            <span class="budget-list-header__cat">Category</span>
+            <span class="budget-list-header__bar">Progress</span>
+            <span class="budget-list-header__nums">Spent / Budget</span>
+          </div>
+          <div id="budgetCategoryList">
+            <div class="empty-state">Loading…</div>
+          </div>
+        </div>
+
+        <p class="budget-hint">Click any budget amount to edit it inline.</p>
+
       </div>
     </main>
   </div>
@@ -86,71 +133,21 @@
     <a href="add-transaction.html" class="bottom-nav__item bottom-nav__item--add" aria-label="Add transaction">
       <span class="bottom-nav__icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
     </a>
-    <a href="accounts.html" class="bottom-nav__item active">
+    <a href="accounts.html" class="bottom-nav__item">
       <span class="bottom-nav__icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>
       <span class="bottom-nav__label">Accounts</span>
     </a>
-    <a href="budget.html" class="bottom-nav__item">
+    <a href="budget.html" class="bottom-nav__item active">
       <span class="bottom-nav__icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
       <span class="bottom-nav__label">Budget</span>
     </a>
   </nav>
-
-  <!-- Account modal -->
-  <div class="modal-overlay" id="accountModal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 class="modal-title" id="accountModalTitle">New Account</h3>
-        <button class="modal-close" id="closeAccountModal" aria-label="Close">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <form id="accForm" novalidate>
-        <div style="display:flex;flex-direction:column;gap:14px;">
-          <div class="form-group">
-            <label class="form-label" for="accName">Account Name *</label>
-            <input type="text" id="accName" class="form-control" placeholder="e.g. Main Bank, Cash Wallet" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="accType">Account Type</label>
-            <select id="accType" class="form-control">
-              <option value="bank">Bank Account</option>
-              <option value="cash">Cash</option>
-              <option value="credit">Credit Card</option>
-              <option value="savings">Savings</option>
-              <option value="investment">Investment</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="accBalance">Starting Balance</label>
-            <div class="input-with-prefix">
-              <span class="input-prefix">$</span>
-              <input type="number" id="accBalance" class="form-control" placeholder="0.00" step="0.01" />
-            </div>
-            <div class="form-hint">Your balance before you start tracking.</div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="accColor">Color</label>
-            <input type="color" id="accColor" class="form-control" style="height:42px;padding:4px 8px;cursor:pointer;" value="#6366f1" />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn--ghost" id="cancelAccount">Cancel</button>
-          <button type="submit" class="btn btn--primary">Save Account</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="../scripts/data/supabase.js"></script>
   <script src="../scripts/data/store.js"></script>
   <script src="../scripts/engine/summary.js"></script>
   <script src="../scripts/components/ui.js"></script>
-  <script src="../scripts/pages/accounts.js"></script>
-  <script>
-    document.getElementById('newAccountBtn')?.addEventListener('click', () => openAccountModal(null));
-  </script>
+  <script src="../scripts/pages/budget.js"></script>
 </body>
 </html>

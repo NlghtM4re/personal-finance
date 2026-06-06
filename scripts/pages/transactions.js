@@ -2,9 +2,9 @@
    transactions.js — Transaction list page (async)
    ============================================================ */
 
-let currentFilters = { search: '', categoryId: '', accountId: '', type: '', from: '', to: '' };
-let currentPage    = 1;
-const PAGE_SIZE    = 20;
+let currentFilters  = { search: '', categoryId: '', accountId: '', type: '', from: '', to: '' };
+let displayedCount  = 20;
+const PAGE_SIZE     = 20;
 
 async function initTransactions() {
   await populateFilters();
@@ -47,8 +47,7 @@ async function renderTransactions() {
     </div>`).join('');
 
   const all   = await TransactionStore.query(currentFilters);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const page  = all.slice(start, start + PAGE_SIZE);
+  const page  = all.slice(0, displayedCount);
 
   if (!all.length) {
     el.innerHTML = `<div class="empty-state">No transactions found.</div>`;
@@ -75,7 +74,7 @@ async function renderTransactions() {
     ${txs.map(t => txItemFullHTML(t, catMap[t.categoryId], accMap[t.accountId])).join('')}
   `).join('');
 
-  renderPagination(all.length);
+  renderLoadMore(all.length);
   attachTxEvents();
 }
 
@@ -97,18 +96,20 @@ function txItemFullHTML(t, cat, acc) {
   `;
 }
 
-function renderPagination(total) {
-  const el    = document.getElementById('pagination');
+function renderLoadMore(total) {
+  const el = document.getElementById('pagination');
   if (!el) return;
-  const pages = Math.ceil(total / PAGE_SIZE);
-  if (pages <= 1) { el.innerHTML = ''; return; }
-  let html = `<button class="page-btn" ${currentPage===1?'disabled':''} data-page="${currentPage-1}">‹</button>`;
-  for (let i = 1; i <= pages; i++)
-    html += `<button class="page-btn${i===currentPage?' active':''}" data-page="${i}">${i}</button>`;
-  html += `<button class="page-btn" ${currentPage===pages?'disabled':''} data-page="${currentPage+1}">›</button>`;
-  el.innerHTML = html;
-  el.querySelectorAll('[data-page]').forEach(btn => {
-    btn.addEventListener('click', () => { currentPage = parseInt(btn.dataset.page); renderTransactions(); window.scrollTo({ top: 0 }); });
+  if (displayedCount >= total) { el.innerHTML = ''; return; }
+  const remaining = total - displayedCount;
+  el.innerHTML = `
+    <button class="btn btn--ghost load-more-btn" id="loadMoreBtn">
+      Load ${Math.min(PAGE_SIZE, remaining)} more
+      <span class="load-more-count">${remaining} remaining</span>
+    </button>
+  `;
+  document.getElementById('loadMoreBtn')?.addEventListener('click', async () => {
+    displayedCount += PAGE_SIZE;
+    await renderTransactions();
   });
 }
 
@@ -129,7 +130,6 @@ function openDeleteModal(id) {
   confirmBtn.onclick = async () => {
     await TransactionStore.delete(id);
     modal.classList.remove('open');
-    currentPage = 1;
     await Promise.all([renderTransactions(), renderStats()]);
     showToast('Transaction deleted', 'success');
   };
@@ -148,24 +148,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   document.getElementById('searchInput')?.addEventListener('input', e => {
-    currentFilters.search = e.target.value; currentPage = 1;
+    currentFilters.search = e.target.value; displayedCount = PAGE_SIZE;
     renderTransactions(); renderStats();
   });
 
   ['filterCategory','filterAccount','filterType'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', e => {
       const key = id === 'filterCategory' ? 'categoryId' : id === 'filterAccount' ? 'accountId' : 'type';
-      currentFilters[key] = e.target.value; currentPage = 1;
+      currentFilters[key] = e.target.value; displayedCount = PAGE_SIZE;
       renderTransactions(); renderStats();
     });
   });
 
-  document.getElementById('filterFrom')?.addEventListener('change', e => { currentFilters.from = e.target.value; currentPage = 1; renderTransactions(); renderStats(); });
-  document.getElementById('filterTo')?.addEventListener('change',   e => { currentFilters.to   = e.target.value; currentPage = 1; renderTransactions(); renderStats(); });
+  document.getElementById('filterFrom')?.addEventListener('change', e => { currentFilters.from = e.target.value; displayedCount = PAGE_SIZE; renderTransactions(); renderStats(); });
+  document.getElementById('filterTo')?.addEventListener('change',   e => { currentFilters.to   = e.target.value; displayedCount = PAGE_SIZE; renderTransactions(); renderStats(); });
 
   document.getElementById('clearFilters')?.addEventListener('click', () => {
     currentFilters = { search: '', categoryId: '', accountId: '', type: '', from: '', to: '' };
-    currentPage    = 1;
+    displayedCount = PAGE_SIZE;
     document.querySelectorAll('.filter-bar select, .filter-bar input[type="date"]').forEach(el => el.value = '');
     document.getElementById('searchInput').value = '';
     renderTransactions(); renderStats();

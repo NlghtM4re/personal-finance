@@ -107,8 +107,91 @@ async function initDashboard() {
     monthlyEmpty?.removeAttribute('hidden');
   }
 
+  /* Net Worth History chart */
+  const netWorthPoints = SummaryEngine.getNetWorthHistory(allTx, accounts, 12);
+  const netWorthEmpty  = document.getElementById('netWorthEmpty');
+  const hasHistory     = netWorthPoints.some(p => p.balance !== netWorthPoints[0].balance) || netWorthPoints.length > 1;
+  if (allTx.length > 0) {
+    netWorthEmpty?.setAttribute('hidden', '');
+    Charts.drawLineChart('netWorthCanvas', netWorthPoints);
+  } else {
+    netWorthEmpty?.removeAttribute('hidden');
+  }
+
   renderAccounts(accounts);
   renderRecentTransactions(allTx.slice(0, 5));
+  await renderRecurringBanner();
+}
+
+async function renderRecurringBanner() {
+  const banner = document.getElementById('recurringBanner');
+  if (!banner) return;
+
+  const due = RecurringStore.getDue();
+  if (!due.length) { banner.style.display = 'none'; return; }
+
+  const cats = await Promise.all(due.map(r => CategoryStore.getById(r.categoryId)));
+  banner.style.display = '';
+
+  const freqLabel = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
+
+  banner.innerHTML = `
+    <div class="recurring-banner__header">
+      <span class="recurring-banner__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      </span>
+      <span class="recurring-banner__title">${due.length} recurring transaction${due.length !== 1 ? 's' : ''} due</span>
+    </div>
+    <div class="recurring-banner__list">
+      ${due.map((r, i) => `
+        <div class="recurring-item" data-id="${r.id}">
+          <div class="recurring-item__icon">${cats[i]?.icon || '📦'}</div>
+          <div class="recurring-item__info">
+            <div class="recurring-item__name">${r.note || cats[i]?.name || 'Transaction'}</div>
+            <div class="recurring-item__meta">${freqLabel[r.frequency] || r.frequency} · due ${formatDate(r.nextDue)}</div>
+          </div>
+          <div class="recurring-item__amount tx-amount--${r.type}">${formatCurrency(r.amount)}</div>
+          <div class="recurring-item__actions">
+            <button class="btn btn--primary btn--sm recurring-log-btn" data-id="${r.id}">Log</button>
+            <button class="btn btn--ghost btn--sm recurring-skip-btn" data-id="${r.id}" title="Skip this occurrence">Skip</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  banner.querySelectorAll('.recurring-log-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const rule = due.find(r => r.id === btn.dataset.id);
+      if (!rule) return;
+      btn.textContent = '…'; btn.disabled = true;
+      try {
+        await TransactionStore.add({
+          date:        new Date().toISOString().slice(0, 10),
+          amount:      rule.amount,
+          type:        rule.type,
+          categoryId:  rule.categoryId,
+          accountId:   rule.accountId,
+          toAccountId: rule.toAccountId || null,
+          note:        rule.note,
+          tags:        [],
+        });
+        RecurringStore.advanceNext(rule.id);
+        showToast('Transaction logged', 'success');
+        await initDashboard();
+      } catch (err) {
+        showToast(err.message || 'Failed to log transaction', 'error');
+        btn.textContent = 'Log'; btn.disabled = false;
+      }
+    });
+  });
+
+  banner.querySelectorAll('.recurring-skip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      RecurringStore.advanceNext(btn.dataset.id);
+      renderRecurringBanner();
+    });
+  });
 }
 
 async function renderAccounts(accounts) {

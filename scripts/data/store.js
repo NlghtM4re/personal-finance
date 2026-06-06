@@ -214,11 +214,97 @@ const CategoryStore = {
 };
 
 /* ============================================================
+   BUDGET STORE (localStorage — keyed by YYYY-MM)
+   ============================================================ */
+const BudgetStore = {
+  _key: 'pf_budgets',
+
+  _all() {
+    try { return JSON.parse(localStorage.getItem(this._key) || '{}'); }
+    catch { return {}; }
+  },
+
+  getMonth(monthKey) { return this._all()[monthKey] || {}; },
+
+  set(monthKey, categoryId, limit) {
+    const all = this._all();
+    if (!all[monthKey]) all[monthKey] = {};
+    if (!limit || limit <= 0) delete all[monthKey][categoryId];
+    else all[monthKey][categoryId] = Number(limit);
+    localStorage.setItem(this._key, JSON.stringify(all));
+  },
+
+  copyFromPrevious(monthKey) {
+    const all  = this._all();
+    const d    = new Date(monthKey + '-01T00:00:00');
+    d.setMonth(d.getMonth() - 1);
+    const prev = d.toISOString().slice(0, 7);
+    all[monthKey] = { ...(all[prev] || {}) };
+    localStorage.setItem(this._key, JSON.stringify(all));
+    return all[monthKey];
+  },
+};
+
+/* ============================================================
+   RECURRING STORE (localStorage — no DB needed)
+   ============================================================ */
+const RecurringStore = {
+  _key: 'pf_recurring_rules',
+
+  getAll() {
+    try { return JSON.parse(localStorage.getItem(this._key) || '[]'); }
+    catch { return []; }
+  },
+
+  _save(rules) { localStorage.setItem(this._key, JSON.stringify(rules)); },
+
+  add(rule) {
+    const rules = this.getAll();
+    rule.id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : Date.now().toString(36) + Math.random().toString(36).slice(2);
+    rules.push(rule);
+    this._save(rules);
+    return rule;
+  },
+
+  remove(id) { this._save(this.getAll().filter(r => r.id !== id)); },
+
+  getDue() {
+    const today = new Date().toISOString().slice(0, 10);
+    return this.getAll().filter(r => r.active !== false && r.nextDue <= today);
+  },
+
+  advanceNext(id) {
+    const rules = this.getAll();
+    const rule  = rules.find(r => r.id === id);
+    if (!rule) return;
+    const d = new Date(rule.nextDue + 'T00:00:00');
+    switch (rule.frequency) {
+      case 'daily':   d.setDate(d.getDate() + 1); break;
+      case 'weekly':  d.setDate(d.getDate() + 7); break;
+      case 'monthly': d.setMonth(d.getMonth() + 1); break;
+      case 'yearly':  d.setFullYear(d.getFullYear() + 1); break;
+    }
+    rule.nextDue = d.toISOString().slice(0, 10);
+    this._save(rules);
+  },
+};
+
+/* ============================================================
    FORMAT HELPERS
    ============================================================ */
+const CURRENCY_LOCALES = {
+  USD: 'en-US', EUR: 'de-DE', GBP: 'en-GB', JPY: 'ja-JP',
+  CAD: 'en-CA', AUD: 'en-AU', CHF: 'de-CH', INR: 'en-IN',
+  BRL: 'pt-BR', MXN: 'es-MX',
+};
+
 function formatCurrency(amount) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency', currency: 'USD', minimumFractionDigits: 2,
+  const currency = localStorage.getItem('pf_currency') || 'USD';
+  const locale   = CURRENCY_LOCALES[currency] || 'en-US';
+  return new Intl.NumberFormat(locale, {
+    style: 'currency', currency, minimumFractionDigits: currency === 'JPY' ? 0 : 2,
   }).format(Math.abs(amount));
 }
 

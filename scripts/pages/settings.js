@@ -9,6 +9,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   const emailEl = document.getElementById('userEmail');
   if (emailEl) emailEl.textContent = user.email;
 
+  /* Load counts */
+  try {
+    const [txs, accs] = await Promise.all([
+      TransactionStore.getAll(),
+      AccountStore.getAll(),
+    ]);
+    const txEl  = document.getElementById('txCount');
+    const accEl = document.getElementById('accCount');
+    if (txEl)  txEl.textContent  = `${txs.length} transaction${txs.length !== 1 ? 's' : ''}`;
+    if (accEl) accEl.textContent = `${accs.length} account${accs.length !== 1 ? 's' : ''}`;
+  } catch (_) {}
+
+  /* Currency selector */
+  const currencySelect = document.getElementById('currencySelect');
+  if (currencySelect) {
+    currencySelect.value = localStorage.getItem('pf_currency') || 'USD';
+    currencySelect.addEventListener('change', () => {
+      localStorage.setItem('pf_currency', currencySelect.value);
+      showToast('Currency updated', 'success');
+    });
+  }
+
   document.getElementById('logoutBtn')?.addEventListener('click', async () => {
     await SupaAuth.signOut();
   });

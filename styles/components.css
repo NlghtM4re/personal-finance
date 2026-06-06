@@ -52,13 +52,12 @@
 
 .btn--primary {
   background: var(--color-primary);
-  color: #ffffff;
+  color: #0a0a0a;
 }
 .btn--primary:hover {
   background: var(--color-primary-dark);
-  box-shadow: var(--glow-primary);
   text-decoration: none;
-  color: #ffffff;
+  color: #0a0a0a;
 }
 
 .btn--secondary {
@@ -323,7 +322,7 @@ select.form-control {
 
 /* --- Touch targets --- */
 @media (max-width: 768px) {
-  .btn, .nav-item, .bottom-nav__item, .type-btn,
+  .btn:not(#submitBtn):not(.btn--sm), .nav-item, .bottom-nav__item, .type-btn,
   .category-btn, .page-btn, .tx-action-btn, .modal-close {
     min-height: 44px; min-width: 44px;
   }

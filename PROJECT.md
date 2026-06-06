@@ -1,7 +1,7 @@
 # Personal Finance Tracker — Project Journal
 
 > Living document. Update this file as decisions are made, phases complete, and plans change.
-> Last updated: 2026-06-03
+> Last updated: 2026-06-06 (session 2)
 
 ---
 
@@ -15,10 +15,10 @@ A self-hosted, responsive web app accessible from any browser (desktop + phone) 
 
 | Item | Value |
 |---|---|
-| Phase | 1 — Frontend (localStorage) |
-| Active step | Step 2 — Data layer (stores) |
+| Phase | 3 — UI/UX polish & power features |
+| Active step | Step 8 — ongoing (charts ✅, settings ✅, branding ✅, theme ✅) |
 | Blockers | None |
-| Next action | Create first account, add transactions, verify charts render |
+| Next action | Mobile layout polish, currency selector, budgets |
 
 ---
 
@@ -26,14 +26,12 @@ A self-hosted, responsive web app accessible from any browser (desktop + phone) 
 
 | Layer | Choice | Reason |
 |---|---|---|
-| Frontend framework | React + TypeScript (Vite) | Fast dev, strong typing, component model |
-| Styling | Tailwind CSS | Utility-first, responsive out of the box |
-| Charts | Recharts | Lightweight, React-native |
-| State + persistence | Zustand + localStorage | Simple, no backend needed in Phase 1 |
-| Backend (Phase 2) | Express + SQLite (better-sqlite3) | Lightweight, self-contained, no separate DB server |
-| Deployment (remote) | Vercel (frontend) + Railway or Fly.io (backend) | Free tiers, easy deploys |
-| Deployment (self-host) | Docker Compose | Single command to run everything locally |
-| Testing | Vitest (unit) + Playwright (E2E) | Co-located with Vite, fast |
+| Frontend | Vanilla HTML/CSS/JS | Zero build step, open directly in browser |
+| Styling | CSS custom properties + utility classes | Hand-rolled design system, no framework |
+| Charts | Canvas-based (charts.js — custom) | No external library, lightweight |
+| Auth + DB | Supabase | Auth, Postgres, Row Level Security, realtime-ready |
+| Deployment | Vercel (static) | Free tier, easy deploy, `vercel.json` already present |
+| Testing | — | Not implemented yet |
 
 ---
 
@@ -85,33 +83,36 @@ type Budget = {
 
 | Module | Layer | Responsibility | Status |
 |---|---|---|---|
-| `TransactionStore` | State | CRUD transactions, filtering, sorting | Not started |
-| `AccountStore` | State | CRUD accounts, per-account balance | Not started |
-| `CategoryStore` | State | Predefined + custom categories | Not started |
-| `BudgetStore` | State | Monthly budget limits, usage % | Not started |
-| `RecurringStore` | State | Scheduled transactions, due-date detection | Not started |
-| `SummaryEngine` | Pure logic | Totals, category breakdowns, monthly rollups | Not started |
-| `CSVService` | Service | Import/export CSV ↔ transactions | Not started |
-| `TransactionForm` | UI | Add/edit transaction form with validation | Not started |
-| `TransactionList` | UI | Filterable, searchable transaction list | Not started |
-| `Dashboard` | UI | Summary cards, charts, budget bars | Not started |
-| `Charts` | UI | Balance line, category donut, monthly bar | Not started |
-| `AccountList` | UI | Per-account balance view | Not started |
-| Express API | Backend | REST endpoints for all stores | Not started |
-| SQLite schema | Backend | Persistent DB, matches data model above | Not started |
+| `TransactionStore` | Data (`store.js`) | CRUD transactions, filtering, Supabase queries | ✅ Done |
+| `AccountStore` | Data (`store.js`) | CRUD accounts, per-account balance, total balance | ✅ Done |
+| `CategoryStore` | Data (`store.js`) | Hardcoded default categories (14), no DB table | ✅ Done |
+| `SupaAuth` | Auth (`supabase.js`) | Session check, requireAuth redirect, signOut | ✅ Done |
+| `SummaryEngine` | Pure logic (`summary.js`) | getTotals, getByCategory, getMonthlyRollup, getBalanceOverTime | ✅ Done |
+| `Charts` | UI (`charts.js`) | Canvas line, donut, bar charts | ✅ Done |
+| `ui.js` | UI | Sidebar toggle, active nav, resize redraw | ✅ Done |
+| `dashboard.js` | Page | Summary cards, 3 charts, recent transactions, accounts list | ✅ Done |
+| `transactions.js` | Page | Filterable/paginated list, delete modal, stats bar | ✅ Done |
+| `add-transaction.js` | Page | Add/edit form, type tabs, category picker, validation | ✅ Done |
+| `accounts.js` | Page | Account grid, add/edit modal, delete with warning | ✅ Done |
+| `settings.js` | Page | Show user email, sign out, delete all data | ✅ Done |
+| `api.js` | Service | Thin fetch wrapper for future backend (unused for now) | 🔵 Stub |
+| Supabase schema | Backend | Postgres tables + RLS (`supabase-schema.sql`) | ✅ Done |
+| `BudgetStore` | State | Monthly budget limits, usage % | ❌ Not started |
+| `RecurringStore` | State | Scheduled transactions, due-date detection | ❌ Not started |
+| `CSVService` | Service | Import/export CSV ↔ transactions | ❌ Not started |
 
 ---
 
 ## Build Phases
 
-### Phase 1 — Frontend with localStorage  ← WE ARE HERE
-Data lives in the browser. No backend. Immediately usable.
+### Phase 1 — Frontend with localStorage  ✅ SKIPPED
+Decided to go straight to Supabase instead of building a localStorage layer first.
 
-### Phase 2 — Backend sync
-Add Express + SQLite so data lives on a server and syncs across all devices.
+### Phase 2 — Supabase backend + deployment  ✅ DONE (2026-06-05)
+Auth, Postgres DB with RLS, full CRUD across all pages, deployed schema. Site live on Vercel.
 
-### Phase 3 — Power features
-Budgets, recurring transactions, tags, CSV import/export, dark mode.
+### Phase 3 — UI/UX overhaul + power features  ← WE ARE HERE
+Fix mobile layout, design polish, UX flow improvements. Then budgets, recurring transactions, CSV import/export.
 
 ---
 
@@ -119,100 +120,124 @@ Budgets, recurring transactions, tags, CSV import/export, dark mode.
 
 ### Step 1 — Project scaffold ✅ DONE (2026-06-03)
 - [x] Vanilla HTML/CSS/JS chosen over React — zero build step, open directly in browser
-- [x] Folder structure created: `styles/`, `scripts/data/`, `scripts/engine/`, `scripts/components/`, `scripts/pages/`, `pages/`
-- [x] Design system: CSS custom properties for light/dark tokens, Inter font
-- [x] All 4 pages built: Dashboard, Transactions, Add Transaction, Accounts
-- [x] Canvas-based charts (no external library): line, donut, bar
-- [x] App confirmed running via `npx serve` on port 3333
+- [x] Folder structure: `styles/`, `scripts/data/`, `scripts/engine/`, `scripts/components/`, `scripts/pages/`, `pages/`
+- [x] Design system: IBM Plex Sans, OLED dark theme, CSS custom properties
+- [x] All 5 pages: Dashboard, Transactions, Add Transaction, Accounts, Settings
+- [x] Canvas-based charts: line, donut, bar
 
-### Step 2 — Data layer (stores)
-- [ ] `CategoryStore` — seed with default categories (Food, Rent, Salary, Transport, etc.)
-- [ ] `AccountStore` — CRUD + balance calculation from initial balance + transactions
-- [ ] `TransactionStore` — CRUD, filtering by date range / category / account, search by note
-- [ ] Persist all stores to localStorage via Zustand middleware
-- [ ] Write Vitest unit tests for balance calculation and filtering logic
+### Step 2 — Data layer ✅ DONE (2026-06-04)
+- [x] Supabase chosen over localStorage — auth + Postgres + RLS in one
+- [x] `supabase-schema.sql` — accounts + transactions tables with RLS policies
+- [x] `supabase.js` — client init, `SupaAuth.requireAuth()`, `getUser()`, `signOut()`
+- [x] `TransactionStore` — getAll, getById, add, update, delete, query (filters), thisMonth
+- [x] `AccountStore` — getAll, getById, add, update, delete, getBalance, getTotalBalance
+- [x] `CategoryStore` — 14 hardcoded categories (no DB table needed)
+- [x] `formatCurrency`, `formatDate`, `showToast` helpers in `store.js`
 
-### Step 3 — SummaryEngine (pure logic)
-- [ ] Function: `getTotals(transactions, dateRange)` → `{ income, expenses, balance }`
-- [ ] Function: `getByCategory(transactions, dateRange)` → `{ categoryId, total }[]`
-- [ ] Function: `getMonthlyRollup(transactions, year)` → `{ month, income, expenses }[]`
-- [ ] Function: `getBalanceOverTime(transactions, accounts)` → `{ date, balance }[]`
-- [ ] Write Vitest tests for all four functions with fixture data
+### Step 3 — SummaryEngine ✅ DONE (2026-06-04)
+- [x] `getTotals(transactions)` → `{ income, expense, net, count }`
+- [x] `getByCategory(transactions)` → sorted `{ categoryId, total }[]`
+- [x] `getMonthlyRollup(transactions, year)` → 12-month array with income/expense/net
+- [x] `getBalanceOverTime(transactions, accounts, days)` → daily balance points for line chart
 
-### Step 4 — Transaction UI
-- [ ] `TransactionForm` component (add + edit mode, validation)
-- [ ] `TransactionList` component (sorted newest-first, with filters and search)
-- [ ] Delete confirmation modal
-- [ ] Mobile-friendly layout for list and form
+### Step 4 — Transaction UI ✅ DONE (2026-06-04)
+- [x] Add/edit form with type tabs (income/expense/transfer), category picker, validation
+- [x] Prefill form when editing via `?id=` query param
+- [x] Transaction list grouped by date, paginated (20/page), with stats bar
+- [x] Filters: search, category, account, type, date range, clear all
+- [x] Delete confirmation modal
 
-### Step 5 — Dashboard
-- [ ] Summary cards: Total Balance, Income this month, Expenses this month
-- [ ] Balance-over-time line chart (Recharts)
-- [ ] Spending by category donut chart (Recharts)
-- [ ] Monthly income vs. expenses bar chart (Recharts)
-- [ ] Responsive grid layout (stacks on mobile)
+### Step 5 — Dashboard ✅ DONE (2026-06-04)
+- [x] Summary cards: Total Balance, Month Income, Month Expense, Month Net
+- [x] Skeleton loading states on all cards and lists
+- [x] Balance-over-time line chart (configurable 7/30/90 days)
+- [x] Spending by category donut chart + legend
+- [x] Monthly income vs. expense bar chart (year selector)
+- [x] Recent transactions list (last 5)
+- [x] Accounts list with live balances
 
-### Step 6 — Account views
-- [ ] Account list with individual balances
-- [ ] Filter transaction list by account
-- [ ] Transfer transaction type (moves money between accounts, no net effect on total)
+### Step 6 — Account views ✅ DONE (2026-06-04)
+- [x] Account grid with color stripe, type badge, live current balance
+- [x] Add/edit account modal (name, type, initial balance, color)
+- [x] Delete account with warning if it has transactions
+- [x] Transfer transaction type wired up (to/from account, no net effect)
 
-### Step 7 — Polish + deployment (Phase 1 complete)
-- [ ] Dark mode (Tailwind `dark:` variants)
-- [ ] Empty states and loading states
-- [ ] Error boundaries
-- [ ] Deploy frontend to Vercel
-- [ ] Confirm accessible from phone browser
+### Step 7 — Polish + deployment  ✅ DONE (2026-06-05)
+- [x] OLED dark mode — already the default theme
+- [x] Empty states on all lists
+- [x] Skeleton loading states
+- [x] Error handling with toast notifications on all pages
+- [x] Sidebar on desktop / bottom nav on mobile (responsive)
+- [x] Deployed to Vercel — site is live
+- [x] Accessible from phone browser confirmed
 
-### Step 8 — Backend (Phase 2)
-- [ ] Init Express project in `/server`
-- [ ] Define SQLite schema (matches data model)
-- [ ] REST endpoints: transactions, accounts, categories
-- [ ] Replace Zustand localStorage with API calls
-- [ ] Deploy backend to Railway or Fly.io
-- [ ] Connect frontend to deployed backend URL
+### Step 8 — UI/UX overhaul  ← WE ARE HERE
 
-### Step 9 — Power features (Phase 3)
-- [ ] `BudgetStore` + budget progress bars on Dashboard
-- [ ] `RecurringStore` + due-date detection + reminder banner
-- [ ] Tags on transactions
-- [ ] `CSVService` — export all transactions
-- [ ] `CSVService` — import from CSV with column mapping UI
+**Completed this session:**
+- [x] All 3 charts completely rewritten (balance line, spending donut, monthly bar)
+  - Hover tooltips on all charts showing exact values
+  - Balance chart: gradient fill, Y-axis labels, date labels, crosshair
+  - Donut chart: ring with center total, hover shows category % and amount
+  - Bar chart: current month highlighted, Income/Exp legend, full tooltip
+  - Fixed hover explosion bug (canvas resize loop) — now caches ctx/dimensions
+  - Fixed donut not filling container (CSS `width:100%; height:100%` on canvas)
+- [x] Settings page fully redesigned — grouped sections (Account, Data, Danger Zone), live tx/account counts, icon-prefixed rows
+- [x] Branding: "FinTrack" → "Personal Finance" across all pages
+- [x] Color theme: full black/white/grey — replaced all Tailwind slate (blue-tinted) tokens with true neutral greys (`#000`, `#0d0d0d`, `#1a1a1a`)
+- [x] Removed logo icon from sidebar header and all topbar instances
+- [x] Sidebar header height aligned with topbar (both 56px — same horizontal band)
+- [x] "Add Transaction" sidebar item: replaced jarring white block with outlined ghost button
+
+**Still to do — design/UX:**
+- [ ] Mobile layout: bottom nav overlaps page content on some screens
+- [ ] Mobile layout: forms and modals not fully optimized for small screens
+- [ ] Add transaction: no feedback after save (goes straight back, no confirmation)
+- [ ] Transactions list: pagination feels abrupt
+
+**Still to do — functionality:**
+- [ ] Currency selector in Settings (hardcoded USD everywhere)
+- [ ] `BudgetStore` — monthly limits per category, stored in Supabase
+- [ ] Budget progress bars on Dashboard
+- [ ] Tags UI on add-transaction form (field exists in DB, not surfaced in UI)
+- [ ] `RecurringStore` — scheduled transactions, due-date banner
+- [ ] `CSVService` — export / import CSV
+- [ ] Custom categories (currently hardcoded 14)
 
 ---
 
-## Folder Structure (target)
+## Folder Structure (actual)
 
 ```
 personal finance/
 ├── index.html                        # Dashboard
+├── login.html                        # Login / signup page
 ├── pages/
 │   ├── transactions.html             # Full transaction list + filters
 │   ├── add-transaction.html          # Add / Edit transaction form
-│   └── accounts.html                 # Account cards + modal
-├── styles/
-│   ├── main.css                      # Design tokens, reset, typography
-│   ├── layout.css                    # Sidebar, topbar, bottom nav, responsive
-│   ├── components.css                # Buttons, cards, forms, badges, modals
-│   ├── dashboard.css                 # Summary cards, chart containers, grids
-│   └── pages.css                     # Transactions list, accounts, form page
+│   ├── accounts.html                 # Account cards + modal
+│   └── settings.html                 # User email, sign out, delete all data
+├── styles/                           # CSS files (design system)
 ├── scripts/
 │   ├── data/
-│   │   └── store.js                  # localStorage CRUD: TransactionStore, AccountStore, CategoryStore
+│   │   ├── supabase.js               # Supabase client + SupaAuth helpers
+│   │   ├── store.js                  # TransactionStore, AccountStore, CategoryStore
+│   │   └── api.js                    # Stub fetch wrapper (future backend, unused)
 │   ├── engine/
-│   │   └── summary.js                # Pure functions: totals, by-category, monthly rollup, balance over time
+│   │   └── summary.js                # SummaryEngine pure functions
 │   ├── components/
-│   │   ├── charts.js                 # Canvas charts: line, donut, bar (no external lib)
-│   │   └── ui.js                     # Sidebar toggle, dark mode, active nav, resize redraw
+│   │   ├── charts.js                 # Canvas charts: line, donut, bar
+│   │   └── ui.js                     # Sidebar toggle, active nav, resize
 │   └── pages/
-│       ├── dashboard.js              # Dashboard data + render logic
-│       ├── transactions.js           # Filter, paginate, delete transaction list
-│       ├── add-transaction.js        # Form logic: add/edit/validate
-│       └── accounts.js              # Account grid, modal, balance display
-├── .claude/
-│   └── launch.json                   # Dev server config (npx serve, port 3333)
+│       ├── dashboard.js
+│       ├── transactions.js
+│       ├── add-transaction.js
+│       ├── accounts.js
+│       └── settings.js
+├── design-system/                    # Design reference / tokens
+├── supabase-schema.sql               # Postgres schema + RLS policies
+├── vercel.json                       # Vercel static deploy config
 ├── PRD.md                            # Full product requirements
-└── PROJECT.md                        # ← this file (living project journal)
+└── PROJECT.md                        # ← this file
 ```
 
 ---
@@ -222,10 +247,18 @@ personal finance/
 > Record every significant decision here. Format: `YYYY-MM-DD — Decision — Why`
 
 - 2026-06-03 — Chose vanilla HTML/CSS/JS over React/Vite — No build step; open index.html directly or via `npx serve`; simpler for a solo-user personal tool
-- 2026-06-03 — Use localStorage in Phase 1, migrate in Phase 2 — Ship fast, avoid infra complexity until needed
+- 2026-06-03 — Skipped localStorage phase entirely; went straight to Supabase — Avoids a migration later; Supabase free tier is enough; realtime + auth included
 - 2026-06-03 — SummaryEngine as pure functions — Can run on frontend or backend without changes; easy to unit test
-- 2026-06-03 — amounts always stored as positive numbers — `type` field determines income vs. expense; avoids sign-confusion bugs
-- 2026-06-03 — Single currency for now — Out of scope; add `currency` field per transaction in a future phase if needed
+- 2026-06-03 — Amounts always stored as positive numbers — `type` field determines income vs. expense; avoids sign-confusion bugs
+- 2026-06-03 — Single currency (USD) for now — Out of scope; add `currency` field per transaction in a future phase if needed
+- 2026-06-03 — CategoryStore hardcoded, no DB table — Categories rarely change; avoids an extra Supabase table and round-trip; custom categories deferred to Phase 3
+- 2026-06-04 — Switched to new Supabase project (closer region) — Latency improvement
+- 2026-06-04 — IBM Plex Sans + OLED dark theme as default — Matches design system; no light mode toggle for now
+- 2026-06-05 — Deployed to Vercel — Site is live and accessible from phone; login and backend confirmed working
+- 2026-06-06 — Renamed to "Personal Finance" — dropped "FinTrack" branding entirely
+- 2026-06-06 — Full black/white/grey color theme — removed all blue (Tailwind slate tokens replaced with true neutral greys); semantic green/red for income/expense kept
+- 2026-06-06 — Charts rewritten with hover tooltips — canvas resize loop bug fixed by caching ctx on first draw; all 3 charts functional with interactive hover
+- 2026-06-06 — Settings page redesigned — grouped sections, live data counts, cleaner layout
 
 ---
 
@@ -233,20 +266,23 @@ personal finance/
 
 > Things noticed during build that aren't part of the current step.
 
-<!-- Example: 2026-06-15 — TransactionList re-renders too often on filter change — needs memoization -->
+- Tags field exists in the DB schema and is saved on transactions, but there's no UI to add/view tags
+- Currency is hardcoded to USD everywhere — no setting to change it
+- `api.js` stub is loaded on all pages but never used (Supabase is used directly instead)
+- No light mode — OLED dark is the only theme
+- Categories are hardcoded; no way for user to add custom categories
 
 ---
 
 ## Deployment Info
 
-> Fill in once deployed.
-
 | Item | Value |
 |---|---|
-| Frontend URL | — |
-| Backend URL | — |
-| Deployment platform | — |
-| Last deploy date | — |
+| Frontend URL | Live on Vercel (deployed) |
+| Backend URL | N/A (Supabase) |
+| Supabase project | grttprtovyzmlaicowsv.supabase.co |
+| Deployment platform | Vercel (static, vercel.json configured) |
+| Last deploy date | 2026-06-05 |
 
 ---
 

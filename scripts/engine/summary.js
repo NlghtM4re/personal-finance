@@ -51,6 +51,32 @@ const SummaryEngine = {
     return months;
   },
 
+  /* Monthly net-worth snapshots going back N months */
+  getNetWorthHistory(transactions, accounts, months = 12) {
+    const today        = new Date();
+    const totalInitial = accounts.reduce((s, a) => s + a.initialBalance, 0);
+    const points       = [];
+    for (let i = months - 1; i >= 0; i--) {
+      const d          = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      const cutoff     = endOfMonth > today ? today : endOfMonth;
+      const cutoffStr  = cutoff.toISOString().slice(0, 10);
+      const balance    = totalInitial + transactions
+        .filter(t => t.date <= cutoffStr)
+        .reduce((s, t) => {
+          if (t.type === 'income')  return s + t.amount;
+          if (t.type === 'expense') return s - t.amount;
+          return s;
+        }, 0);
+      points.push({
+        date:    cutoffStr,
+        label:   d.toLocaleString('en-US', { month: 'short', year: '2-digit' }),
+        balance,
+      });
+    }
+    return points;
+  },
+
   /* Running balance over time for line chart */
   getBalanceOverTime(transactions, accounts, days = 30) {
     const today    = new Date();
