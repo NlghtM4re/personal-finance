@@ -31,6 +31,10 @@
   font-weight: 600;
   color: var(--color-text);
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 /* --- Buttons --- */
@@ -114,8 +118,8 @@
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition-slow);
 }
 .form-control:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
   background: var(--color-surface);
 }
 .form-control::placeholder { color: var(--color-text-light); }
@@ -158,7 +162,7 @@ select.form-control {
   transition: border-color var(--transition);
   font-family: inherit;
 }
-.select--sm:focus { border-color: var(--color-primary); }
+.select--sm:focus { border-color: var(--color-accent); box-shadow: 0 0 0 2px var(--color-accent-light); }
 
 /* Type toggle */
 .type-toggle { display: flex; gap: 6px; }
@@ -307,8 +311,11 @@ select.form-control {
 
 /* --- Toast --- */
 .toast-container {
-  position: fixed; bottom: 80px; right: 20px;
+  position: fixed; bottom: 24px; right: 20px;
   z-index: 600; display: flex; flex-direction: column; gap: 6px;
+}
+@media (max-width: 768px) {
+  .toast-container { bottom: calc(var(--bottom-nav-height) + 12px); }
 }
 .toast {
   background: var(--color-surface);
