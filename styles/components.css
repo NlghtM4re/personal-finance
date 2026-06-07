@@ -201,8 +201,9 @@ select.form-control {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 0;
+  padding: 11px 8px;
   border-bottom: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
   transition: background var(--transition), border-color var(--transition);
   cursor: pointer;
 }
@@ -250,7 +251,7 @@ select.form-control {
 
 /* --- Filter bar --- */
 .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.search-input { flex: 1; min-width: 200px; position: relative; }
+.search-input { flex: 1; min-width: 140px; position: relative; }
 .search-input .search-icon {
   position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
   color: var(--color-text-muted); pointer-events: none; line-height: 0;

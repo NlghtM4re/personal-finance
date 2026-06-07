@@ -220,17 +220,6 @@
   <script src="../scripts/engine/summary.js"></script>
   <script src="../scripts/components/ui.js"></script>
   <script src="../scripts/pages/add-transaction.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      if (!AccountStore.getAll().length) {
-        document.getElementById('noAccountTip').style.display = 'block';
-      }
-      const toSel = document.getElementById('txToAccount');
-      if (toSel) {
-        toSel.innerHTML = AccountStore.getAll()
-          .map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-      }
-    });
-  </script>
+  <!-- Account hydration is handled by add-transaction.js after auth -->
 </body>
 </html>
