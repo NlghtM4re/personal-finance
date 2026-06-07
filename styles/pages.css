@@ -316,10 +316,31 @@
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 .acctx-accounts { display: flex; flex-direction: column; gap: 12px; }
+.acctx-accounts > .card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+.acctx-accounts .accounts-grid {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
 .acctx-transactions { display: flex; flex-direction: column; gap: 12px; }
+.acctx-transactions > .card:last-child {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.acctx-transactions > .card:last-child .tx-list-full {
+  max-height: 420px;
+  overflow-y: auto;
+}
 
 /* --- Account summary card (below accounts list) --- */
 .acc-summary-card { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }

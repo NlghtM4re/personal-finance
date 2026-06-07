@@ -27,10 +27,10 @@ function getWeeklyRollup(transactions, year, month) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const prefix = `${year}-${String(month).padStart(2, '0')}-`;
   const weeks = [
-    { label: 'Wk 1', start: 1,  end: 7,             income: 0, expense: 0 },
-    { label: 'Wk 2', start: 8,  end: 14,             income: 0, expense: 0 },
-    { label: 'Wk 3', start: 15, end: 21,             income: 0, expense: 0 },
-    { label: 'Wk 4', start: 22, end: daysInMonth,    income: 0, expense: 0 },
+    { label: 'Week 1', start: 1,  end: 7,             income: 0, expense: 0 },
+    { label: 'Week 2', start: 8,  end: 14,             income: 0, expense: 0 },
+    { label: 'Week 3', start: 15, end: 21,             income: 0, expense: 0 },
+    { label: 'Week 4', start: 22, end: daysInMonth,    income: 0, expense: 0 },
   ];
   transactions.forEach(t => {
     if (!t.date.startsWith(prefix)) return;
@@ -69,8 +69,8 @@ async function initDashboard() {
   setText('monthNet',     (net >= 0 ? '+' : '') + formatCurrency(net));
   const incomeCount  = monthTx.filter(t => t.type === 'income').length;
   const expenseCount = monthTx.filter(t => t.type === 'expense').length;
-  setText('monthIncomeSub',  incomeCount  === 1 ? '1 tx' : `${incomeCount} tx`);
-  setText('monthExpenseSub', expenseCount === 1 ? '1 tx' : `${expenseCount} tx`);
+  setText('monthIncomeSub',  incomeCount  === 1 ? '1 transaction' : `${incomeCount} transactions`);
+  setText('monthExpenseSub', expenseCount === 1 ? '1 transaction' : `${expenseCount} transactions`);
 
   const netEl = document.getElementById('monthNet');
   if (netEl) netEl.style.color = net >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
