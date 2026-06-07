@@ -384,6 +384,14 @@ function showToast(message, type = '') {
   const toast = document.createElement('div');
   toast.className = `toast${type ? ' toast--' + type : ''}`;
   toast.textContent = message;
+  toast.style.cursor = 'pointer';
   container.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+
+  const dismiss = () => {
+    if (toast.classList.contains('toast--dismissing')) return;
+    toast.classList.add('toast--dismissing');
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+  };
+  toast.addEventListener('click', dismiss);
+  setTimeout(dismiss, 3200);
 }

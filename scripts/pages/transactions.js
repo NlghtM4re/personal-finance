@@ -25,10 +25,11 @@ async function renderStats() {
   const txs    = await TransactionStore.query(currentFilters);
   const totals = SummaryEngine.getTotals(txs);
   const net    = totals.income - totals.expense;
-  setText('statCount',   `${txs.length} transactions`);
-  setText('statIncome',  formatCurrency(totals.income));
-  setText('statExpense', formatCurrency(totals.expense));
+  setText('statCount',   `${txs.length} transaction${txs.length !== 1 ? 's' : ''}`);
+  setText('statIncome',  '↑ ' + formatCurrency(totals.income));
+  setText('statExpense', '↓ ' + formatCurrency(totals.expense));
   setText('statNet',     (net >= 0 ? '+' : '') + formatCurrency(net));
+  if (typeof updateFilterBadge === 'function') updateFilterBadge(currentFilters);
 }
 
 async function renderTransactions() {
@@ -51,7 +52,7 @@ async function renderTransactions() {
 
   if (!all.length) {
     el.innerHTML = `<div class="empty-state">No transactions found.</div>`;
-    renderPagination(0);
+    renderLoadMore(0);
     return;
   }
 
@@ -119,6 +120,13 @@ function attachTxEvents() {
   });
   document.querySelectorAll('[data-action="delete"]').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); openDeleteModal(btn.dataset.id); });
+  });
+  /* Click anywhere on the row to edit */
+  document.querySelectorAll('.tx-list-full .tx-item[data-id]').forEach(item => {
+    item.addEventListener('click', e => {
+      if (e.target.closest('.tx-actions')) return;
+      window.location.href = `add-transaction.html?id=${item.dataset.id}`;
+    });
   });
 }
 

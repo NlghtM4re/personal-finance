@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard</title>
+  <title>Dashboard — Finance</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -77,7 +77,7 @@
       <!-- HERO: Balance card + Balance chart -->
       <section class="dashboard-hero">
         <div class="card hero-balance-card">
-          <div class="hero-balance-eyebrow">Total Balance</div>
+          <div class="hero-balance-eyebrow">Total Balance <span id="heroMonthLabel" style="font-weight:400;opacity:0.6;font-size:0.625rem;"></span></div>
           <div class="hero-balance-amount" id="totalBalance">$0.00</div>
           <div class="hero-ie-stack">
             <div class="hero-ie-stack__item hero-ie-stack__item--income">
@@ -103,12 +103,12 @@
               <span class="hero-stat-chip__value" id="monthNet">$0.00</span>
             </span>
             <span class="hero-stat-chip__sep">·</span>
-            <span class="hero-stat-chip">
+            <span class="hero-stat-chip" title="Net change over the past 12 months">
               <span class="hero-stat-chip__label">1Y</span>
               <span class="hero-stat-chip__value" id="yearChange">—</span>
             </span>
             <span class="hero-stat-chip__sep">·</span>
-            <span class="hero-stat-chip">
+            <span class="hero-stat-chip" title="Net change over the past 90 days">
               <span class="hero-stat-chip__label">90D</span>
               <span class="hero-stat-chip__value" id="ninetyDayChange">—</span>
             </span>

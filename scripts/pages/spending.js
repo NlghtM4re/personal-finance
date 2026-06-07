@@ -38,7 +38,6 @@ async function renderSpending() {
   const catEmpty = document.getElementById('categoryChartEmpty');
   const legendEl = document.getElementById('categoryLegend');
   const breakdownEl = document.getElementById('spendingBreakdown');
-  const detailEl = document.getElementById('categoryDetailList');
 
   if (byCategory.length > 0) {
     catEmpty?.setAttribute('hidden', '');
@@ -80,12 +79,10 @@ async function renderSpending() {
     }).join('');
 
     if (breakdownEl) breakdownEl.innerHTML = barHTML;
-    if (detailEl)    detailEl.innerHTML    = barHTML;
   } else {
     catEmpty?.removeAttribute('hidden');
     if (legendEl)    legendEl.innerHTML    = '';
     if (breakdownEl) breakdownEl.innerHTML = '<div class="empty-state">No expenses this month.</div>';
-    if (detailEl)    detailEl.innerHTML    = '<div class="empty-state">No expenses this month.</div>';
   }
 
   /* Spending trend bar chart (monthly totals for selected year) */

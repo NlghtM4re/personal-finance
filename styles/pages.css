@@ -314,69 +314,116 @@
 /* --- Combined accounts + transactions layout --- */
 .acctx-layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 300px 1fr;
   gap: 16px;
-  align-items: stretch;
+  align-items: start;
 }
-.acctx-accounts { display: flex; flex-direction: column; gap: 12px; }
-.acctx-accounts > .card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-}
-.acctx-accounts .accounts-grid {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-}
+.acctx-accounts { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 0; }
+.acctx-accounts > .card { display: flex; flex-direction: column; }
+.acctx-accounts .accounts-grid { display: flex; flex-direction: column; }
 .acctx-transactions { display: flex; flex-direction: column; gap: 12px; }
-.acctx-transactions > .card:last-child {
+.acctx-transactions > .card:last-child { display: flex; flex-direction: column; }
+.acctx-transactions > .card:last-child .tx-list-full { max-height: 520px; overflow-y: auto; }
+
+/* --- Compact account rows --- */
+.acc-row {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.acctx-transactions > .card:last-child .tx-list-full {
-  max-height: 420px;
-  overflow-y: auto;
-}
-
-/* --- Account summary card (below accounts list) --- */
-.acc-summary-card { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
-
-.acc-summary-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  align-items: center;
   gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  cursor: default;
 }
+.acc-row:last-child { border-bottom: none; }
 
-.acc-summary-item { display: flex; flex-direction: column; gap: 3px; }
-
-.acc-summary-label {
-  font-size: 0.6rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-muted);
+.acc-row__avatar {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.9375rem; font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: -0.01em;
 }
-
-.acc-summary-value {
-  font-size: 1.0625rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.acc-row__info { flex: 1; min-width: 0; }
+.acc-row__name {
+  font-size: 0.875rem; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   color: var(--color-text);
 }
-.acc-summary-value--income  { color: var(--color-income); }
-.acc-summary-value--expense { color: var(--color-expense); }
+.acc-row__type { font-size: 0.6875rem; color: var(--color-text-muted); margin-top: 2px; font-weight: 500; }
 
-.acc-summary-divider {
-  height: 1px;
-  background: var(--color-border);
+.acc-row__right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.acc-row__balance { font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.02em; }
+.acc-row__actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
+.acc-row:hover .acc-row__actions { opacity: 1; }
+
+.acc-row--add {
+  background: none; border: none; width: 100%;
+  cursor: pointer; color: var(--color-text-muted);
+  gap: 10px; padding: 10px 0; border-bottom: none;
+  transition: color var(--transition);
 }
+.acc-row--add:hover { color: var(--color-primary); }
+.acc-row--add span { font-size: 0.8125rem; font-weight: 500; }
+.acc-row__add-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  border: 1.5px dashed var(--color-border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: border-color var(--transition);
+}
+.acc-row--add:hover .acc-row__add-icon { border-color: var(--color-primary); }
+
+/* --- Net worth summary card --- */
+.acc-summary-card { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+.acc-nw-headline { display: flex; flex-direction: column; gap: 1px; }
+.acc-nw-label {
+  font-size: 0.6875rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+.acc-nw-value {
+  font-size: 1.625rem; font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--color-income);
+  line-height: 1.1;
+  margin-top: 3px;
+}
+.acc-nw-count { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px; }
+
+.acc-nw-bar-track {
+  height: 5px; border-radius: 999px;
+  background: var(--color-expense-light, rgba(239,68,68,0.12));
+  overflow: hidden;
+}
+.acc-nw-bar-fill {
+  height: 100%; border-radius: 999px;
+  background: var(--color-income);
+  width: 100%;
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+}
+
+.acc-stats-row { display: flex; justify-content: space-between; }
+.acc-stat-item { display: flex; align-items: center; gap: 8px; }
+.acc-stat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.acc-stat-dot--income  { background: var(--color-income); }
+.acc-stat-dot--expense { background: var(--color-expense); }
+.acc-stat-label {
+  font-size: 0.6875rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+.acc-stat-value {
+  font-size: 0.9375rem; font-weight: 700;
+  letter-spacing: -0.02em; margin-top: 2px;
+}
+.acc-stat-value--income  { color: var(--color-income); }
+.acc-stat-value--expense { color: var(--color-expense); }
 
 @media (max-width: 960px) {
   .acctx-layout { grid-template-columns: 1fr; }
+  .acctx-accounts { position: static; }
 }
 
 /* --- Transactions header --- */
@@ -385,6 +432,7 @@
   gap: 12px; flex-wrap: wrap;
 }
 .transactions-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.tx-divider { border: none; border-top: 1px solid var(--color-border-light); margin: 12px 0; }
 .stat-chip {
   display: flex; align-items: center; gap: 5px;
   padding: 5px 11px; border-radius: 999px;
@@ -399,8 +447,11 @@
 /* Transaction list */
 .tx-list-full { display: flex; flex-direction: column; }
 .tx-list-full .tx-item { padding: 13px 0; cursor: pointer; }
-.tx-list-full .tx-item:hover { background: transparent; }
 .tx-list-full .tx-item:hover .tx-name { color: var(--color-primary); }
+
+/* Entrance animation for loaded list items */
+.tx-date-group { animation: fadeIn 0.2s ease both; }
+.tx-item { animation: fadeInUp 0.22s ease both; }
 
 .tx-actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
 .tx-item:hover .tx-actions { opacity: 1; }
@@ -657,7 +708,36 @@
 .info-step__desc  { font-size: .8125rem; color: var(--color-text-muted); line-height: 1.5; }
 
 @media (max-width: 768px) {
-  .transactions-stats { width: 100%; }
+  .transactions-stats { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+  .transactions-stats::-webkit-scrollbar { display: none; }
   .tx-actions            { opacity: 1; }
   .account-card__actions { opacity: 1; }
+  .acc-row__actions      { opacity: 1; }
+
+  /* Filter bar: horizontal scroll strip on mobile */
+  .filter-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-bar .select--sm,
+  .filter-bar input[type="date"],
+  .filter-bar .btn { flex-shrink: 0; }
+  .search-input { min-width: 160px; flex: 1 0 160px; }
+
+  /* Spending period bar: stack on small screens */
+  .spending-period-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .spending-summary-chips { flex-wrap: nowrap; overflow-x: auto; width: 100%; }
+  .spending-summary-chips::-webkit-scrollbar { display: none; }
+
+  /* Accounts page: account panel goes full-width on top */
+  .acctx-accounts { position: static; }
 }

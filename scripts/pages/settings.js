@@ -36,10 +36,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('deleteDataBtn')?.addEventListener('click', async () => {
-    if (!confirm('Delete ALL your transactions and accounts? This cannot be undone.')) return;
+    if (!confirm('Delete ALL your transactions, accounts, and budgets? This cannot be undone.')) return;
     try {
       await sb.from('transactions').delete().eq('user_id', user.id);
       await sb.from('accounts').delete().eq('user_id', user.id);
+      await SettingsStore.setBudgets({});
       showToast('All data deleted.', 'success');
     } catch (err) {
       showToast(err.message || 'Failed to delete data.', 'error');

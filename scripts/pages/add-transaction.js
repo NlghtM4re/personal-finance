@@ -140,7 +140,7 @@ function computeNextDue(fromDate, frequency) {
 
 function showSaveSuccess() {
   const actions = document.getElementById('formActions');
-  if (!actions) { setTimeout(() => window.location.href = 'transactions.html', 500); return; }
+  if (!actions) { setTimeout(() => window.location.href = 'accounts.html', 500); return; }
   actions.innerHTML = `
     <div class="save-success">
       <div class="save-success__icon">
@@ -149,7 +149,7 @@ function showSaveSuccess() {
       <span class="save-success__label">Transaction saved!</span>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <a href="transactions.html" class="btn btn--ghost" style="flex:1;justify-content:center;">View Transactions</a>
+      <a href="accounts.html" class="btn btn--ghost" style="flex:1;justify-content:center;">View Transactions</a>
       <button type="button" class="btn btn--primary" id="addAnotherBtn" style="flex:1;">Add Another</button>
     </div>
   `;
@@ -174,6 +174,17 @@ function showSaveSuccess() {
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
+  /* Set currency prefix */
+  SettingsStore.getCurrency().then(c => {
+    const prefixEl = document.getElementById('currencyPrefix');
+    if (prefixEl) {
+      try {
+        const sym = (0).toLocaleString('en', { style: 'currency', currency: c, minimumFractionDigits: 0 }).replace(/[\d,.\s]/g, '').trim();
+        prefixEl.textContent = sym || '$';
+      } catch { prefixEl.textContent = '$'; }
+    }
+  });
+
   try {
     await initForm();
   } catch (err) {
@@ -223,7 +234,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (editId) {
         await TransactionStore.update(editId, data);
         showToast('Transaction updated', 'success');
-        setTimeout(() => window.location.href = 'transactions.html', 500);
+        setTimeout(() => window.location.href = 'accounts.html', 500);
       } else {
         await TransactionStore.add(data);
         const isRecurring = document.getElementById('recurringToggle')?.checked;
@@ -256,10 +267,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!editId || !confirm('Delete this transaction?')) return;
     await TransactionStore.delete(editId);
     showToast('Transaction deleted', 'success');
-    setTimeout(() => window.location.href = 'transactions.html', 500);
+    setTimeout(() => window.location.href = 'accounts.html', 500);
   });
 
   document.getElementById('cancelBtn')?.addEventListener('click', () => {
-    history.length > 1 ? history.back() : window.location.href = 'transactions.html';
+    history.length > 1 ? history.back() : window.location.href = 'accounts.html';
   });
 });

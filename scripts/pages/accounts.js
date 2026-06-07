@@ -32,51 +32,67 @@ async function renderAccountSummary() {
   setText('accTotalDebts',  formatCurrency(totalDebts));
   setText('accCount',       String(accounts.length));
   setText('accNetWorth',    (netWorth >= 0 ? '+' : '') + formatCurrency(netWorth));
+
   const nwEl = document.getElementById('accNetWorth');
   if (nwEl) nwEl.style.color = netWorth >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+
+  const barFill = document.getElementById('accNwBarFill');
+  if (barFill) {
+    const total = totalAssets + totalDebts;
+    barFill.style.width = total > 0 ? `${((totalAssets / total) * 100).toFixed(1)}%` : '100%';
+  }
 }
+
+const TYPE_LABEL = { bank: 'Bank', cash: 'Cash', savings: 'Savings', investment: 'Investment', credit: 'Credit', other: 'Other' };
 
 async function renderAccountsGrid() {
   const el = document.getElementById('accountsGrid');
   if (!el) return;
 
-  el.innerHTML = [1,2,3].map(() => `
-    <div class="card" style="padding:20px;">
-      <div class="skeleton skeleton-text" style="width:40%;margin-bottom:4px;"></div>
-      <div class="skeleton skeleton-text" style="width:25%;margin-bottom:20px;"></div>
-      <div class="skeleton skeleton-title" style="width:55%;"></div>
+  el.innerHTML = [1, 2].map(() => `
+    <div class="acc-row">
+      <div class="acc-row__avatar skeleton" style="width:38px;height:38px;border-radius:10px;flex-shrink:0;"></div>
+      <div class="acc-row__info">
+        <div class="skeleton skeleton-text" style="width:60%;"></div>
+        <div class="skeleton skeleton-text" style="width:35%;margin-top:4px;"></div>
+      </div>
+      <div class="skeleton skeleton-text" style="width:60px;margin-left:auto;"></div>
     </div>`).join('');
 
   const accounts = await AccountStore.getAll();
   const balances = await Promise.all(accounts.map(a => AccountStore.getBalance(a.id)));
 
-  el.innerHTML = accounts.map((a, i) => {
-    const bal = balances[i];
-    return `
-      <div class="card account-card" data-id="${a.id}">
-        <div class="account-card__stripe" style="background:${a.color}"></div>
-        <div class="account-card__header">
-          <div>
-            <div class="account-card__name">${a.name}</div>
-            <div class="account-card__type">${capitalize(a.type)} Account</div>
+  if (!accounts.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:24px 0;">No accounts yet.</div>`;
+  } else {
+    el.innerHTML = accounts.map((a, i) => {
+      const bal    = balances[i];
+      const letter = a.name.charAt(0).toUpperCase();
+      return `
+        <div class="acc-row" data-id="${a.id}">
+          <div class="acc-row__avatar" style="background:${a.color}22;color:${a.color}">${letter}</div>
+          <div class="acc-row__info">
+            <div class="acc-row__name">${a.name}</div>
+            <div class="acc-row__type">${TYPE_LABEL[a.type] || 'Account'}</div>
           </div>
-          <div class="account-card__actions">
-            <button class="tx-action-btn" data-action="edit-acc" data-id="${a.id}" title="Edit">✏️</button>
-            <button class="tx-action-btn tx-action-btn--delete" data-action="delete-acc" data-id="${a.id}" title="Delete">🗑️</button>
+          <div class="acc-row__right">
+            <div class="acc-row__balance" style="color:${bal >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}">${formatCurrency(bal)}</div>
+            <div class="acc-row__actions">
+              <button class="tx-action-btn" data-action="edit-acc" data-id="${a.id}" title="Edit">✏️</button>
+              <button class="tx-action-btn tx-action-btn--delete" data-action="delete-acc" data-id="${a.id}" title="Delete">🗑️</button>
+            </div>
           </div>
-        </div>
-        <div class="account-card__balance-label">Current Balance</div>
-        <div class="account-card__balance" style="color:${bal >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}">
-          ${formatCurrency(bal)}
-        </div>
+        </div>`;
+    }).join('');
+  }
+
+  el.insertAdjacentHTML('beforeend', `
+    <button class="acc-row acc-row--add" id="addAccountCard">
+      <div class="acc-row__add-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       </div>
-    `;
-  }).join('') + `
-    <div class="card account-card account-card--add" id="addAccountCard">
-      <span class="add-icon">+</span>
       <span>New Account</span>
-    </div>
-  `;
+    </button>`);
 
   document.getElementById('addAccountCard')?.addEventListener('click', () => openAccountModal(null));
   el.querySelectorAll('[data-action="edit-acc"]').forEach(btn => {

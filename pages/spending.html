@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spending</title>
+  <title>Spending — Finance</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -69,11 +69,11 @@
       <!-- Period picker -->
       <div class="spending-period-bar">
         <div class="month-nav">
-          <button class="btn btn--ghost btn--sm" id="monthNavPrev">
+          <button class="btn btn--ghost btn--sm" id="monthNavPrev" aria-label="Previous month">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           <span class="month-nav__label" id="monthNavLabel"></span>
-          <button class="btn btn--ghost btn--sm" id="monthNavNext">
+          <button class="btn btn--ghost btn--sm" id="monthNavNext" aria-label="Next month">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
@@ -117,10 +117,7 @@
       <section class="card chart-card chart-card--full">
         <div class="card-header">
           <h2 class="card-title">Spending Trend</h2>
-          <select class="select--sm" id="trendYear">
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-          </select>
+          <select class="select--sm" id="trendYear"></select>
         </div>
         <div class="chart-container">
           <canvas id="trendCanvas"></canvas>
@@ -128,13 +125,6 @@
         </div>
       </section>
 
-      <!-- Category detail list -->
-      <section class="card">
-        <div class="card-header">
-          <h2 class="card-title">All Categories</h2>
-        </div>
-        <div id="categoryDetailList" class="spending-breakdown"></div>
-      </section>
 
     </main>
   </div>

@@ -34,15 +34,24 @@ const Charts = {
   _textLight()  { return '#94a3b8'; },
   _gridColor()  { return 'rgba(148,163,184,0.10)'; },
 
+  _currencySymbol() {
+    const c = localStorage.getItem('pf_currency') || 'USD';
+    try { return (0).toLocaleString('en', { style: 'currency', currency: c, minimumFractionDigits: 0 }).replace(/[\d,.\s]/g, '').trim() || '$'; }
+    catch { return '$'; }
+  },
+
   _fmt(val) {
+    const sym = this._currencySymbol();
     const abs = Math.abs(val);
-    if (abs >= 1000000) return `$${(val / 1000000).toFixed(1)}M`;
-    if (abs >= 1000)    return `$${(val / 1000).toFixed(1)}k`;
-    return `$${Math.round(val)}`;
+    if (abs >= 1000000) return `${sym}${(val / 1000000).toFixed(1)}M`;
+    if (abs >= 1000)    return `${sym}${(val / 1000).toFixed(1)}k`;
+    return `${sym}${Math.round(val)}`;
   },
 
   _fmtFull(val) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+    const currency = localStorage.getItem('pf_currency') || 'USD';
+    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(val); }
+    catch { return `$${Math.abs(val).toFixed(2)}`; }
   },
 
   /* ── LINE CHART ──────────────────────────────────────────── */

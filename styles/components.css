@@ -8,10 +8,16 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   padding: 20px;
-  transition: background var(--transition-slow), border-color var(--transition-slow), box-shadow var(--transition);
+  transition: background var(--transition-slow), border-color var(--transition-slow),
+              box-shadow var(--transition), transform var(--transition);
 }
 
-.card:hover { box-shadow: var(--shadow-md); }
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+/* Cards that shouldn't lift (layout/container cards) */
+.card--static:hover { transform: none; box-shadow: none; }
 
 .card-header {
   display: flex;
@@ -197,11 +203,11 @@ select.form-control {
   gap: 12px;
   padding: 11px 0;
   border-bottom: 1px solid var(--color-border-light);
-  transition: all var(--transition);
+  transition: background var(--transition), border-color var(--transition);
   cursor: pointer;
 }
-.tx-item:last-child  { border-bottom: none; padding-bottom: 0; }
-.tx-item:first-child { padding-top: 0; }
+.tx-item:last-child { border-bottom: none; }
+.tx-item:hover      { background: var(--color-surface-2); }
 
 .tx-icon {
   width: 38px; height: 38px;
@@ -320,6 +326,20 @@ select.form-control {
 @keyframes toastIn {
   from { transform: translateX(110%); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes toastOut {
+  from { transform: translateX(0); opacity: 1; max-height: 60px; margin-bottom: 6px; }
+  to   { transform: translateX(110%); opacity: 0; max-height: 0; margin-bottom: 0; }
+}
+.toast--dismissing { animation: toastOut 0.2s ease both; }
+
+/* --- Filter badge --- */
+.filter-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--color-primary); color: #000;
+  font-size: 0.6875rem; font-weight: 700;
+  width: 16px; height: 16px; border-radius: 50%;
+  line-height: 1;
 }
 
 /* --- Touch targets --- */

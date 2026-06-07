@@ -4,6 +4,21 @@
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+function animateCounter(id, endValue, formatter, duration = 600) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const startValue = 0;
+  const startTime  = performance.now();
+  const ease = t => 1 - Math.pow(1 - t, 3);
+  function tick(now) {
+    const t = Math.min((now - startTime) / duration, 1);
+    el.textContent = formatter(startValue + (endValue - startValue) * ease(t));
+    if (t < 1) requestAnimationFrame(tick);
+    else el.textContent = formatter(endValue);
+  }
+  requestAnimationFrame(tick);
+}
+
 let currentMonthView = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
 
 function showSkeletons() {
@@ -63,10 +78,13 @@ async function initDashboard() {
   const monthTotals  = SummaryEngine.getTotals(monthTx);
   const net          = monthTotals.income - monthTotals.expense;
 
-  setText('totalBalance', formatCurrency(totalBalance));
-  setText('monthIncome',  formatCurrency(monthTotals.income));
-  setText('monthExpense', formatCurrency(monthTotals.expense));
-  setText('monthNet',     (net >= 0 ? '+' : '') + formatCurrency(net));
+  const heroMonthEl = document.getElementById('heroMonthLabel');
+  if (heroMonthEl) heroMonthEl.textContent = now.toLocaleString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
+
+  animateCounter('totalBalance', totalBalance, formatCurrency);
+  animateCounter('monthIncome',  monthTotals.income,  formatCurrency);
+  animateCounter('monthExpense', monthTotals.expense, formatCurrency);
+  animateCounter('monthNet', Math.abs(net), v => (net >= 0 ? '+' : '-') + formatCurrency(v));
   const incomeCount  = monthTx.filter(t => t.type === 'income').length;
   const expenseCount = monthTx.filter(t => t.type === 'expense').length;
   setText('monthIncomeSub',  incomeCount  === 1 ? '1 transaction' : `${incomeCount} transactions`);
@@ -127,8 +145,6 @@ function updateMonthNav() {
 
 async function renderMonthlyChart(allTx) {
   const { year, month } = currentMonthView;
-  const prefix = `${year}-${String(month).padStart(2, '0')}-`;
-  const monthTx = allTx.filter(t => t.date.startsWith(prefix));
   const weekly = getWeeklyRollup(allTx, year, month);
   const monthlyEmpty = document.getElementById('monthlyChartEmpty');
   const hasData = weekly.some(w => w.income > 0 || w.expense > 0);
@@ -139,67 +155,6 @@ async function renderMonthlyChart(allTx) {
     monthlyEmpty?.removeAttribute('hidden');
   }
 
-  const totals = SummaryEngine.getTotals(monthTx);
-  const net = totals.income - totals.expense;
-  setText('monthlyIncome',  formatCurrency(totals.income));
-  setText('monthlyExpense', formatCurrency(totals.expense));
-  setText('monthlyNet',     (net >= 0 ? '+' : '') + formatCurrency(net));
-  setText('monthlyCount',   String(monthTx.filter(t => t.type !== 'transfer').length));
-  const netEl = document.getElementById('monthlyNet');
-  if (netEl) netEl.style.color = net >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
-}
-
-async function renderCategoryChart(monthTx) {
-  const byCategory = SummaryEngine.getByCategory(monthTx);
-  const catEmpty   = document.getElementById('categoryChartEmpty');
-  const legendEl   = document.getElementById('categoryLegend');
-  const breakdownEl = document.getElementById('spendingBreakdown');
-
-  if (byCategory.length > 0) {
-    catEmpty?.setAttribute('hidden', '');
-    const catNames = await Promise.all(
-      byCategory.slice(0, 8).map(b => CategoryStore.getById(b.categoryId))
-    );
-    const slices = byCategory.slice(0, 8).map((b, i) => ({
-      label: catNames[i]?.name || 'Other',
-      value: b.total,
-      icon: catNames[i]?.icon || '📦',
-    }));
-    Charts.drawDonutChart('categoryCanvas', slices);
-    if (legendEl) {
-      legendEl.innerHTML = slices.map((sl, i) => `
-        <div class="legend-item">
-          <span class="legend-dot" style="background:${Charts.COLORS[i % Charts.COLORS.length]}"></span>
-          <span class="legend-label">${sl.label}</span>
-          <span class="legend-amount">${formatCurrency(sl.value)}</span>
-        </div>
-      `).join('');
-    }
-    if (breakdownEl) {
-      const total = slices.reduce((s, sl) => s + sl.value, 0);
-      breakdownEl.innerHTML = slices.map((sl, i) => {
-        const pct = total > 0 ? Math.round((sl.value / total) * 100) : 0;
-        return `
-          <div class="spending-item">
-            <div class="spending-item__icon">${sl.icon}</div>
-            <div class="spending-item__info">
-              <div class="spending-item__name">${sl.label}</div>
-              <div class="spending-item__bar-wrap">
-                <div class="spending-item__bar" style="width:${pct}%;background:${Charts.COLORS[i % Charts.COLORS.length]}"></div>
-              </div>
-            </div>
-            <div class="spending-item__meta">
-              <div class="spending-item__amount">${formatCurrency(sl.value)}</div>
-              <div class="spending-item__pct">${pct}%</div>
-            </div>
-          </div>`;
-      }).join('');
-    }
-  } else {
-    catEmpty?.removeAttribute('hidden');
-    if (legendEl) legendEl.innerHTML = '';
-    if (breakdownEl) breakdownEl.innerHTML = '<div class="empty-state">No expenses this month.</div>';
-  }
 }
 
 async function renderRecurringBanner() {

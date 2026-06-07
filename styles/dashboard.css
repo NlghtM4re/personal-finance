@@ -11,6 +11,13 @@
   gap: 16px;
   align-items: stretch;
 }
+@media (max-width: 960px) {
+  .dashboard-hero { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 620px) {
+  .dashboard-hero { grid-template-columns: 1fr; }
+  .hero-balance-amount { font-size: 2.25rem; }
+}
 
 .hero-balance-card {
   padding: 24px;
@@ -364,7 +371,7 @@
 }
 
 .monthly-summary-label {
-  font-size: 0.6rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
