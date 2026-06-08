@@ -112,13 +112,17 @@ document.addEventListener('DOMContentLoaded', () => {
     searchEl.setAttribute('title', 'Press / to focus');
   }
 
-  /* --- Redraw charts on resize --- */
+  /* --- Redraw charts on resize (width-only: ignore mobile URL bar height changes) --- */
   let resizeTimer;
+  let _lastInnerWidth = window.innerWidth;
   window.addEventListener('resize', () => {
+    const w = window.innerWidth;
+    if (w === _lastInnerWidth) return;
+    _lastInnerWidth = w;
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       if (typeof initDashboard === 'function') initDashboard().catch(console.error);
-    }, 200);
+    }, 250);
   });
 });
 

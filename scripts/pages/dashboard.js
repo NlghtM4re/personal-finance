@@ -4,22 +4,8 @@
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-function animateCounter(id, endValue, formatter, duration = 600) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const startValue = 0;
-  const startTime  = performance.now();
-  const ease = t => 1 - Math.pow(1 - t, 3);
-  function tick(now) {
-    const t = Math.min((now - startTime) / duration, 1);
-    el.textContent = formatter(startValue + (endValue - startValue) * ease(t));
-    if (t < 1) requestAnimationFrame(tick);
-    else el.textContent = formatter(endValue);
-  }
-  requestAnimationFrame(tick);
-}
-
 let currentMonthView = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+let _dashboardReady = false;
 
 function showSkeletons() {
   ['totalBalance','monthIncome','monthExpense','monthNet'].forEach(id => {
@@ -64,7 +50,7 @@ function getMonthTransactions(allTx, year, month) {
 }
 
 async function initDashboard() {
-  showSkeletons();
+  if (!_dashboardReady) showSkeletons();
   const [allTx, accounts] = await Promise.all([
     TransactionStore.getAll(),
     AccountStore.getAll(),
@@ -81,10 +67,11 @@ async function initDashboard() {
   const heroMonthEl = document.getElementById('heroMonthLabel');
   if (heroMonthEl) heroMonthEl.textContent = now.toLocaleString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
 
-  animateCounter('totalBalance', totalBalance, formatCurrency);
-  animateCounter('monthIncome',  monthTotals.income,  formatCurrency);
-  animateCounter('monthExpense', monthTotals.expense, formatCurrency);
-  animateCounter('monthNet', Math.abs(net), v => (net >= 0 ? '+' : '-') + formatCurrency(v));
+  animateValue(document.getElementById('totalBalance'), totalBalance, formatCurrency);
+  animateValue(document.getElementById('monthIncome'),  monthTotals.income,  formatCurrency);
+  animateValue(document.getElementById('monthExpense'), monthTotals.expense, formatCurrency);
+  animateValue(document.getElementById('monthNet'), Math.abs(net), v => (net >= 0 ? '+' : '-') + formatCurrency(v));
+  _dashboardReady = true;
   const incomeCount  = monthTx.filter(t => t.type === 'income').length;
   const expenseCount = monthTx.filter(t => t.type === 'expense').length;
   setText('monthIncomeSub',  incomeCount  === 1 ? '1 transaction' : `${incomeCount} transactions`);
