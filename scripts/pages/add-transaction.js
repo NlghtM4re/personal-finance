@@ -118,7 +118,8 @@ function showError(fieldId, message) {
   field.classList.add('form-control--error');
   const err = document.createElement('div');
   err.className = 'form-error'; err.textContent = message;
-  field.parentNode.appendChild(err);
+  const container = field.closest('.form-group') || field.parentNode;
+  container.appendChild(err);
 }
 function clearErrors() {
   document.querySelectorAll('.form-control--error').forEach(el => el.classList.remove('form-control--error'));
@@ -263,11 +264,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  document.getElementById('deleteBtn')?.addEventListener('click', async () => {
-    if (!editId || !confirm('Delete this transaction?')) return;
-    await TransactionStore.delete(editId);
-    showToast('Transaction deleted', 'success');
-    setTimeout(() => window.location.href = 'accounts.html', 500);
+  document.getElementById('deleteBtn')?.addEventListener('click', () => {
+    if (!editId) return;
+    const modal = document.getElementById('deleteTxModal');
+    if (!modal) { return; }
+    modal.classList.add('open');
+    document.getElementById('confirmTxDelete').onclick = async () => {
+      const btn = document.getElementById('confirmTxDelete');
+      btn.classList.add('btn--loading'); btn.disabled = true;
+      try {
+        await TransactionStore.delete(editId);
+        showToast('Transaction deleted', 'success');
+        setTimeout(() => window.location.href = 'accounts.html', 500);
+      } catch (err) {
+        showToast(err.message || 'Failed to delete', 'error');
+        btn.classList.remove('btn--loading'); btn.disabled = false;
+        modal.classList.remove('open');
+      }
+    };
+    document.getElementById('cancelTxDelete')?.addEventListener('click', () => modal.classList.remove('open'), { once: true });
+    document.getElementById('closeTxDeleteModal')?.addEventListener('click', () => modal.classList.remove('open'), { once: true });
   });
 
   document.getElementById('cancelBtn')?.addEventListener('click', () => {

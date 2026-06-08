@@ -129,14 +129,38 @@ async function openAccountModal(id) {
 async function deleteAccount(id) {
   const allTx   = await TransactionStore.getAll();
   const txCount = allTx.filter(t => t.accountId === id || t.toAccountId === id).length;
-  const msg     = txCount
-    ? `This account has ${txCount} transactions. Deleting it will not remove those transactions. Continue?`
-    : 'Delete this account?';
-  if (!confirm(msg)) return;
-  await AccountStore.delete(id);
-  showToast('Account deleted');
-  await renderAccountsGrid();
-  await renderAccountSummary();
+
+  const modal   = document.getElementById('deleteAccountModal');
+  const msgEl   = document.getElementById('deleteAccountMsg');
+  const confirm = document.getElementById('confirmDeleteAccount');
+  if (!modal || !confirm) return;
+
+  if (msgEl) {
+    msgEl.textContent = txCount
+      ? `This account has ${txCount} transaction${txCount !== 1 ? 's' : ''}. Deleting it will not remove those transactions. This cannot be undone.`
+      : 'This action cannot be undone. The account will be permanently removed.';
+  }
+
+  modal.classList.add('open');
+  confirm.onclick = async () => {
+    confirm.classList.add('btn--loading');
+    confirm.disabled = true;
+    try {
+      await AccountStore.delete(id);
+      showToast('Account deleted', 'success');
+    } catch (err) {
+      showToast(err.message || 'Failed to delete account', 'error');
+    } finally {
+      modal.classList.remove('open');
+      confirm.classList.remove('btn--loading');
+      confirm.disabled = false;
+    }
+    await renderAccountsGrid();
+    await renderAccountSummary();
+  };
+
+  document.getElementById('cancelDeleteAccount')?.addEventListener('click', () => modal.classList.remove('open'), { once: true });
+  document.getElementById('closeDeleteAccountModal')?.addEventListener('click', () => modal.classList.remove('open'), { once: true });
 }
 
 function setValue(id, val) { const el = document.getElementById(id); if (el) el.value = val; }

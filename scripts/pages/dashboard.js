@@ -121,7 +121,9 @@ async function initDashboard() {
     chartDays = parseInt(rangeVal);
   }
   const balancePoints = SummaryEngine.getBalanceOverTime(allTx, accounts, chartDays);
-  const balanceEmpty = document.getElementById('balanceChartEmpty');
+  const balanceEmpty    = document.getElementById('balanceChartEmpty');
+  const balanceSkeleton = document.getElementById('balanceChartSkeleton');
+  balanceSkeleton?.setAttribute('hidden', '');
   if (allTx.length > 0) {
     balanceEmpty?.setAttribute('hidden', '');
     Charts.drawLineChart('balanceCanvas', balancePoints);
@@ -146,7 +148,9 @@ function updateMonthNav() {
 async function renderMonthlyChart(allTx) {
   const { year, month } = currentMonthView;
   const weekly = getWeeklyRollup(allTx, year, month);
-  const monthlyEmpty = document.getElementById('monthlyChartEmpty');
+  const monthlyEmpty    = document.getElementById('monthlyChartEmpty');
+  const monthlySkeleton = document.getElementById('monthlyChartSkeleton');
+  monthlySkeleton?.setAttribute('hidden', '');
   const hasData = weekly.some(w => w.income > 0 || w.expense > 0);
   if (hasData) {
     monthlyEmpty?.setAttribute('hidden', '');

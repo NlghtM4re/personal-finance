@@ -35,15 +35,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     await SupaAuth.signOut();
   });
 
-  document.getElementById('deleteDataBtn')?.addEventListener('click', async () => {
-    if (!confirm('Delete ALL your transactions, accounts, and budgets? This cannot be undone.')) return;
-    try {
-      await sb.from('transactions').delete().eq('user_id', user.id);
-      await sb.from('accounts').delete().eq('user_id', user.id);
-      await SettingsStore.setBudgets({});
-      showToast('All data deleted.', 'success');
-    } catch (err) {
-      showToast(err.message || 'Failed to delete data.', 'error');
-    }
+  document.getElementById('deleteDataBtn')?.addEventListener('click', () => {
+    const modal = document.getElementById('deleteAllModal');
+    if (!modal) return;
+    modal.classList.add('open');
+    document.getElementById('confirmDeleteAll').onclick = async () => {
+      const btn = document.getElementById('confirmDeleteAll');
+      btn.classList.add('btn--loading'); btn.disabled = true;
+      try {
+        await sb.from('transactions').delete().eq('user_id', user.id);
+        await sb.from('accounts').delete().eq('user_id', user.id);
+        await SettingsStore.setBudgets({});
+        showToast('All data deleted.', 'success');
+      } catch (err) {
+        showToast(err.message || 'Failed to delete data.', 'error');
+      } finally {
+        modal.classList.remove('open');
+        btn.classList.remove('btn--loading'); btn.disabled = false;
+      }
+    };
+    document.getElementById('cancelDeleteAll')?.addEventListener('click', () => modal.classList.remove('open'), { once: true });
+    document.getElementById('closeDeleteAllModal')?.addEventListener('click', () => modal.classList.remove('open'), { once: true });
   });
 });
