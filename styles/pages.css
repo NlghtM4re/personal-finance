@@ -707,10 +707,28 @@
   display: flex; align-items: center; justify-content: center;
   font-size: .75rem; font-weight: 700; flex-shrink: 0; margin-top: 1px;
 }
+.info-step__icon--teal   { background: var(--color-accent-light);    color: var(--color-accent); }
 .info-step__icon--green  { background: var(--color-income-light);   color: var(--color-income); }
 .info-step__icon--yellow { background: var(--color-transfer-light); color: var(--color-transfer); }
 .info-step__title { font-size: .875rem; font-weight: 600; margin-bottom: 2px; }
 .info-step__desc  { font-size: .8125rem; color: var(--color-text-muted); line-height: 1.5; }
+
+.budget-onboarding {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 32px 24px; gap: 12px;
+}
+.budget-onboarding__icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--color-accent-light); color: var(--color-accent);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 4px;
+}
+.budget-onboarding__title { font-size: 1rem; font-weight: 600; color: var(--color-text); }
+.budget-onboarding__desc  { font-size: .8125rem; color: var(--color-text-muted); max-width: 360px; line-height: 1.6; }
+.budget-onboarding__steps {
+  display: flex; flex-direction: column; gap: 10px;
+  text-align: left; width: 100%; max-width: 360px; margin-top: 8px;
+}
 
 @media (max-width: 768px) {
   .transactions-stats { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
