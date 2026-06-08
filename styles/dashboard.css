@@ -41,6 +41,7 @@
   letter-spacing: -0.05em;
   line-height: 1;
   color: var(--color-accent);
+  text-shadow: 0 0 48px rgba(62,207,178,.25);
 }
 
 /* Stacked income / expense inside hero card */
@@ -210,15 +211,15 @@
 }
 
 .spending-item__bar-wrap {
-  height: 4px;
+  height: 6px;
   background: var(--color-surface-2);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .spending-item__bar {
   height: 100%;
-  border-radius: 2px;
+  border-radius: 3px;
   transition: width 0.4s ease;
   min-width: 2px;
 }

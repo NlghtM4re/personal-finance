@@ -107,17 +107,18 @@ body {
   color: var(--color-text);
   background-color: var(--color-bg);
   background-image:
-    linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+    linear-gradient(rgba(255,255,255,.038) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.038) 1px, transparent 1px);
   background-size: 48px 48px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-variant-numeric: tabular-nums;
   transition: background-color var(--transition-slow), color var(--transition-slow);
 }
 [data-theme="light"] body {
   background-image:
-    linear-gradient(rgba(0,0,0,.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,.045) 1px, transparent 1px);
+    linear-gradient(rgba(0,0,0,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,.055) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 
