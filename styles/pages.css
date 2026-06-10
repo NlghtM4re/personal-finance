@@ -834,6 +834,19 @@
 .subs-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .subs-form-row .subs-form-field { margin-bottom: 0; }
 
+/* emoji quick-pick (settings custom categories) */
+.emoji-pick-btn {
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.05rem; line-height: 1;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), transform .12s;
+}
+.emoji-pick-btn:hover { background: var(--color-surface-2); border-color: var(--color-border); transform: scale(1.12); }
+
 /* tax hint */
 .subs-tax-hint { font-size: .75rem; font-weight: 600; color: var(--color-accent); }
 

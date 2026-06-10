@@ -3,6 +3,10 @@
    ============================================================ */
 
 /* ---- Custom categories ---- */
+const CAT_TYPE_LABEL = { expense: 'Expense', income: 'Income', both: 'Income & expense' };
+const CAT_EMOJIS = ['🏷️','🍕','☕','🍺','⛽','🚲','🚌','💊','👶','🧸','🧹','🛠️','🎵','📱','💻','🌱','🎨','⚽','🎬','💄','🏦','🎓','🧳','🐕'];
+let editingCatId = null;
+
 async function renderCustomCats() {
   const cats    = await SettingsStore.getCustomCategories();
   const listEl  = document.getElementById('customCatsList');
@@ -16,28 +20,116 @@ async function renderCustomCats() {
   }
   if (divider) divider.style.display = '';
 
-  listEl.innerHTML = cats.map((c, i) => `
+  listEl.innerHTML = cats.map(c => `
     <div class="settings-row" style="gap:10px;">
       <span style="font-size:1.2rem;width:32px;text-align:center;flex-shrink:0;">${escapeHTML(c.icon) || '🏷️'}</span>
       <div class="settings-row__info">
         <div class="settings-row__title">${escapeHTML(c.name)}</div>
-        <div class="settings-row__sub">${escapeHTML(c.type)}</div>
+        <div class="settings-row__sub">${CAT_TYPE_LABEL[c.type] || escapeHTML(c.type)}</div>
       </div>
-      <button type="button" class="btn btn--ghost btn--sm del-cat-btn" data-idx="${i}" style="flex-shrink:0;">Remove</button>
+      <button type="button" class="btn btn--ghost btn--sm edit-cat-btn" data-id="${escapeHTML(c.id)}" style="flex-shrink:0;">Edit</button>
+      <button type="button" class="btn btn--ghost btn--sm del-cat-btn" data-id="${escapeHTML(c.id)}" style="flex-shrink:0;color:var(--color-expense);">Remove</button>
     </div>
     <div class="settings-divider"></div>
   `).join('');
 
-  listEl.querySelectorAll('.del-cat-btn').forEach(btn => {
+  listEl.querySelectorAll('.edit-cat-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const idx  = parseInt(btn.dataset.idx);
       const cats = await SettingsStore.getCustomCategories();
-      cats.splice(idx, 1);
-      await SettingsStore.setCustomCategories(cats);
-      renderCustomCats();
-      showToast('Category removed', 'success');
+      const cat  = cats.find(c => c.id === btn.dataset.id);
+      if (!cat) return;
+      editingCatId = cat.id;
+      document.getElementById('newCatName').value = cat.name;
+      document.getElementById('newCatIcon').value = cat.icon || '';
+      document.getElementById('newCatType').value = cat.type || 'expense';
+      document.getElementById('addCatBtn').textContent = 'Update';
+      document.getElementById('cancelEditCatBtn').style.display = '';
+      document.getElementById('newCatName').focus();
     });
   });
+
+  listEl.querySelectorAll('.del-cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => openDeleteCatModal(btn.dataset.id));
+  });
+}
+
+function resetCatForm() {
+  editingCatId = null;
+  document.getElementById('newCatName').value = '';
+  document.getElementById('newCatIcon').value = '';
+  document.getElementById('newCatType').value = 'expense';
+  document.getElementById('addCatBtn').textContent = 'Add';
+  document.getElementById('cancelEditCatBtn').style.display = 'none';
+}
+
+async function saveCustomCat() {
+  const name = document.getElementById('newCatName')?.value.trim().slice(0, 30);
+  const icon = document.getElementById('newCatIcon')?.value.trim() || '🏷️';
+  const type = document.getElementById('newCatType')?.value || 'expense';
+  if (!name) { showToast('Enter a category name', 'error'); return; }
+
+  /* duplicate guard against defaults + other customs (case-insensitive) */
+  const all = await CategoryStore.getAll();
+  if (all.some(c => c.name.toLowerCase() === name.toLowerCase() && c.id !== editingCatId)) {
+    showToast(`A category named “${name}” already exists`, 'error');
+    return;
+  }
+
+  const cats = await SettingsStore.getCustomCategories();
+  if (editingCatId) {
+    const cat = cats.find(c => c.id === editingCatId);
+    if (cat) { cat.name = name; cat.icon = icon; cat.type = type; }
+    await SettingsStore.setCustomCategories(cats);
+    showToast('Category updated', 'success');
+  } else {
+    cats.push({ id: 'custom-' + Date.now().toString(36), name, icon, type });
+    await SettingsStore.setCustomCategories(cats);
+    showToast('Category added', 'success');
+  }
+  resetCatForm();
+  await renderCustomCats();
+}
+
+async function openDeleteCatModal(id) {
+  const modal   = document.getElementById('deleteCatModal');
+  const msgEl   = document.getElementById('deleteCatMsg');
+  const confirm = document.getElementById('confirmDeleteCat');
+  if (!modal || !confirm) return;
+
+  const cats = await SettingsStore.getCustomCategories();
+  const cat  = cats.find(c => c.id === id);
+  if (!cat) return;
+
+  let used = 0;
+  try { used = (await TransactionStore.getAll()).filter(t => t.categoryId === id).length; } catch (_) {}
+  msgEl.textContent = used
+    ? `${used} transaction${used !== 1 ? 's' : ''} use${used === 1 ? 's' : ''} “${cat.name}”. They will keep their data but show as Uncategorized. This cannot be undone.`
+    : `“${cat.name}” will be removed. This cannot be undone.`;
+
+  modal.classList.add('open');
+  confirm.onclick = async () => {
+    confirm.disabled = true;
+    try {
+      await SettingsStore.setCustomCategories(cats.filter(c => c.id !== id));
+      /* drop any budget limits set for this category across all months */
+      const budgets = await SettingsStore.getBudgets();
+      let changed = false;
+      for (const m of Object.keys(budgets)) {
+        if (budgets[m] && budgets[m][id] !== undefined) { delete budgets[m][id]; changed = true; }
+      }
+      if (changed) await SettingsStore.setBudgets(budgets);
+      if (editingCatId === id) resetCatForm();
+      showToast('Category removed', 'success');
+      await renderCustomCats();
+    } catch (err) {
+      showToast(err.message || 'Failed to remove category', 'error');
+    } finally {
+      modal.classList.remove('open');
+      confirm.disabled = false;
+    }
+  };
+  document.getElementById('cancelDeleteCat')?.addEventListener('click', () => modal.classList.remove('open'), { once: true });
+  document.getElementById('closeDeleteCatModal')?.addEventListener('click', () => modal.classList.remove('open'), { once: true });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -94,19 +186,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* Custom categories */
   await renderCustomCats();
-  document.getElementById('addCatBtn')?.addEventListener('click', async () => {
-    const name = document.getElementById('newCatName')?.value.trim();
-    const icon = document.getElementById('newCatIcon')?.value.trim() || '🏷️';
-    const type = document.getElementById('newCatType')?.value || 'expense';
-    if (!name) { showToast('Enter a category name', 'error'); return; }
-    const cats = await SettingsStore.getCustomCategories();
-    cats.push({ id: 'custom-' + Date.now(), name, icon, type });
-    await SettingsStore.setCustomCategories(cats);
-    document.getElementById('newCatName').value = '';
-    document.getElementById('newCatIcon').value = '';
-    await renderCustomCats();
-    showToast('Category added', 'success');
+  document.getElementById('addCatBtn')?.addEventListener('click', saveCustomCat);
+  document.getElementById('cancelEditCatBtn')?.addEventListener('click', resetCatForm);
+
+  /* Enter in either input saves */
+  ['newCatName', 'newCatIcon'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); saveCustomCat(); }
+    });
   });
+
+  /* emoji quick-pick fills the icon field */
+  const emojiRow = document.getElementById('emojiQuickRow');
+  if (emojiRow) {
+    emojiRow.innerHTML = CAT_EMOJIS.map(e =>
+      `<button type="button" class="emoji-pick-btn" data-emoji="${e}" aria-label="Use ${e} as icon">${e}</button>`
+    ).join('');
+    emojiRow.querySelectorAll('.emoji-pick-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('newCatIcon').value = btn.dataset.emoji;
+        document.getElementById('newCatName').focus();
+      });
+    });
+  }
 
   document.getElementById('logoutBtn')?.addEventListener('click', async () => {
     await SupaAuth.signOut();
