@@ -99,48 +99,27 @@ async function renderBudgetPage() {
   let html = '';
 
   if (!hasBudgets && !hasSpending) {
-    html = `
-      <div class="budget-onboarding">
-        <div class="budget-onboarding__icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-        </div>
-        <div class="budget-onboarding__title">No budget set for ${monthLabel(currentMonth)}</div>
-        <div class="budget-onboarding__desc">Click <strong>Set limit</strong> next to any category below to create a budget. You can also copy last month's budget if you've set one before.</div>
-        <div class="budget-onboarding__steps">
-          <div class="info-step">
-            <div class="info-step__icon info-step__icon--teal">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-            </div>
-            <div><div class="info-step__title">Add transactions</div><div class="info-step__desc">Spending shows up automatically under each category.</div></div>
-          </div>
-          <div class="info-step">
-            <div class="info-step__icon info-step__icon--green">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <div><div class="info-step__title">Set limits</div><div class="info-step__desc">Click <em>Set limit</em> on any category to define a monthly cap.</div></div>
-          </div>
-          <div class="info-step">
-            <div class="info-step__icon info-step__icon--yellow">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            </div>
-            <div><div class="info-step__title">Track progress</div><div class="info-step__desc">Progress bars show how much of each budget is used.</div></div>
-          </div>
-        </div>
+    html += `
+      <div class="budget-onboarding-hint">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Click <strong>Set limit</strong> on any category to define a monthly budget.
       </div>`;
-  } else {
-    if (budgeted.length) {
-      html += budgeted.map(c => categoryRowHTML(c, spending[c.id] || 0, budgets[c.id])).join('');
-    }
+  }
 
-    if (unbudgeted.length) {
-      html += `<div class="budget-section-label">Unbudgeted spending</div>`;
-      html += unbudgeted.map(c => categoryRowHTML(c, spending[c.id], 0)).join('');
-    }
+  if (budgeted.length) {
+    html += budgeted.map(c => categoryRowHTML(c, spending[c.id] || 0, budgets[c.id])).join('');
+  }
 
-    if (hasBudgets && dormant.length) {
+  if (unbudgeted.length) {
+    html += `<div class="budget-section-label">Unbudgeted spending</div>`;
+    html += unbudgeted.map(c => categoryRowHTML(c, spending[c.id], 0)).join('');
+  }
+
+  if (dormant.length) {
+    if (budgeted.length || unbudgeted.length) {
       html += `<div class="budget-section-label">No activity</div>`;
-      html += dormant.map(c => categoryRowHTML(c, 0, 0)).join('');
     }
+    html += dormant.map(c => categoryRowHTML(c, 0, 0)).join('');
   }
 
   listEl.innerHTML = html;

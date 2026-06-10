@@ -208,29 +208,47 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const CategoryStore = {
-  async getAll()        { return DEFAULT_CATEGORIES; },
-  async getById(id)     { return DEFAULT_CATEGORIES.find(c => c.id === id) || null; },
-  async getByType(type) { return DEFAULT_CATEGORIES.filter(c => c.type === type || c.type === 'both'); },
+  async getAll() {
+    const custom = await SettingsStore.getCustomCategories();
+    return [...DEFAULT_CATEGORIES, ...custom];
+  },
+  async getById(id) {
+    const all = await this.getAll();
+    return all.find(c => c.id === id) || null;
+  },
+  async getByType(type) {
+    const all = await this.getAll();
+    return all.filter(c => c.type === type || c.type === 'both');
+  },
 };
 
 /* ============================================================
-   SETTINGS STORE (Supabase — currency, budgets)
+   SETTINGS STORE (Supabase — all user preferences)
    ============================================================ */
 const SettingsStore = {
   _cache: null,
 
+  _defaults() {
+    return { currency: 'CAD', budgets: {}, custom_categories: [], recurring_rules: [], subscriptions: [] };
+  },
+
   async _load() {
+    if (this._cache) return this._cache;
     const uid = await userId();
-    if (!uid) return { currency: 'USD', budgets: {} };
-    const { data } = await sb.from('user_settings').select('currency, budgets').eq('user_id', uid).maybeSingle();
-    this._cache = data || { currency: 'USD', budgets: {} };
+    if (!uid) return this._defaults();
+    const { data } = await sb.from('user_settings').select('*').eq('user_id', uid).maybeSingle();
+    this._cache = data ? { ...this._defaults(), ...data } : this._defaults();
     return this._cache;
   },
+
+  _invalidate() { this._cache = null; },
 
   async _save(patch) {
     const uid = await userId();
     if (!uid) return;
-    this._cache = { ...(this._cache || {}), ...patch };
+    /* ensure cache is fully loaded before merging to avoid clobbering fields */
+    if (!this._cache) await this._load();
+    this._cache = { ...this._cache, ...patch };
     await sb.from('user_settings').upsert({ user_id: uid, ...this._cache }, { onConflict: 'user_id' });
   },
 
@@ -238,13 +256,23 @@ const SettingsStore = {
     const cached = localStorage.getItem('pf_currency');
     if (cached) return cached;
     const s = await this._load();
-    localStorage.setItem('pf_currency', s.currency || 'USD');
-    return s.currency || 'USD';
+    const c = s.currency || 'CAD';
+    localStorage.setItem('pf_currency', c);
+    return c;
   },
 
   async setCurrency(currency) {
     localStorage.setItem('pf_currency', currency);
     await this._save({ currency });
+  },
+
+  async getCustomCategories() {
+    const s = await this._load();
+    return Array.isArray(s.custom_categories) ? s.custom_categories : [];
+  },
+
+  async setCustomCategories(cats) {
+    await this._save({ custom_categories: cats });
   },
 
   async getBudgets() {
@@ -257,6 +285,26 @@ const SettingsStore = {
   async setBudgets(budgets) {
     localStorage.setItem('pf_budgets', JSON.stringify(budgets));
     await this._save({ budgets });
+  },
+
+  async getRecurringRules() {
+    const s = await this._load();
+    return Array.isArray(s.recurring_rules) ? s.recurring_rules : [];
+  },
+
+  async setRecurringRules(rules) {
+    if (this._cache) this._cache.recurring_rules = rules;
+    await this._save({ recurring_rules: rules });
+  },
+
+  async getSubscriptions() {
+    const s = await this._load();
+    return Array.isArray(s.subscriptions) ? s.subscriptions : [];
+  },
+
+  async setSubscriptions(subs) {
+    if (this._cache) this._cache.subscriptions = subs;
+    await this._save({ subscriptions: subs });
   },
 };
 
@@ -297,37 +345,38 @@ const BudgetStore = {
 };
 
 /* ============================================================
-   RECURRING STORE (localStorage — no DB needed)
+   RECURRING STORE (Supabase via user_settings)
    ============================================================ */
 const RecurringStore = {
-  _key: 'pf_recurring_rules',
-
-  getAll() {
-    try { return JSON.parse(localStorage.getItem(this._key) || '[]'); }
-    catch { return []; }
+  async getAll() {
+    return SettingsStore.getRecurringRules();
   },
 
-  _save(rules) { localStorage.setItem(this._key, JSON.stringify(rules)); },
+  async _save(rules) {
+    return SettingsStore.setRecurringRules(rules);
+  },
 
-  add(rule) {
-    const rules = this.getAll();
-    rule.id = (typeof crypto !== 'undefined' && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : Date.now().toString(36) + Math.random().toString(36).slice(2);
+  async add(rule) {
+    const rules = await this.getAll();
+    rule.id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
     rules.push(rule);
-    this._save(rules);
+    await this._save(rules);
     return rule;
   },
 
-  remove(id) { this._save(this.getAll().filter(r => r.id !== id)); },
-
-  getDue() {
-    const today = new Date().toISOString().slice(0, 10);
-    return this.getAll().filter(r => r.active !== false && r.nextDue <= today);
+  async remove(id) {
+    const rules = await this.getAll();
+    await this._save(rules.filter(r => r.id !== id));
   },
 
-  advanceNext(id) {
-    const rules = this.getAll();
+  async getDue() {
+    const today = new Date().toISOString().slice(0, 10);
+    const rules = await this.getAll();
+    return rules.filter(r => r.active !== false && r.nextDue <= today);
+  },
+
+  async advanceNext(id) {
+    const rules = await this.getAll();
     const rule  = rules.find(r => r.id === id);
     if (!rule) return;
     const d = new Date(rule.nextDue + 'T00:00:00');
@@ -338,7 +387,70 @@ const RecurringStore = {
       case 'yearly':  d.setFullYear(d.getFullYear() + 1); break;
     }
     rule.nextDue = d.toISOString().slice(0, 10);
-    this._save(rules);
+    await this._save(rules);
+  },
+
+  async toggle(id) {
+    const rules = await this.getAll();
+    const rule  = rules.find(r => r.id === id);
+    if (!rule) return;
+    rule.active = rule.active === false ? true : false;
+    await this._save(rules);
+  },
+};
+
+/* ============================================================
+   SUBSCRIPTION STORE (Supabase via user_settings)
+   ============================================================ */
+const SubscriptionStore = {
+  async getAll() {
+    return SettingsStore.getSubscriptions();
+  },
+
+  async _save(list) {
+    return SettingsStore.setSubscriptions(list);
+  },
+
+  async add(sub) {
+    const list = await this.getAll();
+    sub.id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+    list.push(sub);
+    await this._save(list);
+    return sub;
+  },
+
+  async update(id, patch) {
+    const list = await this.getAll();
+    const idx  = list.findIndex(s => s.id === id);
+    if (idx === -1) return;
+    list[idx] = { ...list[idx], ...patch };
+    await this._save(list);
+    return list[idx];
+  },
+
+  async remove(id) {
+    const list = await this.getAll();
+    await this._save(list.filter(s => s.id !== id));
+  },
+
+  async getDue() {
+    const today = new Date().toISOString().slice(0, 10);
+    const list  = await this.getAll();
+    return list.filter(s => s.active !== false && s.nextDue <= today);
+  },
+
+  async advanceNext(id) {
+    const list = await this.getAll();
+    const sub  = list.find(s => s.id === id);
+    if (!sub) return;
+    const d = new Date(sub.nextDue + 'T00:00:00');
+    switch (sub.frequency) {
+      case 'weekly':  d.setDate(d.getDate() + 7); break;
+      case 'monthly': d.setMonth(d.getMonth() + 1); break;
+      case 'yearly':  d.setFullYear(d.getFullYear() + 1); break;
+    }
+    sub.nextDue = d.toISOString().slice(0, 10);
+    await this._save(list);
   },
 };
 
@@ -352,8 +464,8 @@ const CURRENCY_LOCALES = {
 };
 
 function formatCurrency(amount) {
-  const currency = localStorage.getItem('pf_currency') || 'USD';
-  const locale   = CURRENCY_LOCALES[currency] || 'en-US';
+  const currency = localStorage.getItem('pf_currency') || 'CAD';
+  const locale   = CURRENCY_LOCALES[currency] || 'en-CA';
   return new Intl.NumberFormat(locale, {
     style: 'currency', currency, minimumFractionDigits: currency === 'JPY' ? 0 : 2,
   }).format(Math.abs(amount));
@@ -395,3 +507,88 @@ function showToast(message, type = '') {
   toast.addEventListener('click', dismiss);
   setTimeout(dismiss, 3200);
 }
+
+/* ============================================================
+   CSV SERVICE — export / import transactions
+   ============================================================ */
+const CSVService = {
+  HEADERS: ['date','type','amount','note','category','account','to_account','tags'],
+
+  async export() {
+    const [txs, accounts, cats] = await Promise.all([
+      TransactionStore.getAll(),
+      AccountStore.getAll(),
+      CategoryStore.getAll(),
+    ]);
+    const accMap = Object.fromEntries(accounts.map(a => [a.id, a.name]));
+    const catMap = Object.fromEntries(cats.map(c => [c.id, c.name]));
+
+    const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = txs.map(t => [
+      t.date,
+      t.type,
+      t.amount,
+      escape(t.note),
+      escape(catMap[t.categoryId] || t.categoryId || ''),
+      escape(accMap[t.accountId]  || t.accountId  || ''),
+      escape(accMap[t.toAccountId] || ''),
+      escape((t.tags || []).join(';')),
+    ].join(','));
+
+    const csv = [this.HEADERS.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `transactions-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  async import(file) {
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) throw new Error('CSV is empty or has no data rows');
+
+    const header = lines[0].toLowerCase().split(',').map(h => h.replace(/"/g,'').trim());
+    const idx = k => header.indexOf(k);
+
+    const [accounts, cats] = await Promise.all([
+      AccountStore.getAll(),
+      CategoryStore.getAll(),
+    ]);
+    const accByName = Object.fromEntries(accounts.map(a => [a.name.toLowerCase(), a.id]));
+    const catByName = Object.fromEntries(cats.map(c => [c.name.toLowerCase(), c.id]));
+
+    const parseCell = s => s.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
+
+    const rows = lines.slice(1);
+    let imported = 0, skipped = 0;
+    for (const line of rows) {
+      try {
+        const cells = line.match(/("(?:[^"]|"")*"|[^,]*)/g).map(parseCell);
+        const type   = cells[idx('type')]?.toLowerCase();
+        const amount = parseFloat(cells[idx('amount')]);
+        if (!['income','expense','transfer'].includes(type) || !amount || amount <= 0) { skipped++; continue; }
+
+        const catName  = cells[idx('category')]?.toLowerCase();
+        const accName  = cells[idx('account')]?.toLowerCase();
+        const toName   = cells[idx('to_account')]?.toLowerCase();
+        const tagsRaw  = cells[idx('tags')] || '';
+
+        await TransactionStore.add({
+          date:        cells[idx('date')] || new Date().toISOString().slice(0,10),
+          type,
+          amount,
+          note:        cells[idx('note')] || '',
+          categoryId:  catByName[catName] || null,
+          accountId:   accByName[accName] || accounts[0]?.id || null,
+          toAccountId: accByName[toName]  || null,
+          tags:        tagsRaw ? tagsRaw.split(';').map(t => t.trim()).filter(Boolean) : [],
+        });
+        imported++;
+      } catch { skipped++; }
+    }
+    return { imported, skipped };
+  },
+};

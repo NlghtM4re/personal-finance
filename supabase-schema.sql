@@ -35,9 +35,18 @@ create policy "own accounts"     on accounts     for all using (auth.uid() = use
 create policy "own transactions" on transactions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create table if not exists user_settings (
-  user_id  uuid primary key references auth.users(id) on delete cascade,
-  currency text not null default 'USD',
-  budgets  jsonb not null default '{}'
+  user_id           uuid primary key references auth.users(id) on delete cascade,
+  currency          text  not null default 'CAD',
+  budgets           jsonb not null default '{}',
+  custom_categories jsonb not null default '[]',
+  recurring_rules   jsonb not null default '[]',
+  subscriptions     jsonb not null default '[]'
 );
+
+-- Run these if the table already exists (safe to re-run):
+alter table user_settings add column if not exists custom_categories jsonb not null default '[]';
+alter table user_settings add column if not exists recurring_rules   jsonb not null default '[]';
+alter table user_settings add column if not exists subscriptions     jsonb not null default '[]';
+alter table user_settings alter column currency set default 'CAD';
 alter table user_settings enable row level security;
 create policy "own settings" on user_settings for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

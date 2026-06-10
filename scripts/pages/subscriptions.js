@@ -1,0 +1,567 @@
+/* ============================================================
+   subscriptions.js — Subscription & recurring billing tracker
+   ============================================================ */
+
+const SUB_COLORS = ['#3ecfb2','#6366f1','#f59e0b','#ef4444','#22c55e','#8b5cf6','#ec4899','#0ea5e9','#f97316','#a3e635'];
+const FREQ_LABEL  = { monthly: 'Monthly', yearly: 'Yearly', weekly: 'Weekly' };
+const FREQ_FACTOR = { monthly: 1, yearly: 1/12, weekly: 4.33 };
+
+/* ---- helpers ---- */
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+function daysUntil(isoDate) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const d   = new Date(isoDate + 'T00:00:00');
+  return Math.round((d - now) / 86400000);
+}
+
+function monthlyEquiv(sub) {
+  return sub.amount * (FREQ_FACTOR[sub.frequency] || 1);
+}
+
+/* ---- auto-log due subscriptions ---- */
+async function autoLogDue() {
+  const due = (await SubscriptionStore.getDue()).filter(s => s.autoLog !== false);
+  if (!due.length) return [];
+  const logged = [];
+  for (const sub of due) {
+    try {
+      await TransactionStore.add({
+        date:       sub.nextDue,
+        amount:     sub.amount,
+        type:       'expense',
+        categoryId: sub.categoryId || null,
+        accountId:  sub.accountId  || null,
+        note:       sub.name,
+        tags:       ['subscription'],
+      });
+      SubscriptionStore.advanceNext(sub.id);
+      logged.push(sub.name);
+    } catch (_) {}
+  }
+  return logged;
+}
+
+/* ---- render stats ---- */
+function renderStats(subs) {
+  const active  = subs.filter(s => s.active !== false);
+  const monthly = active.reduce((s, sub) => s + monthlyEquiv(sub), 0);
+  const yearly  = monthly * 12;
+  const today   = todayISO();
+  const dueThisMonth = active.filter(s => {
+    if (!s.nextDue) return false;
+    return s.nextDue.slice(0, 7) === today.slice(0, 7);
+  }).length;
+
+  setText('statMonthly', formatCurrency(monthly));
+  setText('statYearly',  formatCurrency(yearly));
+  setText('statActive',  active.length);
+  setText('statDue',     dueThisMonth);
+}
+
+/* ---- render subscription row ---- */
+function subRowHTML(sub, paused) {
+  const days   = daysUntil(sub.nextDue);
+  const isOver = days < 0;
+  const dueTxt = isOver
+    ? `<span style="color:var(--color-expense);">${Math.abs(days)}d overdue</span>`
+    : days === 0
+      ? `<span style="color:#f59e0b;">Due today</span>`
+      : days <= 7
+        ? `<span style="color:#f59e0b;">In ${days}d</span>`
+        : `<span style="color:var(--color-text-muted);">${formatDate(sub.nextDue)}</span>`;
+
+  return `
+    <div class="subs-row" data-id="${sub.id}">
+      <div class="subs-row__dot" style="background:${sub.color || '#6366f1'};"></div>
+      <div class="subs-row__info">
+        <div class="subs-row__name">${sub.name}${paused ? ' <span class="subs-paused-badge">paused</span>' : ''}</div>
+        <div class="subs-row__meta">${FREQ_LABEL[sub.frequency] || sub.frequency} · Next: ${dueTxt}</div>
+      </div>
+      <div class="subs-row__amount tx-amount--expense">−${formatCurrency(sub.amount)}</div>
+      <div class="subs-row__actions">
+        <button class="btn btn--ghost btn--sm sub-edit-btn" data-id="${sub.id}" title="Edit">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="btn btn--ghost btn--sm sub-toggle-btn" data-id="${sub.id}" title="${paused ? 'Resume' : 'Pause'}">
+          ${paused
+            ? `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`
+            : `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`
+          }
+        </button>
+        ${!paused && days <= 0
+          ? `<button class="btn btn--primary btn--sm sub-log-btn" data-id="${sub.id}">Log</button>`
+          : ''}
+      </div>
+    </div>`;
+}
+
+/* ---- render list ---- */
+function renderList(subs) {
+  const active = subs.filter(s => s.active !== false);
+  const paused = subs.filter(s => s.active === false);
+
+  const listEl   = document.getElementById('subsList');
+  const pausedEl = document.getElementById('pausedList');
+  const pausedCard = document.getElementById('pausedCard');
+
+  if (listEl) {
+    listEl.innerHTML = active.length
+      ? active.sort((a,b) => a.nextDue.localeCompare(b.nextDue)).map(s => subRowHTML(s, false)).join('')
+      : `<div style="padding:40px 24px;text-align:center;color:var(--color-text-muted);">
+           <div style="font-size:1.75rem;margin-bottom:12px;">📦</div>
+           <div style="font-size:.9375rem;font-weight:600;color:var(--color-text);margin-bottom:6px;">No subscriptions yet</div>
+           <div style="font-size:.8125rem;">Click <strong>Add subscription</strong> to track your first service.</div>
+         </div>`;
+  }
+
+  if (pausedCard && pausedEl) {
+    pausedCard.style.display = paused.length ? '' : 'none';
+    pausedEl.innerHTML = paused.map(s => subRowHTML(s, true)).join('');
+  }
+
+  wireRowActions();
+}
+
+/* ---- wire row buttons ---- */
+function wireRowActions() {
+  document.querySelectorAll('.sub-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => openEditForm(btn.dataset.id));
+  });
+
+  document.querySelectorAll('.sub-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const sub = (await SubscriptionStore.getAll()).find(s => s.id === btn.dataset.id);
+      if (!sub) return;
+      await SubscriptionStore.update(sub.id, { active: sub.active === false ? true : false });
+      renderPage();
+    });
+  });
+
+  document.querySelectorAll('.sub-log-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const sub = (await SubscriptionStore.getAll()).find(s => s.id === btn.dataset.id);
+      if (!sub) return;
+      btn.disabled = true;
+      try {
+        await TransactionStore.add({
+          date: todayISO(), amount: sub.amount, type: 'expense',
+          categoryId: sub.categoryId || null, accountId: sub.accountId || null,
+          note: sub.name, tags: ['subscription'],
+        });
+        SubscriptionStore.advanceNext(sub.id);
+        showToast(`${sub.name} logged`, 'success');
+        renderPage();
+      } catch (err) {
+        showToast(err.message || 'Failed to log', 'error');
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+/* ---- form ---- */
+let _accounts = [];
+let _categories = [];
+
+async function loadFormOptions() {
+  _accounts   = await AccountStore.getAll();
+  _categories = await CategoryStore.getAll();
+
+  const accSel = document.getElementById('fAccount');
+  if (accSel) {
+    accSel.innerHTML = '<option value="">— none —</option>' +
+      _accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+  }
+
+  const catSel = document.getElementById('fCategory');
+  if (catSel) {
+    const expense = _categories.filter(c => c.type === 'expense' || c.type === 'both');
+    catSel.innerHTML = '<option value="">— none —</option>' +
+      expense.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+  }
+
+  const colorRow = document.getElementById('colorRow');
+  if (colorRow) {
+    colorRow.innerHTML = SUB_COLORS.map((c, i) =>
+      `<button type="button" class="subs-color-dot${i === 0 ? ' selected' : ''}" data-color="${c}" style="background:${c};" aria-label="${c}"></button>`
+    ).join('');
+    colorRow.querySelectorAll('.subs-color-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        colorRow.querySelectorAll('.subs-color-dot').forEach(d => d.classList.remove('selected'));
+        dot.classList.add('selected');
+      });
+    });
+  }
+}
+
+function getSelectedColor() {
+  return document.querySelector('.subs-color-dot.selected')?.dataset.color || SUB_COLORS[0];
+}
+
+function setSelectedColor(color) {
+  const colorRow = document.getElementById('colorRow');
+  colorRow?.querySelectorAll('.subs-color-dot').forEach(d => {
+    d.classList.toggle('selected', d.dataset.color === color);
+  });
+}
+
+function openAddForm() {
+  document.getElementById('editId').value = '';
+  document.getElementById('fName').value  = '';
+  document.getElementById('fAmount').value = '';
+  document.getElementById('fFrequency').value = 'monthly';
+  document.getElementById('fNextDue').value = todayISO();
+  document.getElementById('fAccount').value = '';
+  document.getElementById('fCategory').value = '';
+  document.getElementById('fAutoLog').checked = true;
+  document.getElementById('formTitle').textContent = 'New subscription';
+  document.getElementById('formSubmitBtn').textContent = 'Save';
+  document.getElementById('deleteSubBtn').style.display = 'none';
+  setSelectedColor(SUB_COLORS[0]);
+  showForm();
+}
+
+async function openEditForm(id) {
+  const sub = (await SubscriptionStore.getAll()).find(s => s.id === id);
+  if (!sub) return;
+  document.getElementById('editId').value = id;
+  document.getElementById('fName').value  = sub.name;
+  document.getElementById('fAmount').value = sub.amount;
+  document.getElementById('fFrequency').value = sub.frequency || 'monthly';
+  document.getElementById('fNextDue').value = sub.nextDue;
+  document.getElementById('fAccount').value = sub.accountId || '';
+  document.getElementById('fCategory').value = sub.categoryId || '';
+  document.getElementById('fAutoLog').checked = sub.autoLog !== false;
+  document.getElementById('formTitle').textContent = 'Edit subscription';
+  document.getElementById('formSubmitBtn').textContent = 'Update';
+  document.getElementById('deleteSubBtn').style.display = '';
+  setSelectedColor(sub.color || SUB_COLORS[0]);
+  showForm();
+}
+
+function showForm() {
+  const card = document.getElementById('subFormCard');
+  if (card) { card.style.display = ''; card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+}
+function hideForm() {
+  const card = document.getElementById('subFormCard');
+  if (card) card.style.display = 'none';
+}
+
+/* ---- analytics ---- */
+let _trendChart = null;
+let _catChart   = null;
+
+async function renderAnalytics(subs) {
+  const analyticsEl = document.getElementById('analyticsSection');
+  if (!analyticsEl) return;
+  if (!subs.length) { analyticsEl.style.display = 'none'; return; }
+  analyticsEl.style.display = '';
+
+  const allTx = await TransactionStore.getAll();
+  const subNames = new Set(subs.map(s => s.name.toLowerCase()));
+
+  /* ---- trend: last 6 months of subscription transactions ---- */
+  const months = [];
+  const monthTotals = {};
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+    const key = d.toISOString().slice(0, 7);
+    months.push(key);
+    monthTotals[key] = 0;
+  }
+  allTx.forEach(tx => {
+    if (tx.type !== 'expense') return;
+    const m = tx.date.slice(0, 7);
+    if (!monthTotals.hasOwnProperty(m)) return;
+    const noteLower = (tx.note || '').toLowerCase();
+    const tagMatch  = (tx.tags || []).includes('subscription');
+    if (tagMatch || subNames.has(noteLower)) monthTotals[m] += tx.amount;
+  });
+
+  const trendLabels = months.map(m => {
+    const [y, mo] = m.split('-');
+    return new Date(Number(y), Number(mo) - 1).toLocaleString('en-US', { month: 'short' });
+  });
+  const trendData = months.map(m => monthTotals[m]);
+
+  document.getElementById('trendSkeleton').style.display = 'none';
+  const trendCtx = document.getElementById('trendCanvas').getContext('2d');
+  if (_trendChart) _trendChart.destroy();
+  _trendChart = new Chart(trendCtx, {
+    type: 'bar',
+    data: {
+      labels: trendLabels,
+      datasets: [{
+        data: trendData,
+        backgroundColor: 'rgba(62,207,178,.25)',
+        borderColor: '#3ecfb2',
+        borderWidth: 2,
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => formatCurrency(ctx.raw) },
+        backgroundColor: '#111', titleColor: '#fff', bodyColor: '#aaa',
+        borderColor: '#333', borderWidth: 1,
+      }},
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#666', font: { size: 11 } } },
+        y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#666', font: { size: 11 }, callback: v => formatCurrency(v) }, beginAtZero: true },
+      },
+    },
+  });
+
+  /* ---- upcoming 30 days ---- */
+  const upcomingEl = document.getElementById('upcomingList');
+  if (upcomingEl) {
+    const today = todayISO();
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() + 30);
+    const cutoffISO = cutoff.toISOString().slice(0, 10);
+    const upcoming = subs
+      .filter(s => s.active !== false && s.nextDue >= today && s.nextDue <= cutoffISO)
+      .sort((a, b) => a.nextDue.localeCompare(b.nextDue));
+
+    if (!upcoming.length) {
+      upcomingEl.innerHTML = `<div style="padding:24px;text-align:center;color:var(--color-text-muted);font-size:.8125rem;">No bills due in the next 30 days.</div>`;
+    } else {
+      upcomingEl.innerHTML = upcoming.map(s => {
+        const d = daysUntil(s.nextDue);
+        const badge = d === 0 ? `<span class="subs-badge subs-badge--today">Today</span>`
+          : d <= 3 ? `<span class="subs-badge subs-badge--soon">In ${d}d</span>`
+          : `<span class="subs-badge subs-badge--normal">${formatDateShort(s.nextDue)}</span>`;
+        return `
+          <div class="subs-upcoming-row">
+            <div class="subs-row__dot" style="background:${s.color || '#6366f1'};flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:.875rem;font-weight:500;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name}</div>
+              <div style="font-size:.75rem;color:var(--color-text-muted);">${FREQ_LABEL[s.frequency] || s.frequency}</div>
+            </div>
+            ${badge}
+            <div style="font-size:.9375rem;font-weight:600;color:var(--color-expense);white-space:nowrap;">−${formatCurrency(s.amount)}</div>
+          </div>`;
+      }).join('');
+    }
+  }
+
+  /* ---- category breakdown ---- */
+  const catMap = {};
+  const active = subs.filter(s => s.active !== false);
+  active.forEach(s => {
+    const key = s.categoryId || '__none__';
+    catMap[key] = (catMap[key] || 0) + monthlyEquiv(s);
+  });
+  const catEntries = Object.entries(catMap).sort((a,b) => b[1] - a[1]);
+  const cats = await CategoryStore.getAll();
+  const catLookup = Object.fromEntries(cats.map(c => [c.id, c]));
+
+  document.getElementById('catSkeleton').style.display = 'none';
+  const catCtx = document.getElementById('catCanvas').getContext('2d');
+  if (_catChart) _catChart.destroy();
+
+  if (!catEntries.length) {
+    catCtx.canvas.style.display = 'none';
+  } else {
+    catCtx.canvas.style.display = '';
+    _catChart = new Chart(catCtx, {
+      type: 'doughnut',
+      data: {
+        labels: catEntries.map(([id]) => catLookup[id]?.name || 'Uncategorized'),
+        datasets: [{
+          data: catEntries.map(([,v]) => v),
+          backgroundColor: catEntries.map((_, i) => SUB_COLORS[i % SUB_COLORS.length]),
+          borderWidth: 0,
+          hoverOffset: 4,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: ctx => `${ctx.label}: ${formatCurrency(ctx.raw)}/mo` },
+            backgroundColor: '#111', titleColor: '#fff', bodyColor: '#aaa',
+            borderColor: '#333', borderWidth: 1,
+          },
+        },
+      },
+    });
+
+    const legendEl = document.getElementById('catLegend');
+    if (legendEl) {
+      legendEl.innerHTML = catEntries.map(([id, val], i) => {
+        const name = catLookup[id]?.name || 'Uncategorized';
+        const icon = catLookup[id]?.icon || '📦';
+        return `
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${SUB_COLORS[i % SUB_COLORS.length]};flex-shrink:0;"></span>
+            <span style="font-size:.8125rem;color:var(--color-text-muted);flex:1;">${icon} ${name}</span>
+            <span style="font-size:.8125rem;font-weight:600;color:var(--color-text);">${formatCurrency(val)}/mo</span>
+          </div>`;
+      }).join('');
+    }
+  }
+
+  /* ---- pattern insights ---- */
+  renderPatternInsights(subs, allTx);
+}
+
+function renderPatternInsights(subs, allTx) {
+  const patternEl = document.getElementById('patternList');
+  if (!patternEl) return;
+
+  const insights = [];
+
+  subs.filter(s => s.active !== false).forEach(sub => {
+    const nameLower = sub.name.toLowerCase();
+    const related = allTx
+      .filter(tx => tx.type === 'expense' && (tx.note || '').toLowerCase() === nameLower)
+      .sort((a,b) => a.date.localeCompare(b.date));
+
+    if (related.length < 2) return;
+
+    /* price change detection */
+    const amounts = [...new Set(related.map(t => t.amount))];
+    if (amounts.length > 1) {
+      const first = related[0].amount;
+      const last  = related[related.length - 1].amount;
+      if (last !== first) {
+        const diff = last - first;
+        const pct  = Math.round(Math.abs(diff) / first * 100);
+        insights.push({
+          icon: diff > 0 ? '📈' : '📉',
+          color: diff > 0 ? 'var(--color-expense)' : 'var(--color-income)',
+          text: `<strong>${sub.name}</strong> ${diff > 0 ? 'increased' : 'decreased'} by ${formatCurrency(Math.abs(diff))} (${pct}%) since ${formatDateShort(related[0].date)}.`,
+        });
+      }
+    }
+
+    /* usage frequency check: less than expected logs */
+    const months = Math.max(1, Math.round(
+      (new Date(related[related.length-1].date) - new Date(related[0].date)) / (1000*60*60*24*30)
+    ));
+    const expected = Math.max(1, sub.frequency === 'yearly' ? Math.floor(months/12) : sub.frequency === 'weekly' ? months*4 : months);
+    if (related.length < expected * 0.6 && expected > 2) {
+      insights.push({
+        icon: '⚠️',
+        color: '#f59e0b',
+        text: `<strong>${sub.name}</strong> was logged ${related.length} time${related.length!==1?'s':''} but expected ~${expected} over ${months} months. Check if it's still active.`,
+      });
+    }
+  });
+
+  /* total subscription spend trend */
+  const thisMonth = todayISO().slice(0,7);
+  const lastMonth = (() => { const d=new Date(); d.setMonth(d.getMonth()-1); return d.toISOString().slice(0,7); })();
+  const subNames = new Set(subs.map(s => s.name.toLowerCase()));
+  const sumMonth = (m) => allTx
+    .filter(tx => tx.type==='expense' && tx.date.startsWith(m) && (
+      (tx.tags||[]).includes('subscription') || subNames.has((tx.note||'').toLowerCase())
+    ))
+    .reduce((s, tx) => s + tx.amount, 0);
+  const thisTotal = sumMonth(thisMonth);
+  const lastTotal = sumMonth(lastMonth);
+  if (lastTotal > 0 && thisTotal > 0) {
+    const diff = thisTotal - lastTotal;
+    if (Math.abs(diff) > 1) {
+      insights.push({
+        icon: diff > 0 ? '💸' : '✅',
+        color: diff > 0 ? 'var(--color-expense)' : 'var(--color-income)',
+        text: `Total subscription spend is <strong>${formatCurrency(Math.abs(diff))} ${diff > 0 ? 'higher' : 'lower'}</strong> than last month.`,
+      });
+    }
+  }
+
+  if (!insights.length) {
+    patternEl.innerHTML = `<div style="padding:20px 20px;font-size:.8125rem;color:var(--color-text-muted);">No patterns detected yet — insights appear after a few months of logged transactions.</div>`;
+    return;
+  }
+
+  patternEl.innerHTML = insights.map(ins => `
+    <div class="subs-insight-row">
+      <span class="subs-insight-row__icon">${ins.icon}</span>
+      <span style="font-size:.8125rem;color:var(--color-text-muted);line-height:1.5;">${ins.text}</span>
+    </div>`).join('');
+}
+
+/* ---- main render ---- */
+async function renderPage() {
+  const subs = await SubscriptionStore.getAll();
+  renderStats(subs);
+  renderList(subs);
+  await renderAnalytics(subs);
+}
+
+/* ---- form helpers ---- */
+function setText(id, val) {
+  const el = document.getElementById(id); if (el) el.textContent = val;
+}
+
+/* ---- init ---- */
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await SupaAuth.requireAuth();
+  if (!user) return;
+
+  await loadFormOptions();
+
+  /* auto-log due subscriptions */
+  const logged = await autoLogDue();
+  if (logged.length) {
+    const banner = document.getElementById('autoLogBanner');
+    const msg    = document.getElementById('autoLogMsg');
+    if (banner && msg) {
+      msg.textContent = `Auto-logged: ${logged.join(', ')}`;
+      banner.style.display = '';
+    }
+  }
+
+  await renderPage();
+
+  /* add button */
+  document.getElementById('addSubBtn')?.addEventListener('click', openAddForm);
+  document.getElementById('closeFormBtn')?.addEventListener('click', hideForm);
+
+  /* form submit */
+  document.getElementById('subForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const id       = document.getElementById('editId').value;
+    const name     = document.getElementById('fName').value.trim();
+    const amount   = parseFloat(document.getElementById('fAmount').value);
+    const freq     = document.getElementById('fFrequency').value;
+    const nextDue  = document.getElementById('fNextDue').value;
+    const accId    = document.getElementById('fAccount').value;
+    const catId    = document.getElementById('fCategory').value;
+    const autoLog  = document.getElementById('fAutoLog').checked;
+    const color    = getSelectedColor();
+
+    if (!name || !amount || !nextDue) return;
+
+    const payload = { name, amount, frequency: freq, nextDue, accountId: accId || null, categoryId: catId || null, autoLog, color, active: true };
+
+    if (id) {
+      await SubscriptionStore.update(id, payload);
+      showToast('Subscription updated', 'success');
+    } else {
+      await SubscriptionStore.add(payload);
+      showToast('Subscription added', 'success');
+    }
+
+    hideForm();
+    await renderPage();
+  });
+
+  /* delete */
+  document.getElementById('deleteSubBtn')?.addEventListener('click', () => {
+    const id = document.getElementById('editId').value;
+    if (!id) return;
+    if (!confirm('Delete this subscription? Existing logged transactions are not affected.')) return;
+    await SubscriptionStore.remove(id);
+    hideForm();
+    renderPage();
+    showToast('Subscription deleted', 'success');
+  });
+});

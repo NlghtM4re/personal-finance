@@ -152,7 +152,7 @@ async function renderRecurringBanner() {
   const banner = document.getElementById('recurringBanner');
   if (!banner) return;
 
-  const due = RecurringStore.getDue();
+  const due = await RecurringStore.getDue();
   if (!due.length) { banner.style.display = 'none'; return; }
 
   const cats = await Promise.all(due.map(r => CategoryStore.getById(r.categoryId)));
@@ -166,6 +166,7 @@ async function renderRecurringBanner() {
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
       </span>
       <span class="recurring-banner__title">${due.length} recurring transaction${due.length !== 1 ? 's' : ''} due</span>
+      <a href="pages/recurring.html" class="btn btn--ghost btn--sm" style="margin-left:auto;font-size:.75rem;">Manage</a>
     </div>
     <div class="recurring-banner__list">
       ${due.map((r, i) => `
@@ -201,7 +202,7 @@ async function renderRecurringBanner() {
           note:        rule.note,
           tags:        [],
         });
-        RecurringStore.advanceNext(rule.id);
+        await RecurringStore.advanceNext(rule.id);
         showToast('Transaction logged', 'success');
         await initDashboard();
       } catch (err) {
@@ -212,8 +213,8 @@ async function renderRecurringBanner() {
   });
 
   banner.querySelectorAll('.recurring-skip-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      RecurringStore.advanceNext(btn.dataset.id);
+    btn.addEventListener('click', async () => {
+      await RecurringStore.advanceNext(btn.dataset.id);
       renderRecurringBanner();
     });
   });

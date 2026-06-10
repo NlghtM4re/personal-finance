@@ -2,6 +2,44 @@
    settings.js — Settings page
    ============================================================ */
 
+/* ---- Custom categories ---- */
+async function renderCustomCats() {
+  const cats    = await SettingsStore.getCustomCategories();
+  const listEl  = document.getElementById('customCatsList');
+  const divider = document.getElementById('customCatsDivider');
+  if (!listEl) return;
+
+  if (cats.length === 0) {
+    listEl.innerHTML = '';
+    if (divider) divider.style.display = 'none';
+    return;
+  }
+  if (divider) divider.style.display = '';
+
+  listEl.innerHTML = cats.map((c, i) => `
+    <div class="settings-row" style="gap:10px;">
+      <span style="font-size:1.2rem;width:32px;text-align:center;flex-shrink:0;">${c.icon || '🏷️'}</span>
+      <div class="settings-row__info">
+        <div class="settings-row__title">${c.name}</div>
+        <div class="settings-row__sub">${c.type}</div>
+      </div>
+      <button type="button" class="btn btn--ghost btn--sm del-cat-btn" data-idx="${i}" style="flex-shrink:0;">Remove</button>
+    </div>
+    <div class="settings-divider"></div>
+  `).join('');
+
+  listEl.querySelectorAll('.del-cat-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const idx  = parseInt(btn.dataset.idx);
+      const cats = await SettingsStore.getCustomCategories();
+      cats.splice(idx, 1);
+      await SettingsStore.setCustomCategories(cats);
+      renderCustomCats();
+      showToast('Category removed', 'success');
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
@@ -30,6 +68,45 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast('Currency updated', 'success');
     });
   }
+
+  /* CSV export */
+  document.getElementById('exportCsvBtn')?.addEventListener('click', async () => {
+    try {
+      await CSVService.export();
+      showToast('CSV downloaded', 'success');
+    } catch (err) {
+      showToast(err.message || 'Export failed', 'error');
+    }
+  });
+
+  /* CSV import */
+  document.getElementById('importCsvInput')?.addEventListener('change', async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const { imported, skipped } = await CSVService.import(file);
+      showToast(`Imported ${imported} transaction${imported !== 1 ? 's' : ''}${skipped ? ` (${skipped} skipped)` : ''}`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Import failed', 'error');
+    }
+    e.target.value = '';
+  });
+
+  /* Custom categories */
+  await renderCustomCats();
+  document.getElementById('addCatBtn')?.addEventListener('click', async () => {
+    const name = document.getElementById('newCatName')?.value.trim();
+    const icon = document.getElementById('newCatIcon')?.value.trim() || '🏷️';
+    const type = document.getElementById('newCatType')?.value || 'expense';
+    if (!name) { showToast('Enter a category name', 'error'); return; }
+    const cats = await SettingsStore.getCustomCategories();
+    cats.push({ id: 'custom-' + Date.now(), name, icon, type });
+    await SettingsStore.setCustomCategories(cats);
+    document.getElementById('newCatName').value = '';
+    document.getElementById('newCatIcon').value = '';
+    await renderCustomCats();
+    showToast('Category added', 'success');
+  });
 
   document.getElementById('logoutBtn')?.addEventListener('click', async () => {
     await SupaAuth.signOut();

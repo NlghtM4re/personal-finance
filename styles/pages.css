@@ -765,3 +765,168 @@
 
   /* Accounts page: handled by 1080px breakpoint above */
 }
+
+/* Budget onboarding hint (replaces full onboarding screen) */
+.budget-onboarding-hint {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 20px;
+  font-size: .8125rem; color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(62,207,178,.04);
+}
+.budget-onboarding-hint svg { color: var(--color-accent); flex-shrink: 0; }
+.budget-onboarding-hint strong { color: var(--color-text); }
+
+/* ============================================================
+   SUBSCRIPTIONS PAGE
+   ============================================================ */
+
+.subs-page { display: flex; flex-direction: column; gap: 12px; }
+
+/* Main two-col grid: list left, form right */
+.subs-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 12px;
+  align-items: start;
+}
+
+/* List header */
+.subs-list-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Subscription row */
+.subs-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background var(--transition);
+}
+.subs-row:last-child { border-bottom: none; }
+.subs-row:hover { background: var(--color-surface-2); }
+
+.subs-row__dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.subs-row__info { flex: 1; min-width: 0; }
+.subs-row__name {
+  font-size: .875rem; font-weight: 500; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.subs-row__meta { font-size: .75rem; color: var(--color-text-muted); margin-top: 2px; }
+.subs-row__amount { font-size: .9375rem; font-weight: 600; white-space: nowrap; }
+.subs-row__actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+
+.subs-paused-badge {
+  display: inline-block; font-size: .6875rem; font-weight: 500;
+  padding: 1px 6px; border-radius: 999px;
+  background: var(--color-surface-2); border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+/* Add/edit form card */
+.subs-form-card { padding: 20px; position: sticky; top: calc(var(--topbar-height, 56px) + 12px); }
+.subs-form-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.subs-form-field:last-child { margin-bottom: 0; }
+.subs-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.subs-form-row .subs-form-field { margin-bottom: 0; }
+
+/* color picker */
+.subs-color-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.subs-color-dot {
+  width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; transition: transform .12s, border-color .12s;
+  flex-shrink: 0;
+}
+.subs-color-dot:hover { transform: scale(1.2); }
+.subs-color-dot.selected { border-color: #fff; transform: scale(1.15); }
+
+/* auto-log toggle */
+.subs-autolog-toggle {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+}
+.subs-autolog-toggle input { display: none; }
+.subs-autolog-toggle__track {
+  width: 34px; height: 20px; border-radius: 999px;
+  background: var(--color-border); position: relative; flex-shrink: 0;
+  transition: background .15s;
+}
+.subs-autolog-toggle__track::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--color-text-muted); transition: transform .15s, background .15s;
+}
+.subs-autolog-toggle input:checked ~ .subs-autolog-toggle__track {
+  background: rgba(62,207,178,.25); border: 1px solid rgba(62,207,178,.5);
+}
+.subs-autolog-toggle input:checked ~ .subs-autolog-toggle__track::after {
+  transform: translateX(14px); background: #3ecfb2;
+}
+.subs-autolog-toggle__label { font-size: .8125rem; color: var(--color-text-muted); }
+
+/* auto-log banner */
+.subs-autolog-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  background: rgba(62,207,178,.08); border: 1px solid rgba(62,207,178,.25);
+}
+.subs-autolog-banner__icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(62,207,178,.2); color: #3ecfb2; flex-shrink: 0;
+}
+
+/* Analytics section */
+.subs-analytics { display: flex; flex-direction: column; gap: 12px; }
+.subs-analytics__header {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .6875rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--color-text-muted);
+}
+.subs-analytics__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.subs-chart-card { padding: 16px 20px; }
+
+/* Upcoming list */
+.subs-upcoming-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.subs-upcoming-row:last-child { border-bottom: none; }
+
+/* Badges */
+.subs-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: .6875rem; font-weight: 600; white-space: nowrap; flex-shrink: 0;
+}
+.subs-badge--today { background: rgba(245,158,11,.15); color: #f59e0b; }
+.subs-badge--soon  { background: rgba(245,158,11,.08); color: #f59e0b; }
+.subs-badge--normal { background: var(--color-surface-2); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+
+/* Pattern insights */
+.subs-insight-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.subs-insight-row:last-child { border-bottom: none; }
+.subs-insight-row__icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .subs-main-grid { grid-template-columns: 1fr; }
+  .subs-form-card { position: static; }
+  .subs-analytics__grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .subs-page .budget-summary-strip { grid-template-columns: repeat(2, 1fr) !important; }
+  .subs-row__amount { display: none; }
+}

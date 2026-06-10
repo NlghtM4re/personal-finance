@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isRecurring) {
           const freq    = document.getElementById('recurringFreq')?.value || 'monthly';
           const endDate = document.getElementById('recurringEnd')?.value || null;
-          RecurringStore.add({
+          await RecurringStore.add({
             note:        data.note,
             amount:      data.amount,
             type:        data.type,
