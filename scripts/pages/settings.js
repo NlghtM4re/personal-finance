@@ -121,6 +121,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.classList.add('btn--loading'); btn.disabled = true;
       try {
         await sb.from('transactions').delete().eq('user_id', user.id);
+        await sb.from('subscriptions').delete().eq('user_id', user.id);     /* no-op if table not created yet */
+        await sb.from('recurring_rules').delete().eq('user_id', user.id);   /* no-op if table not created yet */
         await sb.from('accounts').delete().eq('user_id', user.id);
         await SettingsStore.setBudgets({});
         await SettingsStore.setRecurringRules([]);

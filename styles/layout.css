@@ -361,6 +361,86 @@ body.page-exit .main-wrapper {
   select.form-control, input.form-control { min-height: 44px; }
 }
 
+/* ---- Money hub pill tabs ---- */
+.money-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.money-tab {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.money-tab:hover { color: var(--color-text); background: var(--color-surface-2); text-decoration: none; }
+.money-tab.active {
+  color: var(--color-text);
+  font-weight: 600;
+  background: var(--color-primary-light);
+  border-color: transparent;
+}
+
+/* ---- "More" bottom sheet (mobile) ---- */
+.more-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 170;
+  opacity: 0;
+  transition: opacity var(--transition);
+  backdrop-filter: blur(2px);
+}
+.more-backdrop.open { display: block; opacity: 1; }
+
+.more-sheet {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: var(--bottom-nav-height);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  z-index: 180;
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateY(calc(100% + var(--bottom-nav-height)));
+  transition: transform 0.24s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 -8px 32px rgba(0,0,0,.4);
+}
+.more-sheet.open { transform: translateY(0); }
+
+.more-sheet__handle {
+  width: 36px; height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  margin: 0 auto 12px;
+}
+.more-sheet__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.more-sheet__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 6px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+.more-sheet__item:hover  { color: var(--color-text); text-decoration: none; }
+.more-sheet__item.active { color: var(--color-text); background: var(--color-primary-light); font-weight: 600; }
+.more-sheet__icon { line-height: 0; }
+
+@media (min-width: 769px) {
+  .more-sheet, .more-backdrop { display: none !important; }
+}
+
 /* ---- Tablet: tighten layout ---- */
 @media (min-width: 769px) and (max-width: 1024px) {
   :root { --sidebar-width: 220px; }

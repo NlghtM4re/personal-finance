@@ -1,0 +1,174 @@
+/* ============================================================
+   nav.js — Single source of truth for all navigation chrome.
+   Renders the sidebar, topbar, bottom nav, Money pill tabs and
+   the "More" bottom sheet from one config array.
+   Must be loaded BEFORE ui.js (which wires menu/theme buttons).
+
+   To add a new section: add one entry to NAV_ITEMS below.
+   ============================================================ */
+
+(function () {
+  'use strict';
+
+  /* ---- icons (lucide-style, stroke inherits currentColor) ---- */
+  const I = (paths, size) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+
+  const ICONS = {
+    dashboard:     '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    transactions:  '<path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/>',
+    spending:      '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>',
+    budget:        '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+    subscriptions: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+    recurring:     '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+    settings:      '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+    add:           '<path d="M12 5v14M5 12h14"/>',
+    money:         '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>',
+    more:          '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+    moon:          '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+    menu:          '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>',
+  };
+
+  /* ---- nav config — hrefs are root-relative ----
+     sidebar: shown in desktop sidebar / mobile drawer
+     money:   grouped under the Money hub (pill tabs + Money bottom tab)
+     sheet:   shown in the mobile "More" sheet                          */
+  const NAV_ITEMS = [
+    { id: 'dashboard',     label: 'Dashboard',       icon: 'dashboard',     href: 'index.html',                sidebar: true, bottom: true },
+    { id: 'transactions',  label: 'Transactions',    icon: 'transactions',  href: 'pages/accounts.html',       sidebar: true, bottom: true },
+    { id: 'spending',      label: 'Spending',        icon: 'spending',      href: 'pages/spending.html',       sidebar: true, money: true, sheet: true },
+    { id: 'budget',        label: 'Budget',          icon: 'budget',        href: 'pages/budget.html',         sidebar: true, money: true, sheet: true },
+    { id: 'subscriptions', label: 'Subscriptions',   icon: 'subscriptions', href: 'pages/subscriptions.html',  sidebar: true, money: true, sheet: true },
+    { id: 'recurring',     label: 'Recurring',       icon: 'recurring',     href: 'pages/recurring.html',      sidebar: true, sheet: true },
+    { id: 'settings',      label: 'Settings',        icon: 'settings',      href: 'pages/settings.html',       sidebar: true, sheet: true },
+    { id: 'add',           label: 'Add Transaction', icon: 'add',           href: 'pages/add-transaction.html', sidebar: true, accent: true },
+  ];
+
+  const IN_PAGES = window.location.pathname.includes('/pages/');
+
+  function resolve(href) {
+    if (!IN_PAGES) return href;
+    return href === 'index.html' ? '../index.html' : href.replace('pages/', '');
+  }
+
+  /* current page filename, tolerant of clean URLs (".html" stripped) */
+  function pageKey(href) { return (href.split('/').pop() || 'index.html').replace(/\.html$/, '') || 'index'; }
+  const CURRENT = pageKey(window.location.pathname) === '' ? 'index' : pageKey(window.location.pathname || 'index.html');
+
+  function isActive(item) { return pageKey(item.href) === CURRENT; }
+
+  const moneyItems = NAV_ITEMS.filter(n => n.money);
+  const onMoneyPage = moneyItems.some(isActive);
+  const moneyMatch = moneyItems.map(n => pageKey(n.href) + '.html').join(',');
+
+  /* ---- sidebar ---- */
+  function renderSidebar() {
+    const el = document.getElementById('sidebar');
+    if (!el) return;
+    el.innerHTML = `
+      <div class="sidebar-header">
+        <a href="${resolve('index.html')}" class="logo"><span class="logo-text">Personal Finance</span></a>
+      </div>
+      <nav class="sidebar-nav">
+        ${NAV_ITEMS.filter(n => n.sidebar).map(n => `
+          <a href="${resolve(n.href)}" class="nav-item${n.accent ? ' nav-item--accent' : ''}${isActive(n) ? ' active' : ''}">
+            <span class="nav-icon">${I(ICONS[n.icon], 18)}</span>
+            <span class="nav-label">${n.label}</span>
+          </a>`).join('')}
+      </nav>`;
+  }
+
+  /* ---- topbar ---- */
+  function renderTopbar() {
+    const el = document.getElementById('topbar');
+    if (!el) return;
+    const title   = document.body.dataset.title || document.title.split('—')[0].trim();
+    const titleId = document.body.dataset.titleId ? ` id="${document.body.dataset.titleId}"` : '';
+    el.innerHTML = `
+      <button class="menu-btn" id="menuBtn" aria-label="Open menu">${I(ICONS.menu, 20)}</button>
+      <a class="topbar-logo" href="${resolve('index.html')}">Personal Finance</a>
+      <div class="topbar-title"${titleId}>${title}</div>
+      <div class="topbar-actions">
+        <button class="topbar-icon-btn" id="themeToggleTop" aria-label="Toggle theme">${I(ICONS.moon, 17)}</button>
+        <a href="${resolve('pages/settings.html')}" class="topbar-icon-btn" aria-label="Settings">${I(ICONS.settings, 17)}</a>
+      </div>`;
+  }
+
+  /* ---- bottom nav: Dashboard · Transactions · [+] · Money · More ---- */
+  function renderBottomNav() {
+    const el = document.getElementById('bottomNav');
+    if (!el) return;
+    const item = (n, label) => `
+      <a href="${resolve(n.href)}" class="bottom-nav__item${isActive(n) ? ' active' : ''}">
+        <span class="bottom-nav__icon">${I(ICONS[n.icon], 20)}</span>
+        <span class="bottom-nav__label">${label || n.label}</span>
+      </a>`;
+    const dash = NAV_ITEMS.find(n => n.id === 'dashboard');
+    const txs  = NAV_ITEMS.find(n => n.id === 'transactions');
+    const add  = NAV_ITEMS.find(n => n.id === 'add');
+    el.innerHTML = `
+      ${item(dash)}
+      ${item(txs)}
+      <a href="${resolve(add.href)}" class="bottom-nav__item bottom-nav__item--add" aria-label="Add transaction">
+        <span class="bottom-nav__icon">${I(ICONS.add, 22)}</span>
+      </a>
+      <a href="${resolve('pages/spending.html')}" class="bottom-nav__item${onMoneyPage ? ' active' : ''}" data-match="${moneyMatch}">
+        <span class="bottom-nav__icon">${I(ICONS.money, 20)}</span>
+        <span class="bottom-nav__label">Money</span>
+      </a>
+      <button type="button" class="bottom-nav__item" id="moreNavBtn" aria-haspopup="dialog" aria-expanded="false">
+        <span class="bottom-nav__icon">${I(ICONS.more, 20)}</span>
+        <span class="bottom-nav__label">More</span>
+      </button>`;
+  }
+
+  /* ---- Money hub pill tabs (only on money pages) ---- */
+  function renderMoneyTabs() {
+    if (!onMoneyPage) return;
+    const main = document.querySelector('.main-content');
+    if (!main) return;
+    const wrap = document.createElement('nav');
+    wrap.className = 'money-tabs';
+    wrap.setAttribute('aria-label', 'Money sections');
+    wrap.innerHTML = moneyItems.map(n =>
+      `<a href="${resolve(n.href)}" class="money-tab${isActive(n) ? ' active' : ''}">${n.label}</a>`
+    ).join('');
+    main.prepend(wrap);
+  }
+
+  /* ---- "More" bottom sheet ---- */
+  function renderMoreSheet() {
+    const sheetItems = NAV_ITEMS.filter(n => n.sheet);
+    const backdrop = document.createElement('div');
+    backdrop.className = 'more-backdrop';
+    backdrop.id = 'moreBackdrop';
+    const sheet = document.createElement('div');
+    sheet.className = 'more-sheet';
+    sheet.id = 'moreSheet';
+    sheet.setAttribute('role', 'dialog');
+    sheet.setAttribute('aria-label', 'More sections');
+    sheet.innerHTML = `
+      <div class="more-sheet__handle"></div>
+      <div class="more-sheet__grid">
+        ${sheetItems.map(n => `
+          <a href="${resolve(n.href)}" class="more-sheet__item${isActive(n) ? ' active' : ''}">
+            <span class="more-sheet__icon">${I(ICONS[n.icon], 20)}</span>
+            <span>${n.label}</span>
+          </a>`).join('')}
+      </div>`;
+    document.body.appendChild(backdrop);
+    document.body.appendChild(sheet);
+
+    const btn = document.getElementById('moreNavBtn');
+    const open  = () => { sheet.classList.add('open'); backdrop.classList.add('open'); btn?.setAttribute('aria-expanded', 'true'); };
+    const close = () => { sheet.classList.remove('open'); backdrop.classList.remove('open'); btn?.setAttribute('aria-expanded', 'false'); };
+    btn?.addEventListener('click', () => sheet.classList.contains('open') ? close() : open());
+    backdrop.addEventListener('click', close);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  }
+
+  renderSidebar();
+  renderTopbar();
+  renderBottomNav();
+  renderMoneyTabs();
+  renderMoreSheet();
+})();

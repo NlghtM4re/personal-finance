@@ -66,11 +66,20 @@ document.addEventListener('DOMContentLoaded', () => {
     SettingsStore._load().catch(() => {});
   }
 
-  /* --- Active nav link --- */
-  const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+  /* PWA: register the service worker (https or localhost only) */
+  if ('serviceWorker' in navigator &&
+      (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+
+  /* --- Active nav link (tolerates clean URLs; data-match lists extra pages, e.g. the Money tab) --- */
+  const norm = p => (p.split('/').pop() || 'index.html').replace(/\.html$/, '');
+  const currentPath = norm(window.location.pathname);
   document.querySelectorAll('.nav-item, .bottom-nav__item').forEach(link => {
-    const href = link.getAttribute('href') || '';
-    link.classList.toggle('active', href.split('/').pop() === currentPath);
+    const href = link.getAttribute('href');
+    if (!href) return;
+    const matches = (link.dataset.match || href).split(',').map(norm);
+    link.classList.toggle('active', matches.includes(currentPath));
   });
 
   /* --- Page transitions (nav + topbar + any internal link) --- */
@@ -81,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.querySelectorAll(
-    'a.nav-item, a.bottom-nav__item, .btn[href], a.topbar-nav-link, a.topbar-logo'
+    'a.nav-item, a.bottom-nav__item, .btn[href], a.topbar-nav-link, a.topbar-logo, a.money-tab, a.more-sheet__item'
   ).forEach(link => {
     link.addEventListener('click', e => {
       const href = link.getAttribute('href');

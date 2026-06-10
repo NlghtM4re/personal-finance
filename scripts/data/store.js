@@ -347,28 +347,116 @@ const BudgetStore = {
 };
 
 /* ============================================================
-   RECURRING STORE (Supabase via user_settings)
+   RECURRING STORE — Supabase table `recurring_rules`.
+   Falls back to the legacy user_settings jsonb blob until the
+   table exists; migrates blob rows into the table once it does.
    ============================================================ */
+const IS_UUID = s => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s || '');
+function newUUID() {
+  return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+function advanceDate(iso, frequency) {
+  const d = new Date(iso + 'T00:00:00');
+  switch (frequency) {
+    case 'daily':   d.setDate(d.getDate() + 1); break;
+    case 'weekly':  d.setDate(d.getDate() + 7); break;
+    case 'monthly': d.setMonth(d.getMonth() + 1); break;
+    case 'yearly':  d.setFullYear(d.getFullYear() + 1); break;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+function ruleToCamel(r) {
+  return {
+    id: r.id, note: r.note, amount: Number(r.amount), type: r.type,
+    categoryId: r.category_id, accountId: r.account_id, toAccountId: r.to_account_id,
+    frequency: r.frequency, nextDue: r.next_due, endDate: r.end_date,
+    active: r.active, createdAt: r.created_at,
+  };
+}
+
+function ruleToRow(r) {
+  const row = {};
+  if (r.note        !== undefined) row.note          = r.note || '';
+  if (r.amount      !== undefined) row.amount        = r.amount;
+  if (r.type        !== undefined) row.type          = r.type;
+  if (r.categoryId  !== undefined) row.category_id   = r.categoryId  || null;
+  if (r.accountId   !== undefined) row.account_id    = r.accountId   || null;
+  if (r.toAccountId !== undefined) row.to_account_id = r.toAccountId || null;
+  if (r.frequency   !== undefined) row.frequency     = r.frequency;
+  if (r.nextDue     !== undefined) row.next_due      = r.nextDue;
+  if (r.endDate     !== undefined) row.end_date      = r.endDate || null;
+  if (r.active      !== undefined) row.active        = r.active !== false;
+  return row;
+}
+
 const RecurringStore = {
-  async getAll() {
-    return SettingsStore.getRecurringRules();
+  _mode: null,
+
+  async _detect() {
+    if (this._mode) return this._mode;
+    const { error } = await sb.from('recurring_rules').select('id').limit(1);
+    this._mode = error ? 'legacy' : 'table';
+    if (this._mode === 'table') await this._migrate();
+    return this._mode;
   },
 
-  async _save(rules) {
-    return SettingsStore.setRecurringRules(rules);
+  async _migrate() {
+    try {
+      const legacy = await SettingsStore.getRecurringRules();
+      if (!legacy.length) return;
+      const uid = await userId();
+      if (!uid) return;
+      const accounts = await AccountStore.getAll();
+      const accIds   = new Set(accounts.map(a => a.id));
+      const rows = legacy.map(r => ({
+        id: IS_UUID(r.id) ? r.id : newUUID(),
+        user_id: uid,
+        ...ruleToRow({
+          ...r,
+          accountId:   accIds.has(r.accountId)   ? r.accountId   : null,
+          toAccountId: accIds.has(r.toAccountId) ? r.toAccountId : null,
+          note: r.note || '', amount: r.amount, type: r.type || 'expense',
+          frequency: r.frequency || 'monthly', nextDue: r.nextDue, endDate: r.endDate, active: r.active,
+          categoryId: r.categoryId,
+        }),
+      }));
+      const { error } = await sb.from('recurring_rules').insert(rows);
+      if (!error) await SettingsStore.setRecurringRules([]);
+    } catch (_) { /* legacy data stays in the blob; retried next load */ }
+  },
+
+  async getAll() {
+    if (await this._detect() === 'legacy') return SettingsStore.getRecurringRules();
+    const { data, error } = await sb.from('recurring_rules').select('*').order('created_at');
+    if (error) throw new Error(error.message);
+    return (data || []).map(ruleToCamel);
   },
 
   async add(rule) {
-    const rules = await this.getAll();
-    rule.id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
-    rules.push(rule);
-    await this._save(rules);
-    return rule;
+    if (await this._detect() === 'legacy') {
+      const rules = await SettingsStore.getRecurringRules();
+      rule.id = newUUID();
+      rules.push(rule);
+      await SettingsStore.setRecurringRules(rules);
+      return rule;
+    }
+    const uid = await userId();
+    const { data, error } = await sb.from('recurring_rules').insert({ user_id: uid, ...ruleToRow(rule) }).select().single();
+    if (error) throw new Error(error.message);
+    return ruleToCamel(data);
   },
 
   async remove(id) {
-    const rules = await this.getAll();
-    await this._save(rules.filter(r => r.id !== id));
+    if (await this._detect() === 'legacy') {
+      const rules = await SettingsStore.getRecurringRules();
+      await SettingsStore.setRecurringRules(rules.filter(r => r.id !== id));
+      return;
+    }
+    const { error } = await sb.from('recurring_rules').delete().eq('id', id);
+    if (error) throw new Error(error.message);
   },
 
   async getDue() {
@@ -378,61 +466,143 @@ const RecurringStore = {
   },
 
   async advanceNext(id) {
+    if (await this._detect() === 'legacy') {
+      const rules = await SettingsStore.getRecurringRules();
+      const rule  = rules.find(r => r.id === id);
+      if (!rule) return;
+      rule.nextDue = advanceDate(rule.nextDue, rule.frequency);
+      await SettingsStore.setRecurringRules(rules);
+      return;
+    }
     const rules = await this.getAll();
     const rule  = rules.find(r => r.id === id);
     if (!rule) return;
-    const d = new Date(rule.nextDue + 'T00:00:00');
-    switch (rule.frequency) {
-      case 'daily':   d.setDate(d.getDate() + 1); break;
-      case 'weekly':  d.setDate(d.getDate() + 7); break;
-      case 'monthly': d.setMonth(d.getMonth() + 1); break;
-      case 'yearly':  d.setFullYear(d.getFullYear() + 1); break;
-    }
-    rule.nextDue = d.toISOString().slice(0, 10);
-    await this._save(rules);
+    const { error } = await sb.from('recurring_rules').update({ next_due: advanceDate(rule.nextDue, rule.frequency) }).eq('id', id);
+    if (error) throw new Error(error.message);
   },
 
   async toggle(id) {
+    if (await this._detect() === 'legacy') {
+      const rules = await SettingsStore.getRecurringRules();
+      const rule  = rules.find(r => r.id === id);
+      if (!rule) return;
+      rule.active = rule.active === false ? true : false;
+      await SettingsStore.setRecurringRules(rules);
+      return;
+    }
     const rules = await this.getAll();
     const rule  = rules.find(r => r.id === id);
     if (!rule) return;
-    rule.active = rule.active === false ? true : false;
-    await this._save(rules);
+    const { error } = await sb.from('recurring_rules').update({ active: rule.active === false }).eq('id', id);
+    if (error) throw new Error(error.message);
   },
 };
 
 /* ============================================================
-   SUBSCRIPTION STORE (Supabase via user_settings)
+   SUBSCRIPTION STORE — Supabase table `subscriptions`.
+   Same table-first / legacy-fallback / lazy-migration pattern
+   as RecurringStore.
    ============================================================ */
+function subToCamel(r) {
+  return {
+    id: r.id, name: r.name, amount: Number(r.amount), frequency: r.frequency,
+    nextDue: r.next_due, accountId: r.account_id, categoryId: r.category_id,
+    color: r.color, autoLog: r.auto_log, active: r.active, createdAt: r.created_at,
+  };
+}
+
+function subToRow(s) {
+  const row = {};
+  if (s.name       !== undefined) row.name        = s.name;
+  if (s.amount     !== undefined) row.amount      = s.amount;
+  if (s.frequency  !== undefined) row.frequency   = s.frequency;
+  if (s.nextDue    !== undefined) row.next_due    = s.nextDue;
+  if (s.accountId  !== undefined) row.account_id  = s.accountId  || null;
+  if (s.categoryId !== undefined) row.category_id = s.categoryId || null;
+  if (s.color      !== undefined) row.color       = s.color || null;
+  if (s.autoLog    !== undefined) row.auto_log    = s.autoLog !== false;
+  if (s.active     !== undefined) row.active      = s.active !== false;
+  return row;
+}
+
 const SubscriptionStore = {
-  async getAll() {
-    return SettingsStore.getSubscriptions();
+  _mode: null,
+
+  async _detect() {
+    if (this._mode) return this._mode;
+    const { error } = await sb.from('subscriptions').select('id').limit(1);
+    this._mode = error ? 'legacy' : 'table';
+    if (this._mode === 'table') await this._migrate();
+    return this._mode;
   },
 
-  async _save(list) {
-    return SettingsStore.setSubscriptions(list);
+  async _migrate() {
+    try {
+      const legacy = await SettingsStore.getSubscriptions();
+      if (!legacy.length) return;
+      const uid = await userId();
+      if (!uid) return;
+      const accounts = await AccountStore.getAll();
+      const accIds   = new Set(accounts.map(a => a.id));
+      const rows = legacy.map(s => ({
+        id: IS_UUID(s.id) ? s.id : newUUID(),
+        user_id: uid,
+        ...subToRow({
+          ...s,
+          accountId: accIds.has(s.accountId) ? s.accountId : null,
+          name: s.name, amount: s.amount, frequency: s.frequency || 'monthly',
+          nextDue: s.nextDue, categoryId: s.categoryId, color: s.color,
+          autoLog: s.autoLog, active: s.active,
+        }),
+      }));
+      const { error } = await sb.from('subscriptions').insert(rows);
+      if (!error) await SettingsStore.setSubscriptions([]);
+    } catch (_) { /* legacy data stays in the blob; retried next load */ }
+  },
+
+  async getAll() {
+    if (await this._detect() === 'legacy') return SettingsStore.getSubscriptions();
+    const { data, error } = await sb.from('subscriptions').select('*').order('created_at');
+    if (error) throw new Error(error.message);
+    return (data || []).map(subToCamel);
   },
 
   async add(sub) {
-    const list = await this.getAll();
-    sub.id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
-    list.push(sub);
-    await this._save(list);
-    return sub;
+    if (await this._detect() === 'legacy') {
+      const list = await SettingsStore.getSubscriptions();
+      sub.id = newUUID();
+      list.push(sub);
+      await SettingsStore.setSubscriptions(list);
+      return sub;
+    }
+    const uid = await userId();
+    const { data, error } = await sb.from('subscriptions').insert({ user_id: uid, ...subToRow(sub) }).select().single();
+    if (error) throw new Error(error.message);
+    return subToCamel(data);
   },
 
   async update(id, patch) {
-    const list = await this.getAll();
-    const idx  = list.findIndex(s => s.id === id);
-    if (idx === -1) return;
-    list[idx] = { ...list[idx], ...patch };
-    await this._save(list);
-    return list[idx];
+    if (await this._detect() === 'legacy') {
+      const list = await SettingsStore.getSubscriptions();
+      const idx  = list.findIndex(s => s.id === id);
+      if (idx === -1) return;
+      list[idx] = { ...list[idx], ...patch };
+      await SettingsStore.setSubscriptions(list);
+      return list[idx];
+    }
+    const { data, error } = await sb.from('subscriptions').update(subToRow(patch)).eq('id', id).select().single();
+    if (error) throw new Error(error.message);
+    return subToCamel(data);
   },
 
   async remove(id) {
-    const list = await this.getAll();
-    await this._save(list.filter(s => s.id !== id));
+    if (await this._detect() === 'legacy') {
+      const list = await SettingsStore.getSubscriptions();
+      await SettingsStore.setSubscriptions(list.filter(s => s.id !== id));
+      return;
+    }
+    const { error } = await sb.from('subscriptions').delete().eq('id', id);
+    if (error) throw new Error(error.message);
   },
 
   async getDue() {
@@ -442,17 +612,19 @@ const SubscriptionStore = {
   },
 
   async advanceNext(id) {
+    if (await this._detect() === 'legacy') {
+      const list = await SettingsStore.getSubscriptions();
+      const sub  = list.find(s => s.id === id);
+      if (!sub) return;
+      sub.nextDue = advanceDate(sub.nextDue, sub.frequency);
+      await SettingsStore.setSubscriptions(list);
+      return;
+    }
     const list = await this.getAll();
     const sub  = list.find(s => s.id === id);
     if (!sub) return;
-    const d = new Date(sub.nextDue + 'T00:00:00');
-    switch (sub.frequency) {
-      case 'weekly':  d.setDate(d.getDate() + 7); break;
-      case 'monthly': d.setMonth(d.getMonth() + 1); break;
-      case 'yearly':  d.setFullYear(d.getFullYear() + 1); break;
-    }
-    sub.nextDue = d.toISOString().slice(0, 10);
-    await this._save(list);
+    const { error } = await sb.from('subscriptions').update({ next_due: advanceDate(sub.nextDue, sub.frequency) }).eq('id', id);
+    if (error) throw new Error(error.message);
   },
 };
 

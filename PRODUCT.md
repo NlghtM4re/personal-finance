@@ -84,20 +84,19 @@ WCAG AA. Keyboard navigation throughout. Sufficient contrast for body text (≥4
 - **Page transitions** — 130ms exit fade + translateY on navigation between pages.
 - **Toast notifications** — success/error feedback on all async operations, positioned above mobile nav.
 
-## Roadmap — approved upgrades, not yet built
+## Roadmap — all three upgrades shipped (June 2026)
 
-Decided during the June 2026 site audit. Do these in order when picking the project back up:
+1. **Centralized nav + Money hub** ✅ — All navigation chrome (sidebar, topbar, bottom nav, Money pill tabs,
+   More sheet) renders from `scripts/components/nav.js`. **To add a new section, add one entry to `NAV_ITEMS`**
+   — no HTML edits needed. Mobile bottom nav: Dashboard · Transactions · [+] · Money · More.
+   Spending/Budget/Subscriptions are the Money hub (pill tabs at the top of each); Recurring and Settings
+   live in the More sheet and the sidebar.
+2. **Real tables for subscriptions & recurring rules** ✅ — `subscriptions` and `recurring_rules` tables
+   (see supabase-schema.sql v2 section — run it in the Supabase SQL editor). The stores are table-first with
+   automatic fallback to the legacy `user_settings` jsonb blobs until the tables exist, then they lazily
+   migrate blob data into rows and empty the blobs. No page code changed.
+3. **PWA** ✅ — `manifest.json`, icons (`/icons`), and `sw.js` (network-first navigations, stale-while-
+   revalidate statics, Supabase requests never cached). Registered from ui.js on https/localhost.
+   **Bump `CACHE_VERSION` in sw.js when shipping changes.**
 
-1. **Centralized nav + Money hub** *(do first)* — Extract sidebar / topbar / bottom-nav markup into a single
-   `scripts/components/nav.js` that renders all three from one config array (label, icon, href, bottom-bar flag).
-   Today every new section means hand-editing 8+ HTML files and they drift (the audit found three
-   inconsistencies). Then restructure mobile nav for scale: group Spending / Budget / Subscriptions under a
-   single "Money" hub tab with in-page pill tabs, and make the fifth bottom-nav slot a "More" sheet
-   (grid of secondary sections: Goals, Reports, Settings, future pages).
-2. **Real tables for subscriptions & recurring rules** — Move both out of the `user_settings` jsonb blob into
-   proper Supabase tables (RLS like `accounts`). Removes the last-write-wins clobbering risk when two devices
-   save settings concurrently, and allows per-row updates instead of rewriting the whole blob.
-3. **PWA** — `manifest.json` + service worker: installable on phone home screen, instant loads, cached data
-   offline. Best done after #1 so the shell that gets cached is the final nav structure.
-
-Done from the same audit: legacy `server/` Express+SQLite backend deleted (Supabase is the only backend now).
+Also done: legacy `server/` Express+SQLite backend deleted (Supabase is the only backend now).
