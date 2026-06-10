@@ -1,11 +1,6 @@
 # Dependencies
 node_modules/
 
-# SQLite database file (created at runtime)
-server/fintrack.db
-server/fintrack.db-wal
-server/fintrack.db-shm
-
 # Logs
 *.log
 npm-debug.log*

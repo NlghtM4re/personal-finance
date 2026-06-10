@@ -83,3 +83,21 @@ WCAG AA. Keyboard navigation throughout. Sufficient contrast for body text (≥4
 - **Counter animations** — financial numbers animate from their current value to the new value on data refresh (not from zero). Skeletons only shown on first page load.
 - **Page transitions** — 130ms exit fade + translateY on navigation between pages.
 - **Toast notifications** — success/error feedback on all async operations, positioned above mobile nav.
+
+## Roadmap — approved upgrades, not yet built
+
+Decided during the June 2026 site audit. Do these in order when picking the project back up:
+
+1. **Centralized nav + Money hub** *(do first)* — Extract sidebar / topbar / bottom-nav markup into a single
+   `scripts/components/nav.js` that renders all three from one config array (label, icon, href, bottom-bar flag).
+   Today every new section means hand-editing 8+ HTML files and they drift (the audit found three
+   inconsistencies). Then restructure mobile nav for scale: group Spending / Budget / Subscriptions under a
+   single "Money" hub tab with in-page pill tabs, and make the fifth bottom-nav slot a "More" sheet
+   (grid of secondary sections: Goals, Reports, Settings, future pages).
+2. **Real tables for subscriptions & recurring rules** — Move both out of the `user_settings` jsonb blob into
+   proper Supabase tables (RLS like `accounts`). Removes the last-write-wins clobbering risk when two devices
+   save settings concurrently, and allows per-row updates instead of rewriting the whole blob.
+3. **PWA** — `manifest.json` + service worker: installable on phone home screen, instant loads, cached data
+   offline. Best done after #1 so the shell that gets cached is the final nav structure.
+
+Done from the same audit: legacy `server/` Express+SQLite backend deleted (Supabase is the only backend now).
