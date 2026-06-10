@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Local AI tooling (third-party skills, session config — not project code)
+.claude/
+.impeccable/
+
 # Logs
 *.log
 npm-debug.log*
