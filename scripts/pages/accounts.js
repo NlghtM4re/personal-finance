@@ -9,15 +9,23 @@ const ACCOUNT_COLORS = [
 
 let editingAccountId = null;
 
-async function initAccounts() {
-  await renderAccountsGrid();
-  await renderAccountSummary();
+async function loadAccountsWithBalances() {
+  const [accounts, allTx] = await Promise.all([
+    AccountStore.getAll(),
+    TransactionStore.getAll(),
+  ]);
+  const balanceMap = SummaryEngine.computeAccountBalances(accounts, allTx);
+  return { accounts, balanceMap };
 }
 
-async function renderAccountSummary() {
-  const accounts = await AccountStore.getAll();
-  const balances = await Promise.all(accounts.map(a => AccountStore.getBalance(a.id)));
-  const withBal  = accounts.map((a, i) => ({ ...a, bal: balances[i] }));
+async function initAccounts() {
+  const data = await loadAccountsWithBalances();
+  await renderAccountsGrid(data);
+  renderAccountSummary(data);
+}
+
+function renderAccountSummary({ accounts, balanceMap }) {
+  const withBal = accounts.map(a => ({ ...a, bal: balanceMap[a.id] ?? 0 }));
 
   const debtTypes = new Set(['credit']);
   const assets = withBal.filter(a => !debtTypes.has(a.type));
@@ -45,7 +53,7 @@ async function renderAccountSummary() {
 
 const TYPE_LABEL = { bank: 'Bank', cash: 'Cash', savings: 'Savings', investment: 'Investment', credit: 'Credit', other: 'Other' };
 
-async function renderAccountsGrid() {
+async function renderAccountsGrid(data) {
   const el = document.getElementById('accountsGrid');
   if (!el) return;
 
@@ -59,20 +67,19 @@ async function renderAccountsGrid() {
       <div class="skeleton skeleton-text" style="width:60px;margin-left:auto;"></div>
     </div>`).join('');
 
-  const accounts = await AccountStore.getAll();
-  const balances = await Promise.all(accounts.map(a => AccountStore.getBalance(a.id)));
+  const { accounts, balanceMap } = data || await loadAccountsWithBalances();
 
   if (!accounts.length) {
     el.innerHTML = `<div class="empty-state" style="padding:24px 0;">No accounts yet.</div>`;
   } else {
-    el.innerHTML = accounts.map((a, i) => {
-      const bal    = balances[i];
-      const letter = a.name.charAt(0).toUpperCase();
+    el.innerHTML = accounts.map(a => {
+      const bal    = balanceMap[a.id] ?? 0;
+      const letter = escapeHTML(a.name.charAt(0).toUpperCase());
       return `
         <div class="acc-row" data-id="${a.id}">
           <div class="acc-row__avatar" style="background:${a.color}22;color:${a.color}">${letter}</div>
           <div class="acc-row__info">
-            <div class="acc-row__name">${a.name}</div>
+            <div class="acc-row__name">${escapeHTML(a.name)}</div>
             <div class="acc-row__type">${TYPE_LABEL[a.type] || 'Account'}</div>
           </div>
           <div class="acc-row__right">
@@ -155,8 +162,7 @@ async function deleteAccount(id) {
       confirm.classList.remove('btn--loading');
       confirm.disabled = false;
     }
-    await renderAccountsGrid();
-    await renderAccountSummary();
+    await initAccounts();
   };
 
   document.getElementById('cancelDeleteAccount')?.addEventListener('click', () => modal.classList.remove('open'), { once: true });
@@ -188,8 +194,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (editingAccountId) { await AccountStore.update(editingAccountId, data); showToast('Account updated', 'success'); }
     else                  { await AccountStore.add(data);                      showToast('Account created', 'success'); }
     document.getElementById('accountModal')?.classList.remove('open');
-    await renderAccountsGrid();
-    await renderAccountSummary();
+    await initAccounts();
   });
 
   document.getElementById('closeAccountModal')?.addEventListener('click', () => document.getElementById('accountModal')?.classList.remove('open'));

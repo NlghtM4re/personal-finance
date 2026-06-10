@@ -238,6 +238,8 @@ const SettingsStore = {
     if (!uid) return this._defaults();
     const { data } = await sb.from('user_settings').select('*').eq('user_id', uid).maybeSingle();
     this._cache = data ? { ...this._defaults(), ...data } : this._defaults();
+    /* keep the synchronous formatCurrency cache in step with the server value */
+    if (data && data.currency) localStorage.setItem('pf_currency', data.currency);
     return this._cache;
   },
 
@@ -462,6 +464,12 @@ const CURRENCY_LOCALES = {
   CAD: 'en-CA', AUD: 'en-AU', CHF: 'de-CH', INR: 'en-IN',
   BRL: 'pt-BR', MXN: 'es-MX',
 };
+
+function escapeHTML(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
 
 function formatCurrency(amount) {
   const currency = localStorage.getItem('pf_currency') || 'CAD';

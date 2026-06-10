@@ -18,6 +18,21 @@ const SummaryEngine = {
     return { ...acc, net: acc.income - acc.expense };
   },
 
+  /* Per-account balances computed from one transaction list (avoids per-account queries) */
+  computeAccountBalances(accounts, transactions) {
+    const map = {};
+    accounts.forEach(a => { map[a.id] = a.initialBalance; });
+    transactions.forEach(t => {
+      if (t.type === 'income'  && map[t.accountId] !== undefined) map[t.accountId] += t.amount;
+      if (t.type === 'expense' && map[t.accountId] !== undefined) map[t.accountId] -= t.amount;
+      if (t.type === 'transfer') {
+        if (map[t.accountId]   !== undefined) map[t.accountId]   -= t.amount;
+        if (map[t.toAccountId] !== undefined) map[t.toAccountId] += t.amount;
+      }
+    });
+    return map;
+  },
+
   /* Spending totals grouped by category */
   getByCategory(transactions) {
     const map = {};

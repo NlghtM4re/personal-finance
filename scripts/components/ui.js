@@ -45,12 +45,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const savedTheme = localStorage.getItem('ft_theme') || 'dark';
   applyTheme(savedTheme);
 
+  /* canvas charts bake theme colors into pixels — re-render after a toggle */
+  function redrawPageCharts() {
+    if (typeof initDashboard  === 'function') { initDashboard().catch(() => {});  return; }
+    if (typeof renderSpending === 'function') { renderSpending().catch(() => {}); return; }
+    if (typeof renderPage     === 'function') { Promise.resolve(renderPage()).catch(() => {}); }
+  }
+
   themeToggle?.addEventListener('click', () => {
     applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    redrawPageCharts();
   });
   document.getElementById('themeToggleTop')?.addEventListener('click', () => {
     applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    redrawPageCharts();
   });
+
+  /* refresh server-side settings (currency) so every page picks up changes made on other devices */
+  if (typeof SettingsStore !== 'undefined' && typeof SupaAuth !== 'undefined') {
+    SettingsStore._load().catch(() => {});
+  }
 
   /* --- Active nav link --- */
   const currentPath = window.location.pathname.split('/').pop() || 'index.html';
@@ -143,7 +157,8 @@ function animateValue(el, endValue, formatter, duration = 550) {
   if (!el) return;
   const startValue = parseFloat(el.dataset.animFrom || '0');
   el.dataset.animFrom = String(endValue);
-  if (Math.abs(endValue - startValue) < 0.01) { el.textContent = formatter(endValue); return; }
+  /* rAF doesn't fire in background tabs — set the final value directly */
+  if (document.hidden || Math.abs(endValue - startValue) < 0.01) { el.textContent = formatter(endValue); return; }
   const startTime = performance.now();
   const ease = t => 1 - Math.pow(1 - t, 3);
   function tick(now) {

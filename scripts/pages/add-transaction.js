@@ -31,7 +31,7 @@ async function populateAccountSelects() {
   const sel      = document.getElementById('txAccount');
   const toSel    = document.getElementById('txToAccount');
   const opts     = accounts.length
-    ? accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('')
+    ? accounts.map(a => `<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('')
     : `<option value="">No accounts — create one first</option>`;
   if (sel)   sel.innerHTML   = opts;
   if (toSel) toSel.innerHTML = opts;
@@ -49,7 +49,7 @@ async function renderCategoryPicker() {
   container.innerHTML = cats.map(c => `
     <button type="button" class="category-btn${selectedCategory === c.id ? ' selected' : ''}" data-cat="${c.id}">
       <span class="cat-icon">${c.icon}</span>
-      <span>${c.name}</span>
+      <span>${escapeHTML(c.name)}</span>
     </button>
   `).join('');
   container.querySelectorAll('.category-btn').forEach(btn => {
@@ -74,8 +74,8 @@ function renderTags() {
   if (!list) return;
   list.innerHTML = selectedTags.map(tag => `
     <span class="tag-pill">
-      ${tag}
-      <button type="button" class="tag-pill__remove" data-tag="${tag}" aria-label="Remove ${tag}">×</button>
+      ${escapeHTML(tag)}
+      <button type="button" class="tag-pill__remove" data-tag="${escapeHTML(tag)}" aria-label="Remove ${escapeHTML(tag)}">×</button>
     </span>
   `).join('');
   list.querySelectorAll('.tag-pill__remove').forEach(btn => {

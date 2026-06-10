@@ -30,12 +30,18 @@ const Charts = {
     return { ctx: s._ctx, w: s._w, h: s._h, canvas: s._canvas };
   },
 
-  _textColor()  { return '#64748b'; },
-  _textLight()  { return '#94a3b8'; },
-  _gridColor()  { return 'rgba(148,163,184,0.10)'; },
+  _isLight()    { return document.documentElement.getAttribute('data-theme') === 'light'; },
+  _textColor()  { return this._isLight() ? '#475569' : '#64748b'; },
+  _textLight()  { return this._isLight() ? '#64748b' : '#94a3b8'; },
+  _textStrong() { return this._isLight() ? '#0f172a' : '#ffffff'; },
+  _gridColor()  { return this._isLight() ? 'rgba(15,23,42,0.08)'  : 'rgba(148,163,184,0.10)'; },
+  _surface()    { return this._isLight() ? '#ffffff' : '#0d0d0d'; },
+  _lineColor()  { return this._isLight() ? '#334155' : '#e2e8f0'; },
+  _tooltipBg()      { return this._isLight() ? 'rgba(255,255,255,0.97)' : 'rgba(10,10,10,0.92)'; },
+  _tooltipBorder()  { return this._isLight() ? 'rgba(15,23,42,0.15)'    : 'rgba(226,232,240,0.20)'; },
 
   _currencySymbol() {
-    const c = localStorage.getItem('pf_currency') || 'USD';
+    const c = localStorage.getItem('pf_currency') || 'CAD';
     try { return (0).toLocaleString('en', { style: 'currency', currency: c, minimumFractionDigits: 0 }).replace(/[\d,.\s]/g, '').trim() || '$'; }
     catch { return '$'; }
   },
@@ -49,7 +55,7 @@ const Charts = {
   },
 
   _fmtFull(val) {
-    const currency = localStorage.getItem('pf_currency') || 'USD';
+    const currency = localStorage.getItem('pf_currency') || 'CAD';
     try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(val); }
     catch { return `$${Math.abs(val).toFixed(2)}`; }
   },
@@ -111,7 +117,7 @@ const Charts = {
 
     /* Gradient fill */
     const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
-    grad.addColorStop(0, 'rgba(226,232,240,0.12)');
+    grad.addColorStop(0, this._isLight() ? 'rgba(51,65,85,0.10)' : 'rgba(226,232,240,0.12)');
     grad.addColorStop(1, 'rgba(99,102,241,0)');
     ctx.beginPath();
     ctx.moveTo(toX(0), toY(values[0]));
@@ -123,7 +129,7 @@ const Charts = {
 
     /* Line */
     ctx.beginPath();
-    ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 2;
+    ctx.strokeStyle = this._lineColor(); ctx.lineWidth = 2;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     ctx.moveTo(toX(0), toY(values[0]));
     for (let i = 1; i < points.length; i++) ctx.lineTo(toX(i), toY(values[i]));
@@ -134,14 +140,14 @@ const Charts = {
     if (hi >= 0 && hi < points.length) {
       const hx = toX(hi), hy = toY(values[hi]);
 
-      ctx.strokeStyle = 'rgba(226,232,240,0.25)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = this._isLight() ? 'rgba(15,23,42,0.25)' : 'rgba(226,232,240,0.25)'; ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.moveTo(hx, pad.top); ctx.lineTo(hx, pad.top + ch); ctx.stroke();
       ctx.setLineDash([]);
 
       ctx.beginPath(); ctx.arc(hx, hy, 5, 0, Math.PI * 2);
-      ctx.fillStyle = '#e2e8f0'; ctx.fill();
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = this._lineColor(); ctx.fill();
+      ctx.strokeStyle = this._surface(); ctx.lineWidth = 2; ctx.stroke();
 
       const t1 = points[hi].label;
       const t2 = this._fmtFull(values[hi]);
@@ -153,22 +159,22 @@ const Charts = {
       if (by < pad.top)    by = pad.top;
       if (by + bh > h - 4) by = h - bh - 4;
 
-      ctx.fillStyle = 'rgba(10,10,10,0.92)';
+      ctx.fillStyle = this._tooltipBg();
       ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 7); ctx.fill();
-      ctx.strokeStyle = 'rgba(226,232,240,0.20)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = this._tooltipBorder(); ctx.lineWidth = 1; ctx.stroke();
 
       ctx.fillStyle = this._textLight();
       ctx.font = '11px "IBM Plex Sans", sans-serif';
       ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       ctx.fillText(t1, bx + 12, by + 9);
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = this._textStrong();
       ctx.font = 'bold 13px "IBM Plex Sans", sans-serif';
       ctx.fillText(t2, bx + 12, by + 26);
     } else {
       const lx = toX(points.length - 1), ly = toY(values[values.length - 1]);
       ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2);
-      ctx.fillStyle = '#e2e8f0'; ctx.fill();
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = this._lineColor(); ctx.fill();
+      ctx.strokeStyle = this._surface(); ctx.lineWidth = 2; ctx.stroke();
     }
 
     if (!_redraw) {
@@ -227,7 +233,7 @@ const Charts = {
       ctx.closePath();
       ctx.fillStyle = this.COLORS[i % this.COLORS.length];
       ctx.fill();
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.strokeStyle = this._surface(); ctx.lineWidth = 2; ctx.stroke();
 
       segAngles.push({ start: angle, end: angle + sweep });
       angle += sweep;
@@ -235,14 +241,14 @@ const Charts = {
 
     /* Hole */
     ctx.beginPath(); ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
-    ctx.fillStyle = '#000'; ctx.fill();
+    ctx.fillStyle = this._surface(); ctx.fill();
 
     /* Center label */
     ctx.textAlign = 'center';
     if (s.hoverIdx >= 0 && s.hoverIdx < slices.length) {
       const sl  = slices[s.hoverIdx];
       const pct = Math.round((sl.value / total) * 100);
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = this._textStrong();
       ctx.font = 'bold 15px "IBM Plex Sans", sans-serif';
       ctx.textBaseline = 'bottom';
       ctx.fillText(this._fmtFull(sl.value), cx, cy + 2);
@@ -255,7 +261,7 @@ const Charts = {
       ctx.font = '11px "IBM Plex Sans", sans-serif';
       ctx.textBaseline = 'bottom';
       ctx.fillText('Total spent', cx, cy + 1);
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = this._textStrong();
       ctx.font = 'bold 16px "IBM Plex Sans", sans-serif';
       ctx.textBaseline = 'top';
       ctx.fillText(this._fmt(total), cx, cy + 5);
@@ -307,7 +313,6 @@ const Charts = {
     const barGroupW = cw / months.length;
     const gap       = Math.max(6, barGroupW * 0.12);
     const barW      = Math.max(4, (barGroupW - gap * 3) / 2);
-    const curMonth  = new Date().getMonth();
 
     /* Grid */
     for (let g = 0; g <= 4; g++) {
@@ -326,7 +331,7 @@ const Charts = {
 
     months.forEach((m, i) => {
       const groupX = pad.left + i * barGroupW + gap;
-      const isCur  = i === curMonth;
+      const isCur  = !!m.highlight;
       const isHov  = s.hoverIdx === i;
 
       const ih = m.income  > 0 ? Math.max(3, (m.income  / maxVal) * ch) : 0;
@@ -351,7 +356,7 @@ const Charts = {
       /* Month label — skip every other on narrow canvases */
       const barLabelStep = Math.max(1, Math.ceil(months.length / Math.max(2, Math.floor(cw / 28))));
       if (i % barLabelStep === 0) {
-        ctx.fillStyle    = isCur ? '#e2e8f0' : this._textColor();
+        ctx.fillStyle    = isCur ? this._textStrong() : this._textColor();
         ctx.font         = isCur ? 'bold 11px "IBM Plex Sans", sans-serif' : '11px "IBM Plex Sans", sans-serif';
         ctx.textAlign    = 'center'; ctx.textBaseline = 'top';
         ctx.fillText(m.label, groupX + barW + gap / 2, pad.top + ch + 10);
@@ -380,9 +385,9 @@ const Charts = {
         if (bx + bw > w - 4)  bx = w - bw - 4;
         if (by < pad.top + 2) by = pad.top + 2;
 
-        ctx.fillStyle = 'rgba(10,10,10,0.92)';
+        ctx.fillStyle = this._tooltipBg();
         ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 7); ctx.fill();
-        ctx.strokeStyle = 'rgba(226,232,240,0.18)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = this._tooltipBorder(); ctx.lineWidth = 1; ctx.stroke();
 
         lines.forEach((l, li) => {
           ctx.fillStyle = l.color;

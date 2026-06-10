@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+  <script>try{document.documentElement.setAttribute("data-theme",localStorage.getItem("ft_theme")||"dark");}catch(e){}</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard — Finance</title>
@@ -133,7 +134,7 @@
             </select>
           </div>
           <div class="chart-container" id="balanceChart">
-            <canvas id="balanceCanvas"></canvas>
+            <canvas id="balanceCanvas" role="img" aria-label="Balance over time line chart"></canvas>
             <div class="chart-skeleton" id="balanceChartSkeleton">
               <div class="chart-skeleton__bar" style="height:45%"></div>
               <div class="chart-skeleton__bar" style="height:70%"></div>
@@ -192,7 +193,7 @@
             </div>
           </div>
           <div class="chart-container chart-container--sm" id="monthlyChart">
-            <canvas id="monthlyCanvas"></canvas>
+            <canvas id="monthlyCanvas" role="img" aria-label="Weekly income and expenses bar chart"></canvas>
             <div class="chart-skeleton" id="monthlyChartSkeleton">
               <div class="chart-skeleton__bar" style="height:80%"></div>
               <div class="chart-skeleton__bar" style="height:40%"></div>

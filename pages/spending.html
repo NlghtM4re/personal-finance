@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+  <script>try{document.documentElement.setAttribute("data-theme",localStorage.getItem("ft_theme")||"dark");}catch(e){}</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spending — Finance</title>
@@ -60,6 +61,7 @@
         <a href="accounts.html" class="topbar-nav-link">Transactions</a>
         <a href="spending.html" class="topbar-nav-link active">Spending</a>
         <a href="budget.html" class="topbar-nav-link">Budget</a>
+        <a href="subscriptions.html" class="topbar-nav-link">Subscriptions</a>
       </nav>
       <div class="topbar-title">Spending</div>
       <div class="topbar-actions">
@@ -106,7 +108,7 @@
             <h2 class="card-title">Spending by Category</h2>
           </div>
           <div class="chart-container chart-container--donut">
-            <canvas id="categoryCanvas"></canvas>
+            <canvas id="categoryCanvas" role="img" aria-label="Spending by category donut chart"></canvas>
             <div class="chart-empty" id="categoryChartEmpty"><span>No expenses this period.</span></div>
           </div>
           <div class="legend" id="categoryLegend"></div>
@@ -124,7 +126,7 @@
           <select class="select--sm" id="trendYear"></select>
         </div>
         <div class="chart-container">
-          <canvas id="trendCanvas"></canvas>
+          <canvas id="trendCanvas" role="img" aria-label="Monthly spending trend bar chart"></canvas>
           <div class="chart-empty" id="trendChartEmpty"><span>No expense data yet.</span></div>
         </div>
       </section>

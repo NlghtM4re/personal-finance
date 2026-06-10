@@ -43,7 +43,7 @@ async function renderSpending() {
     catEmpty?.setAttribute('hidden', '');
     const catObjects = await Promise.all(byCategory.map(b => CategoryStore.getById(b.categoryId)));
     const slices = byCategory.map((b, i) => ({
-      label: catObjects[i]?.name || 'Other',
+      label: escapeHTML(catObjects[i]?.name) || 'Other',
       value: b.total,
       icon:  catObjects[i]?.icon || '📦',
     }));
@@ -93,6 +93,7 @@ async function renderSpending() {
   if (hasData) {
     trendEmpty?.setAttribute('hidden', '');
     const expenseOnly = monthly.map(m => ({ label: m.label, income: 0, expense: m.expense }));
+    if (year === new Date().getFullYear()) expenseOnly[new Date().getMonth()].highlight = true;
     Charts.drawBarChart('trendCanvas', expenseOnly);
   } else {
     trendEmpty?.removeAttribute('hidden');

@@ -93,7 +93,7 @@ function subRowHTML(sub, paused) {
     <div class="subs-row" data-id="${sub.id}">
       <div class="subs-row__dot" style="background:${sub.color || '#6366f1'};"></div>
       <div class="subs-row__info">
-        <div class="subs-row__name">${sub.name}${paused ? ' <span class="subs-paused-badge">paused</span>' : ''}</div>
+        <div class="subs-row__name">${escapeHTML(sub.name)}${paused ? ' <span class="subs-paused-badge">paused</span>' : ''}</div>
         <div class="subs-row__meta">${FREQ_LABEL[sub.frequency] || sub.frequency} · Next: ${dueTxt}</div>
       </div>
       <div class="subs-row__amount tx-amount--expense">−${formatCurrency(sub.amount)}</div>
@@ -189,14 +189,14 @@ async function loadFormOptions() {
   const accSel = document.getElementById('fAccount');
   if (accSel) {
     accSel.innerHTML = '<option value="">— none —</option>' +
-      _accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+      _accounts.map(a => `<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('');
   }
 
   const catSel = document.getElementById('fCategory');
   if (catSel) {
     const expense = _categories.filter(c => c.type === 'expense' || c.type === 'both');
     catSel.innerHTML = '<option value="">— none —</option>' +
-      expense.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+      expense.map(c => `<option value="${c.id}">${c.icon} ${escapeHTML(c.name)}</option>`).join('');
   }
 
   const colorRow = document.getElementById('colorRow');
@@ -317,6 +317,18 @@ function hideForm() {
 let _trendChart = null;
 let _catChart   = null;
 
+function chartTheme() {
+  const light = document.documentElement.getAttribute('data-theme') === 'light';
+  return {
+    grid:          light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.04)',
+    ticks:         light ? '#64748b' : '#666',
+    tooltipBg:     light ? '#ffffff' : '#111111',
+    tooltipTitle:  light ? '#0f172a' : '#ffffff',
+    tooltipBody:   light ? '#475569' : '#aaaaaa',
+    tooltipBorder: light ? '#e2e8f0' : '#333333',
+  };
+}
+
 async function renderAnalytics(subs) {
   const analyticsEl = document.getElementById('analyticsSection');
   if (!analyticsEl) return;
@@ -365,18 +377,18 @@ async function renderAnalytics(subs) {
         borderRadius: 4,
       }],
     },
-    options: {
+    options: (() => { const th = chartTheme(); return {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: {
         callbacks: { label: ctx => formatCurrency(ctx.raw) },
-        backgroundColor: '#111', titleColor: '#fff', bodyColor: '#aaa',
-        borderColor: '#333', borderWidth: 1,
+        backgroundColor: th.tooltipBg, titleColor: th.tooltipTitle, bodyColor: th.tooltipBody,
+        borderColor: th.tooltipBorder, borderWidth: 1,
       }},
       scales: {
-        x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#666', font: { size: 11 } } },
-        y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#666', font: { size: 11 }, callback: v => formatCurrency(v) }, beginAtZero: true },
+        x: { grid: { color: th.grid }, ticks: { color: th.ticks, font: { size: 11 } } },
+        y: { grid: { color: th.grid }, ticks: { color: th.ticks, font: { size: 11 }, callback: v => formatCurrency(v) }, beginAtZero: true },
       },
-    },
+    }; })(),
   });
 
   /* ---- upcoming 30 days ---- */
@@ -401,7 +413,7 @@ async function renderAnalytics(subs) {
           <div class="subs-upcoming-row">
             <div class="subs-row__dot" style="background:${s.color || '#6366f1'};flex-shrink:0;"></div>
             <div style="flex:1;min-width:0;">
-              <div style="font-size:.875rem;font-weight:500;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.name}</div>
+              <div style="font-size:.875rem;font-weight:500;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHTML(s.name)}</div>
               <div style="font-size:.75rem;color:var(--color-text-muted);">${FREQ_LABEL[s.frequency] || s.frequency}</div>
             </div>
             ${badge}
@@ -441,24 +453,24 @@ async function renderAnalytics(subs) {
           hoverOffset: 4,
         }],
       },
-      options: {
+      options: (() => { const th = chartTheme(); return {
         responsive: true, maintainAspectRatio: false,
         cutout: '68%',
         plugins: {
           legend: { display: false },
           tooltip: {
             callbacks: { label: ctx => `${ctx.label}: ${formatCurrency(ctx.raw)}/mo` },
-            backgroundColor: '#111', titleColor: '#fff', bodyColor: '#aaa',
-            borderColor: '#333', borderWidth: 1,
+            backgroundColor: th.tooltipBg, titleColor: th.tooltipTitle, bodyColor: th.tooltipBody,
+            borderColor: th.tooltipBorder, borderWidth: 1,
           },
         },
-      },
+      }; })(),
     });
 
     const legendEl = document.getElementById('catLegend');
     if (legendEl) {
       legendEl.innerHTML = catEntries.map(([id, val], i) => {
-        const name = catLookup[id]?.name || 'Uncategorized';
+        const name = escapeHTML(catLookup[id]?.name) || 'Uncategorized';
         const icon = catLookup[id]?.icon || '📦';
         return `
           <div style="display:flex;align-items:center;gap:8px;">
@@ -499,7 +511,7 @@ function renderPatternInsights(subs, allTx) {
         insights.push({
           icon: diff > 0 ? '📈' : '📉',
           color: diff > 0 ? 'var(--color-expense)' : 'var(--color-income)',
-          text: `<strong>${sub.name}</strong> ${diff > 0 ? 'increased' : 'decreased'} by ${formatCurrency(Math.abs(diff))} (${pct}%) since ${formatDateShort(related[0].date)}.`,
+          text: `<strong>${escapeHTML(sub.name)}</strong> ${diff > 0 ? 'increased' : 'decreased'} by ${formatCurrency(Math.abs(diff))} (${pct}%) since ${formatDateShort(related[0].date)}.`,
         });
       }
     }
@@ -513,7 +525,7 @@ function renderPatternInsights(subs, allTx) {
       insights.push({
         icon: '⚠️',
         color: '#f59e0b',
-        text: `<strong>${sub.name}</strong> was logged ${related.length} time${related.length!==1?'s':''} but expected ~${expected} over ${months} months. Check if it's still active.`,
+        text: `<strong>${escapeHTML(sub.name)}</strong> was logged ${related.length} time${related.length!==1?'s':''} but expected ~${expected} over ${months} months. Check if it's still active.`,
       });
     }
   });

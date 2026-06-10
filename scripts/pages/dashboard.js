@@ -60,7 +60,8 @@ async function initDashboard() {
   const thisMonthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-`;
   const monthTx = allTx.filter(t => t.date.startsWith(thisMonthPrefix));
 
-  const totalBalance = await AccountStore.getTotalBalance();
+  const balanceMap   = SummaryEngine.computeAccountBalances(accounts, allTx);
+  const totalBalance = Object.values(balanceMap).reduce((s, b) => s + b, 0);
   const monthTotals  = SummaryEngine.getTotals(monthTx);
   const net          = monthTotals.income - monthTotals.expense;
 
@@ -122,8 +123,8 @@ async function initDashboard() {
   updateMonthNav();
   await renderMonthlyChart(allTx);
 
-  await renderAccounts(accounts);
-  renderRecentTransactions(allTx.slice(0, 5));
+  renderAccounts(accounts, balanceMap);
+  await renderRecentTransactions(allTx.slice(0, 5));
   await renderRecurringBanner();
 }
 
@@ -135,6 +136,11 @@ function updateMonthNav() {
 async function renderMonthlyChart(allTx) {
   const { year, month } = currentMonthView;
   const weekly = getWeeklyRollup(allTx, year, month);
+  const now = new Date();
+  if (year === now.getFullYear() && month === now.getMonth() + 1) {
+    const day = now.getDate();
+    weekly.forEach(w => { w.highlight = day >= w.start && day <= w.end; });
+  }
   const monthlyEmpty    = document.getElementById('monthlyChartEmpty');
   const monthlySkeleton = document.getElementById('monthlyChartSkeleton');
   monthlySkeleton?.setAttribute('hidden', '');
@@ -173,7 +179,7 @@ async function renderRecurringBanner() {
         <div class="recurring-item" data-id="${r.id}">
           <div class="recurring-item__icon">${cats[i]?.icon || '📦'}</div>
           <div class="recurring-item__info">
-            <div class="recurring-item__name">${r.note || cats[i]?.name || 'Transaction'}</div>
+            <div class="recurring-item__name">${escapeHTML(r.note) || cats[i]?.name || 'Transaction'}</div>
             <div class="recurring-item__meta">${freqLabel[r.frequency] || r.frequency} · due ${formatDate(r.nextDue)}</div>
           </div>
           <div class="recurring-item__amount tx-amount--${r.type}">${formatCurrency(r.amount)}</div>
@@ -220,7 +226,7 @@ async function renderRecurringBanner() {
   });
 }
 
-async function renderAccounts(accounts) {
+function renderAccounts(accounts, balanceMap) {
   const assetEl = document.getElementById('assetList');
   const debtEl  = document.getElementById('debtList');
   if (!assetEl && !debtEl) return;
@@ -231,8 +237,7 @@ async function renderAccounts(accounts) {
     return;
   }
 
-  const balances = await Promise.all(accounts.map(a => AccountStore.getBalance(a.id)));
-  const withBal  = accounts.map((a, i) => ({ ...a, bal: balances[i] }));
+  const withBal = accounts.map(a => ({ ...a, bal: balanceMap[a.id] ?? 0 }));
 
   const debtTypes = new Set(['credit']);
   const assets    = withBal.filter(a => !debtTypes.has(a.type));
@@ -257,7 +262,7 @@ async function renderAccounts(accounts) {
           </div>
           ${list.map(a => `
             <div class="acc-group-item">
-              <div class="acc-group-name">${a.name}</div>
+              <div class="acc-group-name">${escapeHTML(a.name)}</div>
               <div class="acc-group-actions-row">
                 <a href="pages/accounts.html" class="link--sm">Details</a>
                 <a href="pages/add-transaction.html" class="link--sm">Add</a>
@@ -290,7 +295,7 @@ function txItemHTML(t, cat) {
     <div class="tx-item">
       <div class="tx-icon tx-icon--${t.type}">${cat?.icon || '📦'}</div>
       <div class="tx-info">
-        <div class="tx-name">${t.note || cat?.name || 'Transaction'}</div>
+        <div class="tx-name">${escapeHTML(t.note) || cat?.name || 'Transaction'}</div>
         <div class="tx-meta">${formatDate(t.date)} · ${cat?.name || '—'}</div>
       </div>
       <div class="tx-amount tx-amount--${t.type}">${sign}${formatCurrency(t.amount)}</div>

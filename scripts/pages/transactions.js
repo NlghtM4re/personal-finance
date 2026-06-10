@@ -16,9 +16,9 @@ async function populateFilters() {
   const catSel = document.getElementById('filterCategory');
   const accSel = document.getElementById('filterAccount');
   if (catSel) catSel.innerHTML = `<option value="">All Categories</option>` +
-    cats.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+    cats.map(c => `<option value="${c.id}">${c.icon} ${escapeHTML(c.name)}</option>`).join('');
   if (accSel) accSel.innerHTML = `<option value="">All Accounts</option>` +
-    accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    accounts.map(a => `<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('');
 }
 
 async function renderStats() {
@@ -85,8 +85,8 @@ function txItemFullHTML(t, cat, acc) {
     <div class="tx-item" data-id="${t.id}">
       <div class="tx-icon tx-icon--${t.type}">${cat?.icon || '📦'}</div>
       <div class="tx-info">
-        <div class="tx-name">${t.note || cat?.name || 'Transaction'}</div>
-        <div class="tx-meta">${cat?.name || '—'} · ${acc?.name || '—'}</div>
+        <div class="tx-name">${escapeHTML(t.note) || escapeHTML(cat?.name) || 'Transaction'}</div>
+        <div class="tx-meta">${escapeHTML(cat?.name) || '—'} · ${escapeHTML(acc?.name) || '—'}</div>
       </div>
       <div class="tx-amount tx-amount--${t.type}">${sign}${formatCurrency(t.amount)}</div>
       <div class="tx-actions">
@@ -155,9 +155,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('txListFull').innerHTML = `<div class="empty-state" style="color:var(--color-expense)">Error: ${err.message}</div>`;
   }
 
+  let _searchTimer;
   document.getElementById('searchInput')?.addEventListener('input', e => {
-    currentFilters.search = e.target.value; displayedCount = PAGE_SIZE;
-    renderTransactions(); renderStats();
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => {
+      currentFilters.search = e.target.value; displayedCount = PAGE_SIZE;
+      renderTransactions(); renderStats();
+    }, 250);
   });
 
   ['filterCategory','filterAccount','filterType'].forEach(id => {

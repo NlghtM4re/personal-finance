@@ -57,7 +57,7 @@ async function renderRecurringPage() {
 function ruleRowHTML(rule, catMap, compact) {
   const cat  = catMap[rule.categoryId];
   const icon = cat?.icon || '📦';
-  const name = rule.note || cat?.name || 'Transaction';
+  const name = escapeHTML(rule.note) || escapeHTML(cat?.name) || 'Transaction';
   const freq = FREQ_LABEL[rule.frequency] || rule.frequency;
   const paused = rule.active === false;
   const today  = new Date().toISOString().slice(0, 10);

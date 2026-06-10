@@ -18,10 +18,10 @@ async function renderCustomCats() {
 
   listEl.innerHTML = cats.map((c, i) => `
     <div class="settings-row" style="gap:10px;">
-      <span style="font-size:1.2rem;width:32px;text-align:center;flex-shrink:0;">${c.icon || '🏷️'}</span>
+      <span style="font-size:1.2rem;width:32px;text-align:center;flex-shrink:0;">${escapeHTML(c.icon) || '🏷️'}</span>
       <div class="settings-row__info">
-        <div class="settings-row__title">${c.name}</div>
-        <div class="settings-row__sub">${c.type}</div>
+        <div class="settings-row__title">${escapeHTML(c.name)}</div>
+        <div class="settings-row__sub">${escapeHTML(c.type)}</div>
       </div>
       <button type="button" class="btn btn--ghost btn--sm del-cat-btn" data-idx="${i}" style="flex-shrink:0;">Remove</button>
     </div>
@@ -123,6 +123,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         await sb.from('transactions').delete().eq('user_id', user.id);
         await sb.from('accounts').delete().eq('user_id', user.id);
         await SettingsStore.setBudgets({});
+        await SettingsStore.setRecurringRules([]);
+        await SettingsStore.setSubscriptions([]);
+        await SettingsStore.setCustomCategories([]);
         showToast('All data deleted.', 'success');
       } catch (err) {
         showToast(err.message || 'Failed to delete data.', 'error');
