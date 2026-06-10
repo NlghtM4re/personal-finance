@@ -3,11 +3,29 @@
    ============================================================ */
 
 const SUB_COLORS = ['#3ecfb2','#6366f1','#f59e0b','#ef4444','#22c55e','#8b5cf6','#ec4899','#0ea5e9','#f97316','#a3e635'];
+
+const SUB_PRESETS = [
+  { name: 'Netflix',         amount: 18.99, frequency: 'monthly', color: '#ef4444' },
+  { name: 'Spotify',         amount: 11.99, frequency: 'monthly', color: '#22c55e' },
+  { name: 'YouTube Premium', amount: 13.99, frequency: 'monthly', color: '#f97316' },
+  { name: 'Disney+',         amount: 11.99, frequency: 'monthly', color: '#6366f1' },
+  { name: 'Amazon Prime',    amount: 99,    frequency: 'yearly',  color: '#0ea5e9' },
+  { name: 'iCloud+',         amount: 3.99,  frequency: 'monthly', color: '#8b5cf6' },
+  { name: 'Gym',             amount: 35,    frequency: 'monthly', color: '#f59e0b' },
+  { name: 'Phone plan',      amount: 45,    frequency: 'monthly', color: '#3ecfb2' },
+];
 const FREQ_LABEL  = { monthly: 'Monthly', yearly: 'Yearly', weekly: 'Weekly' };
 const FREQ_FACTOR = { monthly: 1, yearly: 1/12, weekly: 4.33 };
 
+/* tax rates by region — only Quebec for now (GST 5% + QST 9.975%) */
+const TAX_RATES = { qc: 0.14975 };
+
 /* ---- helpers ---- */
 function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+function applyTax(amount, region = 'qc') {
+  return Math.round(amount * (1 + (TAX_RATES[region] || 0)) * 100) / 100;
+}
 
 function daysUntil(isoDate) {
   const now = new Date(); now.setHours(0,0,0,0);
@@ -35,7 +53,7 @@ async function autoLogDue() {
         note:       sub.name,
         tags:       ['subscription'],
       });
-      SubscriptionStore.advanceNext(sub.id);
+      await SubscriptionStore.advanceNext(sub.id);
       logged.push(sub.name);
     } catch (_) {}
   }
@@ -149,7 +167,7 @@ function wireRowActions() {
           categoryId: sub.categoryId || null, accountId: sub.accountId || null,
           note: sub.name, tags: ['subscription'],
         });
-        SubscriptionStore.advanceNext(sub.id);
+        await SubscriptionStore.advanceNext(sub.id);
         showToast(`${sub.name} logged`, 'success');
         renderPage();
       } catch (err) {
@@ -195,6 +213,46 @@ async function loadFormOptions() {
   }
 }
 
+function renderPresets() {
+  const row = document.getElementById('presetRow');
+  if (!row) return;
+  row.innerHTML = SUB_PRESETS.map((p, i) =>
+    `<button type="button" class="subs-preset-chip" data-i="${i}">
+       <span class="subs-preset-chip__dot" style="background:${p.color};"></span>${p.name}
+     </button>`
+  ).join('');
+  row.querySelectorAll('.subs-preset-chip').forEach(btn => {
+    btn.addEventListener('click', () => applyPreset(SUB_PRESETS[Number(btn.dataset.i)]));
+  });
+}
+
+function applyPreset(preset) {
+  document.getElementById('fName').value      = preset.name;
+  document.getElementById('fAmount').value    = preset.amount;
+  document.getElementById('fFrequency').value = preset.frequency;
+  setSelectedColor(preset.color);
+  updateTaxHint();
+  document.getElementById('fAmount').focus();
+}
+
+function updateTaxHint() {
+  const hint    = document.getElementById('taxHint');
+  if (!hint) return;
+  const amount  = parseFloat(document.getElementById('fAmount').value);
+  const checked = document.getElementById('fTax').checked;
+  if (checked && amount > 0) {
+    hint.style.display = '';
+    hint.textContent = `Total with taxes: ${formatCurrency(applyTax(amount))}`;
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+function setPresetVisible(visible) {
+  const field = document.getElementById('presetField');
+  if (field) field.style.display = visible ? '' : 'none';
+}
+
 function getSelectedColor() {
   return document.querySelector('.subs-color-dot.selected')?.dataset.color || SUB_COLORS[0];
 }
@@ -215,10 +273,13 @@ function openAddForm() {
   document.getElementById('fAccount').value = '';
   document.getElementById('fCategory').value = '';
   document.getElementById('fAutoLog').checked = true;
+  document.getElementById('fTax').checked = false;
+  updateTaxHint();
   document.getElementById('formTitle').textContent = 'New subscription';
   document.getElementById('formSubmitBtn').textContent = 'Save';
   document.getElementById('deleteSubBtn').style.display = 'none';
   setSelectedColor(SUB_COLORS[0]);
+  setPresetVisible(true);
   showForm();
 }
 
@@ -233,10 +294,13 @@ async function openEditForm(id) {
   document.getElementById('fAccount').value = sub.accountId || '';
   document.getElementById('fCategory').value = sub.categoryId || '';
   document.getElementById('fAutoLog').checked = sub.autoLog !== false;
+  document.getElementById('fTax').checked = false; /* stored amount is already final */
+  updateTaxHint();
   document.getElementById('formTitle').textContent = 'Edit subscription';
   document.getElementById('formSubmitBtn').textContent = 'Update';
   document.getElementById('deleteSubBtn').style.display = '';
   setSelectedColor(sub.color || SUB_COLORS[0]);
+  setPresetVisible(false);
   showForm();
 }
 
@@ -507,6 +571,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!user) return;
 
   await loadFormOptions();
+  renderPresets();
 
   /* auto-log due subscriptions */
   const logged = await autoLogDue();
@@ -525,6 +590,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('addSubBtn')?.addEventListener('click', openAddForm);
   document.getElementById('closeFormBtn')?.addEventListener('click', hideForm);
 
+  /* tax hint */
+  document.getElementById('fAmount')?.addEventListener('input', updateTaxHint);
+  document.getElementById('fTax')?.addEventListener('change', updateTaxHint);
+
   /* form submit */
   document.getElementById('subForm')?.addEventListener('submit', async e => {
     e.preventDefault();
@@ -536,11 +605,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const accId    = document.getElementById('fAccount').value;
     const catId    = document.getElementById('fCategory').value;
     const autoLog  = document.getElementById('fAutoLog').checked;
+    const withTax  = document.getElementById('fTax').checked;
     const color    = getSelectedColor();
 
     if (!name || !amount || !nextDue) return;
 
-    const payload = { name, amount, frequency: freq, nextDue, accountId: accId || null, categoryId: catId || null, autoLog, color, active: true };
+    const finalAmount = withTax ? applyTax(amount) : amount;
+
+    const payload = { name, amount: finalAmount, frequency: freq, nextDue, accountId: accId || null, categoryId: catId || null, autoLog, color, active: true };
 
     if (id) {
       await SubscriptionStore.update(id, payload);
@@ -555,13 +627,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   /* delete */
-  document.getElementById('deleteSubBtn')?.addEventListener('click', () => {
+  document.getElementById('deleteSubBtn')?.addEventListener('click', async () => {
     const id = document.getElementById('editId').value;
     if (!id) return;
     if (!confirm('Delete this subscription? Existing logged transactions are not affected.')) return;
     await SubscriptionStore.remove(id);
     hideForm();
-    renderPage();
+    await renderPage();
     showToast('Subscription deleted', 'success');
   });
 });

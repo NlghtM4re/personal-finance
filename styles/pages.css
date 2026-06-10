@@ -834,6 +834,25 @@
 .subs-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .subs-form-row .subs-form-field { margin-bottom: 0; }
 
+/* tax hint */
+.subs-tax-hint { font-size: .75rem; font-weight: 600; color: var(--color-accent); }
+
+/* quick-add presets */
+.subs-preset-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.subs-preset-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  background: transparent; border: 1px solid var(--color-border);
+  color: var(--color-text-muted); font-size: .75rem; font-weight: 500;
+  cursor: pointer; transition: border-color .12s, color .12s, background .12s;
+}
+.subs-preset-chip:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+  background: var(--color-accent-light);
+}
+.subs-preset-chip__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
 /* color picker */
 .subs-color-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .subs-color-dot {
