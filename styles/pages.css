@@ -834,6 +834,19 @@
 .subs-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .subs-form-row .subs-form-field { margin-bottom: 0; }
 
+/* "+ New" tile at the end of the category picker */
+.category-btn--new {
+  border-style: dashed;
+  background: transparent;
+  color: var(--color-text-muted);
+}
+.category-btn--new:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+.category-btn--new .cat-icon { opacity: .8; }
+
 /* emoji quick-pick (settings custom categories) */
 .emoji-pick-btn {
   width: 32px; height: 32px;

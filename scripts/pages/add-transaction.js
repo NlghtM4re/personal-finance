@@ -51,10 +51,68 @@ async function renderCategoryPicker() {
       <span class="cat-icon">${c.icon}</span>
       <span>${escapeHTML(c.name)}</span>
     </button>
-  `).join('');
-  container.querySelectorAll('.category-btn').forEach(btn => {
+  `).join('') + (selectedType === 'transfer' ? '' : `
+    <button type="button" class="category-btn category-btn--new" id="newCatBtn" title="Create a custom category">
+      <span class="cat-icon">＋</span>
+      <span>New</span>
+    </button>
+  `);
+  container.querySelectorAll('.category-btn[data-cat]').forEach(btn => {
     btn.addEventListener('click', () => { selectedCategory = btn.dataset.cat; renderCategoryPicker(); });
   });
+  document.getElementById('newCatBtn')?.addEventListener('click', openNewCatModal);
+}
+
+/* ---- quick custom category from the picker ---- */
+const QUICK_CAT_EMOJIS = ['🏷️','🍕','☕','🍺','⛽','🚲','💊','👶','🧹','🛠️','🎵','📱','🌱','🎨','⚽','💄','🏦','🐕'];
+
+function openNewCatModal() {
+  const modal = document.getElementById('newCatModal');
+  if (!modal) return;
+  document.getElementById('quickCatName').value = '';
+  document.getElementById('quickCatIcon').value = '';
+  document.getElementById('quickCatTypeHint').textContent =
+    `Will be created as ${selectedType === 'income' ? 'an income' : 'an expense'} category. Manage categories in Settings.`;
+  const row = document.getElementById('quickCatEmojiRow');
+  if (row && !row.children.length) {
+    row.innerHTML = QUICK_CAT_EMOJIS.map(e =>
+      `<button type="button" class="emoji-pick-btn" data-emoji="${e}" aria-label="Use ${e} as icon">${e}</button>`
+    ).join('');
+    row.querySelectorAll('.emoji-pick-btn').forEach(btn => {
+      btn.addEventListener('click', () => { document.getElementById('quickCatIcon').value = btn.dataset.emoji; });
+    });
+  }
+  modal.classList.add('open');
+  document.getElementById('quickCatName').focus();
+}
+
+async function saveQuickCat() {
+  const name = document.getElementById('quickCatName')?.value.trim().slice(0, 30);
+  const icon = document.getElementById('quickCatIcon')?.value.trim() || '🏷️';
+  if (!name) { showToast('Enter a category name', 'error'); return; }
+
+  const all = await CategoryStore.getAll();
+  if (all.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+    showToast(`A category named “${name}” already exists`, 'error');
+    return;
+  }
+
+  const btn = document.getElementById('saveNewCat');
+  btn.disabled = true;
+  try {
+    const cats = await SettingsStore.getCustomCategories();
+    const cat = { id: 'custom-' + Date.now().toString(36), name, icon, type: selectedType === 'income' ? 'income' : 'expense' };
+    cats.push(cat);
+    await SettingsStore.setCustomCategories(cats);
+    selectedCategory = cat.id;
+    document.getElementById('newCatModal')?.classList.remove('open');
+    await renderCategoryPicker();
+    showToast(`${icon} ${name} created`, 'success');
+  } catch (err) {
+    showToast(err.message || 'Failed to create category', 'error');
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function prefillForm(tx) {
@@ -196,6 +254,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.type-btn').forEach(btn => {
     btn.addEventListener('click', () => setType(btn.dataset.type));
   });
+
+  /* quick new-category modal */
+  document.getElementById('saveNewCat')?.addEventListener('click', saveQuickCat);
+  document.getElementById('quickCatName')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); saveQuickCat(); }
+  });
+  document.getElementById('cancelNewCat')?.addEventListener('click', () => document.getElementById('newCatModal')?.classList.remove('open'));
+  document.getElementById('closeNewCatModal')?.addEventListener('click', () => document.getElementById('newCatModal')?.classList.remove('open'));
 
   const recurringToggle = document.getElementById('recurringToggle');
   const recurringOptions = document.getElementById('recurringOptions');
