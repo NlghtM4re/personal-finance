@@ -69,7 +69,7 @@ function ruleRowHTML(rule, catMap, compact) {
       <div class="recurring-item__info">
         <div class="recurring-item__name">${name}${paused ? ' <span style="font-size:.7rem;color:var(--color-text-muted);font-weight:400;">(paused)</span>' : ''}</div>
         <div class="recurring-item__meta">
-          ${freq} · next due <span style="color:${isOver && !paused ? '#f59e0b' : 'inherit'}">${formatDate(rule.nextDue)}</span>
+          ${freq} · next due <span style="color:${isOver && !paused ? '#d4a64a' : 'inherit'}">${formatDate(rule.nextDue)}</span>
           ${rule.endDate ? ` · ends ${formatDate(rule.endDate)}` : ''}
         </div>
       </div>

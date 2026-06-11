@@ -24,7 +24,6 @@
     add:           '<path d="M12 5v14M5 12h14"/>',
     money:         '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>',
     more:          '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
-    moon:          '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
     menu:          '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>',
   };
 
@@ -66,7 +65,7 @@
     if (!el) return;
     el.innerHTML = `
       <div class="sidebar-header">
-        <a href="${resolve('index.html')}" class="logo"><span class="logo-text">Personal Finance</span></a>
+        <a href="${resolve('index.html')}" class="logo"><span class="logo-text">Flow</span></a>
       </div>
       <nav class="sidebar-nav">
         ${NAV_ITEMS.filter(n => n.sidebar).map(n => `
@@ -85,10 +84,9 @@
     const titleId = document.body.dataset.titleId ? ` id="${document.body.dataset.titleId}"` : '';
     el.innerHTML = `
       <button class="menu-btn" id="menuBtn" aria-label="Open menu">${I(ICONS.menu, 20)}</button>
-      <a class="topbar-logo" href="${resolve('index.html')}">Personal Finance</a>
+      <a class="topbar-logo" href="${resolve('index.html')}">Flow</a>
       <div class="topbar-title"${titleId}>${title}</div>
       <div class="topbar-actions">
-        <button class="topbar-icon-btn" id="themeToggleTop" aria-label="Toggle theme">${I(ICONS.moon, 17)}</button>
         <a href="${resolve('pages/settings.html')}" class="topbar-icon-btn" aria-label="Settings">${I(ICONS.settings, 17)}</a>
       </div>`;
   }

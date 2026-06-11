@@ -1,49 +1,48 @@
 /* ============================================================
    MAIN.CSS — Design tokens, reset, base typography
-   Font: IBM Plex Sans (financial, trustworthy)
-   Default theme: dark (OLED)
+   Theme: Flow — crypto-wallet dashboard, pure mono school.
+   True black canvas. White is the accent. Color = data only
+   (green up, red down). Money: JetBrains Mono · UI: Inter.
    ============================================================ */
 
 :root {
-  /* --- Dark palette (true neutral black/grey) --- */
+  /* --- Base palette (true black, neutral greys) --- */
   --color-bg:           #000000;
-  --color-surface:      #0d0d0d;
-  --color-surface-2:    #1a1a1a;
-  --color-border:       #222222;
-  --color-border-light: #141414;
-  --color-text:         #f5f5f5;
-  --color-text-muted:   #666666;
-  --color-text-light:   #505050;
+  --color-surface:      #0d0d0f;
+  --color-surface-2:    #151518;
+  --color-border:       #222226;
+  --color-border-light: #18181b;
+  --color-text:         #f4f4f6;
+  --color-text-muted:   #6e6e78;
+  --color-text-light:   #46464e;
 
   /* Sidebar */
   --color-sidebar-bg:          #000000;
-  --color-sidebar-border:      #1a1a1a;
-  --color-sidebar-text:        #555555;
-  --color-sidebar-active-bg:   rgba(255,255,255,.07);
-  --color-sidebar-active-text: #f1f5f9;
+  --color-sidebar-border:      #161619;
+  --color-sidebar-text:        #5c5c66;
+  --color-sidebar-active-bg:   rgba(255,255,255,.08);
+  --color-sidebar-active-text: #ffffff;
 
-  /* Brand — monochrome */
-  --color-primary:       #e2e8f0;
-  --color-primary-dark:  #f8fafc;
-  --color-primary-light: rgba(241,245,249,.08);
+  /* Brand — white. The accent is the absence of color. */
+  --color-primary:       #ffffff;
+  --color-primary-dark:  #d9d9de;
+  --color-primary-light: rgba(255,255,255,.08);
 
-  /* Semantic */
-  --color-income:        #22c55e;
-  --color-income-light:  rgba(34,197,94,.12);
-  --color-expense:       #ef4444;
-  --color-expense-light: rgba(239,68,68,.12);
-  --color-transfer:      #f59e0b;
-  --color-transfer-light:rgba(245,158,11,.12);
+  /* Semantic — the only color on screen */
+  --color-income:        #00d18f;
+  --color-income-light:  rgba(0,209,143,.12);
+  --color-expense:       #ff5c7a;
+  --color-expense-light: rgba(255,92,122,.12);
+  --color-transfer:      #d4a64a;
+  --color-transfer-light:rgba(212,166,74,.12);
 
   /* Shadows */
   --shadow-sm:  0 1px 3px rgba(0,0,0,.6);
-  --shadow-md:  0 4px 24px rgba(0,0,0,.7);
-  --shadow-lg:  0 12px 48px rgba(0,0,0,.9);
+  --shadow-md:  0 6px 28px rgba(0,0,0,.7);
+  --shadow-lg:  0 16px 56px rgba(0,0,0,.9);
 
-  /* Glow accents */
-  --glow-primary:  none;
-  --glow-income:   none;
-  --glow-expense:  none;
+  /* Card depth: lit-from-above top edge */
+  --card-edge: inset 0 1px 0 rgba(255,255,255,.04);
 
   /* Layout */
   --sidebar-width:     248px;
@@ -58,41 +57,14 @@
   --transition:      0.15s ease;
   --transition-slow: 0.3s ease;
 
-  /* Accent — teal for key financial figures */
-  --color-accent:       #3ecfb2;
-  --color-accent-light: rgba(62,207,178,.12);
-  --color-accent-dark:  #2db89c;
-}
+  /* Typography */
+  --font-body:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
 
-/* --- Light mode override --- */
-[data-theme="light"] {
-  --color-bg:           #f0f4f8;
-  --color-surface:      #ffffff;
-  --color-surface-2:    #f8fafc;
-  --color-border:       #e2e8f0;
-  --color-border-light: #f1f5f9;
-  --color-text:         #0f172a;
-  --color-text-muted:   #475569;
-  --color-text-light:   #94a3b8;
-
-  --color-sidebar-bg:          #ffffff;
-  --color-sidebar-border:      #e2e8f0;
-  --color-sidebar-text:        #64748b;
-  --color-sidebar-active-bg:   #f1f5f9;
-  --color-sidebar-active-text: #0f172a;
-
-  --color-primary-light: rgba(0,0,0,.06);
-  --color-income-light:  #dcfce7;
-  --color-expense-light: #fee2e2;
-  --color-transfer-light:#fef3c7;
-
-  --glow-primary:  none;
-  --glow-income:   none;
-  --glow-expense:  none;
-
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.03);
-  --shadow-md: 0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.04);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.06);
+  /* Accent — white (kept as a var so components stay themeable) */
+  --color-accent:       #ffffff;
+  --color-accent-light: rgba(255,255,255,.10);
+  --color-accent-dark:  #c9c9cf;
 }
 
 /* --- Reset --- */
@@ -101,27 +73,15 @@
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.6;
   color: var(--color-text);
   background-color: var(--color-bg);
-  background-image:
-    linear-gradient(rgba(255,255,255,.038) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.038) 1px, transparent 1px);
-  background-size: 48px 48px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-variant-numeric: tabular-nums;
-  transition: background-color var(--transition-slow), color var(--transition-slow);
 }
-[data-theme="light"] body {
-  background-image:
-    linear-gradient(rgba(0,0,0,.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,.055) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-
 
 a { color: var(--color-primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -138,6 +98,12 @@ h1 { font-size: 1.5rem;    font-weight: 700; letter-spacing: -0.03em; }
 h2 { font-size: 1.125rem;  font-weight: 600; letter-spacing: -0.02em; }
 h3 { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
 
+/* Display figures — the money. JetBrains Mono, ledger-style. */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.04em;
+}
+
 .text-accent  { color: var(--color-accent); }
 .text-muted   { color: var(--color-text-muted); }
 .text-light   { color: var(--color-text-light); }
@@ -148,6 +114,23 @@ h3 { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
 .font-medium   { font-weight: 500; }
 .font-semibold { font-weight: 600; }
 .font-bold     { font-weight: 700; }
+
+/* --- Change pill (wallet staple: green up / red down) --- */
+.flow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.flow-pill--up   { background: var(--color-income-light);  color: var(--color-income); }
+.flow-pill--down { background: var(--color-expense-light); color: var(--color-expense); }
+.flow-pill--flat { background: var(--color-surface-2);     color: var(--color-text-muted); }
 
 /* --- Animations --- */
 @keyframes fadeInUp {

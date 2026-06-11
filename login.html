@@ -1,22 +1,22 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icons/icon-180.png" />
-  <title>Sign In — Finance</title>
+  <title>Sign In — Flow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+      font-family: 'Inter', -apple-system, sans-serif;
       font-size: 14px;
-      background: #020617;
+      background: #000000;
       color: #f8fafc;
       min-height: 100vh;
       display: flex;
@@ -33,8 +33,8 @@
       position: fixed;
       inset: 0;
       background-image:
-        linear-gradient(rgba(59,130,246,.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59,130,246,.03) 1px, transparent 1px);
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
       background-size: 48px 48px;
       pointer-events: none;
     }
@@ -53,8 +53,8 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .card {
-      background: #0f172a;
-      border: 1px solid #1e293b;
+      background: #0d0d0f;
+      border: 1px solid #222226;
       border-radius: 16px;
       padding: 40px;
       width: 100%;
@@ -74,18 +74,19 @@
     .logo-icon {
       width: 34px; height: 34px;
       border-radius: 8px;
-      background: #3b82f6;
+      background: #ffffff;
       display: flex; align-items: center; justify-content: center;
-      color: #fff;
-      box-shadow: 0 0 16px rgba(59,130,246,.4);
+      color: #0a0a0a;
       flex-shrink: 0;
     }
     .logo-text {
-      font-size: 1.125rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      color: #f8fafc;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 1.375rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #f4f4f6;
     }
+    .logo-text::after { content: '_'; color: #6e6e78; }
 
     .card-title {
       font-size: 1.25rem;
@@ -107,8 +108,8 @@
     .form-control {
       width: 100%;
       padding: 11px 14px;
-      background: #1e293b;
-      border: 1px solid #1e293b;
+      background: #151518;
+      border: 1px solid #222226;
       border-radius: 8px;
       color: #f8fafc;
       font-family: inherit;
@@ -117,16 +118,16 @@
       transition: border-color .15s, box-shadow .15s;
     }
     .form-control:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+      border-color: rgba(255,255,255,.6);
+      box-shadow: 0 0 0 3px rgba(255,255,255,.10);
     }
     .form-control::placeholder { color: #334155; }
 
     .btn {
       width: 100%;
       padding: 12px;
-      background: #3b82f6;
-      color: #fff;
+      background: #ffffff;
+      color: #0a0a0a;
       border: none;
       border-radius: 8px;
       font-family: inherit;
@@ -143,14 +144,14 @@
       justify-content: center;
       gap: 8px;
     }
-    .btn:hover  { background: #2563eb; box-shadow: 0 0 24px rgba(59,130,246,.4); }
+    .btn:hover  { background: #e6e6ea; }
     .btn:active { transform: scale(0.98); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
     .btn-spinner {
       width: 16px; height: 16px;
-      border: 2px solid rgba(255,255,255,.3);
-      border-top-color: #fff;
+      border: 2px solid rgba(10,10,10,.25);
+      border-top-color: #0a0a0a;
       border-radius: 50%;
       animation: spin .6s linear infinite;
       flex-shrink: 0;
@@ -166,7 +167,7 @@
       color: #475569;
     }
     .toggle-link {
-      color: #3b82f6;
+      color: #ffffff;
       font-weight: 500;
       cursor: pointer;
       background: none;
@@ -176,7 +177,7 @@
       padding: 0;
       transition: color .15s;
     }
-    .toggle-link:hover { color: #60a5fa; }
+    .toggle-link:hover { color: #c9c9cf; }
 
     .msg {
       padding: 11px 14px;
@@ -189,8 +190,8 @@
       line-height: 1.5;
     }
     .msg.show   { display: block; }
-    .msg--error { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25); color: #ef4444; }
-    .msg--info  { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.25); color: #60a5fa; }
+    .msg--error { background: rgba(255,92,122,.1); border: 1px solid rgba(255,92,122,.25); color: #ff5c7a; }
+    .msg--info  { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.18); color: #d9d9de; }
 
     /* Success screen */
     .success-screen {
@@ -202,9 +203,9 @@
     .success-icon {
       width: 56px; height: 56px;
       border-radius: 50%;
-      background: rgba(34,197,94,.12);
-      border: 1px solid rgba(34,197,94,.25);
-      color: #22c55e;
+      background: rgba(0,209,143,.12);
+      border: 1px solid rgba(0,209,143,.25);
+      color: #00d18f;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -215,7 +216,7 @@
 
     .divider {
       height: 1px;
-      background: #1e293b;
+      background: #151518;
       margin: 24px 0;
     }
   </style>
@@ -227,7 +228,7 @@
       <div class="logo-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       </div>
-      <span class="logo-text">Personal Finance</span>
+      <span class="logo-text">Flow</span>
     </div>
 
     <!-- Auth form -->

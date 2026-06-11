@@ -1,16 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <script>try{document.documentElement.setAttribute("data-theme",localStorage.getItem("ft_theme")||"dark");}catch(e){}</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icons/icon-180.png" />
-  <title>Dashboard — Finance</title>
+  <title>Dashboard — Flow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles/main.css" />
   <link rel="stylesheet" href="styles/layout.css" />
   <link rel="stylesheet" href="styles/components.css" />
@@ -31,49 +30,49 @@
       <!-- Recurring due banner -->
       <div class="recurring-banner" id="recurringBanner" style="display:none;"></div>
 
-      <!-- HERO: Balance card + Balance chart -->
-      <section class="dashboard-hero">
-        <div class="card hero-balance-card">
-          <div class="hero-balance-eyebrow">Total Balance <span id="heroMonthLabel" style="font-weight:400;opacity:0.6;font-size:0.625rem;"></span></div>
-          <div class="hero-balance-amount" id="totalBalance">$0.00</div>
-          <div class="hero-ie-stack">
-            <div class="hero-ie-stack__item hero-ie-stack__item--income">
-              <div class="hero-ie-stack__label">
-                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-7 7m7-7 7 7"/></svg>
-                Income
-              </div>
-              <div class="hero-ie-stack__amount" id="monthIncome">$0.00</div>
-              <div class="hero-ie-stack__sub" id="monthIncomeSub">0 tx</div>
+      <!-- HERO: wallet-style — balance + change pill + chart -->
+      <section class="flow-hero">
+        <div class="flow-hero__label">Total balance <span class="flow-hero__label-month" id="heroMonthLabel"></span></div>
+        <div class="flow-hero__row">
+          <div class="flow-hero__amount font-display" id="totalBalance">$0.00</div>
+          <span class="flow-pill flow-pill--flat" id="balanceChangePill" hidden>—</span>
+        </div>
+        <div class="flow-hero__stats">
+          <div class="flow-stat flow-stat--income">
+            <div class="flow-stat__label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5m0 0-7 7m7-7 7 7"/></svg>
+              Income
             </div>
-            <div class="hero-ie-stack__item hero-ie-stack__item--expense">
-              <div class="hero-ie-stack__label">
-                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14m0 0-7-7m7 7 7-7"/></svg>
-                Expenses
-              </div>
-              <div class="hero-ie-stack__amount" id="monthExpense">$0.00</div>
-              <div class="hero-ie-stack__sub" id="monthExpenseSub">0 tx</div>
-            </div>
+            <div class="flow-stat__value" id="monthIncome">$0.00</div>
+            <div class="flow-stat__sub" id="monthIncomeSub">0 tx</div>
           </div>
-          <div class="hero-stats-row">
-            <span class="hero-stat-chip">
-              <span class="hero-stat-chip__label">Net</span>
-              <span class="hero-stat-chip__value" id="monthNet">$0.00</span>
-            </span>
-            <span class="hero-stat-chip__sep">·</span>
-            <span class="hero-stat-chip" title="Net change over the past 12 months">
-              <span class="hero-stat-chip__label">1Y</span>
-              <span class="hero-stat-chip__value" id="yearChange">—</span>
-            </span>
-            <span class="hero-stat-chip__sep">·</span>
-            <span class="hero-stat-chip" title="Net change over the past 90 days">
-              <span class="hero-stat-chip__label">90D</span>
-              <span class="hero-stat-chip__value" id="ninetyDayChange">—</span>
-            </span>
+          <div class="flow-stat flow-stat--expense">
+            <div class="flow-stat__label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14m0 0-7-7m7 7 7-7"/></svg>
+              Expenses
+            </div>
+            <div class="flow-stat__value" id="monthExpense">$0.00</div>
+            <div class="flow-stat__sub" id="monthExpenseSub">0 tx</div>
+          </div>
+          <div class="flow-stat">
+            <div class="flow-stat__label">Net</div>
+            <div class="flow-stat__value" id="monthNet">$0.00</div>
+            <div class="flow-stat__sub">this month</div>
+          </div>
+          <div class="flow-stat" title="Net change over the past 90 days">
+            <div class="flow-stat__label">90 days</div>
+            <div class="flow-stat__value" id="ninetyDayChange">—</div>
+            <div class="flow-stat__sub">net change</div>
+          </div>
+          <div class="flow-stat" title="Net change over the past 12 months">
+            <div class="flow-stat__label">1 year</div>
+            <div class="flow-stat__value" id="yearChange">—</div>
+            <div class="flow-stat__sub">net change</div>
           </div>
         </div>
-        <div class="card chart-card">
-          <div class="card-header">
-            <h2 class="card-title">Balance Over Time</h2>
+        <div class="flow-hero__chart">
+          <div class="flow-hero__chart-head">
+            <h2 class="card-title">Balance over time</h2>
             <select class="select--sm" id="balanceChartRange">
               <option value="all" selected>All time</option>
               <option value="365">1 Year</option>
@@ -83,7 +82,7 @@
               <option value="7">1 Week</option>
             </select>
           </div>
-          <div class="chart-container" id="balanceChart">
+          <div class="chart-container chart-container--hero" id="balanceChart">
             <canvas id="balanceCanvas" role="img" aria-label="Balance over time line chart"></canvas>
             <div class="chart-skeleton" id="balanceChartSkeleton">
               <div class="chart-skeleton__bar" style="height:45%"></div>
@@ -104,27 +103,13 @@
         </div>
       </section>
 
-      <!-- MIDDLE ROW: Assets + Debts -->
-      <section class="bottom-row">
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--color-income)"><path d="M12 19V5m0 0-7 7m7-7 7 7"/></svg>
-              Assets
-            </h2>
-            <a href="pages/accounts.html" class="link--sm">Manage</a>
-          </div>
-          <div id="assetList"><div class="empty-state">No accounts yet.</div></div>
+      <!-- PORTFOLIO: token-list account rows -->
+      <section class="card card--static flow-portfolio">
+        <div class="card-header">
+          <h2 class="card-title">Portfolio</h2>
+          <a href="pages/accounts.html" class="link--sm">Manage</a>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--color-expense)"><path d="M12 5v14m0 0-7-7m7 7 7-7"/></svg>
-              Debts
-            </h2>
-          </div>
-          <div id="debtList"><div class="empty-state">No debt accounts.</div></div>
-        </div>
+        <div id="portfolioList"><div class="empty-state">No accounts yet. <a href="pages/accounts.html">Add one →</a></div></div>
       </section>
 
       <!-- BOTTOM ROW: Monthly Overview + Recent Transactions -->

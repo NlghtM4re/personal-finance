@@ -8,16 +8,14 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   padding: 20px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
-  transition: background var(--transition-slow), border-color var(--transition-slow),
+  box-shadow: var(--card-edge);
+  transition: border-color var(--transition),
               box-shadow var(--transition), transform var(--transition);
-}
-[data-theme="light"] .card {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), var(--shadow-sm);
 }
 
 .card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--card-edge), var(--shadow-md);
+  border-color: #2e2e34;
   transform: translateY(-1px);
 }
 /* Cards that shouldn't lift (layout/container cards) */
@@ -67,9 +65,10 @@
 .btn--primary {
   background: var(--color-primary);
   color: #0a0a0a;
+  font-weight: 600;
 }
 .btn--primary:hover {
-  background: var(--color-primary-dark);
+  background: #e6e6ea;
   text-decoration: none;
   color: #0a0a0a;
 }
@@ -128,7 +127,7 @@
 }
 .form-control::placeholder { color: var(--color-text-light); }
 .form-control--error { border-color: var(--color-expense); }
-.form-control--error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
+.form-control--error:focus { box-shadow: 0 0 0 3px rgba(255,92,122,.15); }
 
 .form-error { font-size: 0.75rem; color: var(--color-expense); }
 .form-hint  { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px; }
@@ -276,7 +275,7 @@ select.form-control {
 /* --- Modal --- */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,.75);
+  background: rgba(0,0,0,.78);
   z-index: 500;
   display: flex; align-items: center; justify-content: center; padding: 16px;
   opacity: 0; pointer-events: none;
@@ -332,8 +331,8 @@ select.form-control {
   animation: toastIn 0.2s ease both;
   max-width: 290px;
 }
-.toast--success { background: var(--color-income-light);  border-color: rgba(34,197,94,.3);  color: var(--color-income); }
-.toast--error   { background: var(--color-expense-light); border-color: rgba(239,68,68,.3); color: var(--color-expense); }
+.toast--success { background: var(--color-income-light);  border-color: rgba(0,209,143,.35);  color: var(--color-income); }
+.toast--error   { background: var(--color-expense-light); border-color: rgba(255,92,122,.35); color: var(--color-expense); }
 
 @keyframes toastIn {
   from { transform: translateX(110%); opacity: 0; }
@@ -348,7 +347,7 @@ select.form-control {
 /* --- Filter badge --- */
 .filter-count {
   display: inline-flex; align-items: center; justify-content: center;
-  background: var(--color-primary); color: #000;
+  background: var(--color-primary); color: #0a0a0a;
   font-size: 0.6875rem; font-weight: 700;
   width: 16px; height: 16px; border-radius: 50%;
   line-height: 1;

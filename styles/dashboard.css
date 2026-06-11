@@ -1,121 +1,169 @@
 /* ============================================================
-   DASHBOARD.CSS — Summary cards, charts, layout
+   DASHBOARD.CSS — Flow hero, portfolio token-list, charts
    ============================================================ */
 
 /* ============================================================
-   HERO SECTION
+   FLOW HERO — wallet-style: balance + change pill + chart
    ============================================================ */
-.dashboard-hero {
-  display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 16px;
-  align-items: stretch;
-}
-@media (max-width: 960px) {
-  .dashboard-hero { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 620px) {
-  .dashboard-hero { grid-template-columns: 1fr; }
-  .hero-balance-amount { font-size: 2.25rem; }
+.flow-hero {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--card-edge);
+  padding: 26px 28px 20px;
 }
 
-.hero-balance-card {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.hero-balance-eyebrow {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+.flow-hero__label {
+  font-size: 0.75rem;
+  font-weight: 500;
   color: var(--color-text-muted);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
+.flow-hero__label-month { opacity: .7; }
 
-.hero-balance-amount {
-  font-size: 2.75rem;
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 1;
-  color: var(--color-accent);
-  text-shadow: 0 0 48px rgba(62,207,178,.25);
-}
-
-/* Stacked income / expense inside hero card */
-.hero-ie-stack {
+.flow-hero__row {
   display: flex;
-  flex-direction: row;
-  gap: 8px;
-  flex: 1;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
 }
 
-.hero-ie-stack__item {
-  flex: 1;
+/* The money. JetBrains Mono, white-hot. */
+.flow-hero__amount {
+  font-size: clamp(2.125rem, 4.5vw, 3.25rem);
+  font-weight: 600;
+  line-height: 1.1;
+  color: #ffffff;
 }
 
-.hero-ie-stack__item { display: flex; flex-direction: column; gap: 2px; }
-
-.hero-ie-stack__label {
+/* Stats band */
+.flow-hero__stats {
   display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: 18px;
+}
+
+.flow-stat {
+  flex: 1;
+  min-width: 110px;
+  padding: 0 18px;
+  border-right: 1px solid var(--color-border-light);
+}
+.flow-stat:first-child { padding-left: 0; }
+.flow-stat:last-child { border-right: none; }
+
+.flow-stat__label {
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-weight: 500;
   color: var(--color-text-muted);
+  margin-bottom: 2px;
 }
-.hero-ie-stack__item--income  .hero-ie-stack__label { color: var(--color-income); }
-.hero-ie-stack__item--expense .hero-ie-stack__label { color: var(--color-expense); }
 
-.hero-ie-stack__amount {
-  font-size: 1.25rem;
-  font-weight: 700;
+.flow-stat__value {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 600;
   letter-spacing: -0.03em;
+  color: var(--color-text);
+  line-height: 1.4;
 }
-.hero-ie-stack__item--income  .hero-ie-stack__amount { color: var(--color-income); }
-.hero-ie-stack__item--expense .hero-ie-stack__amount { color: var(--color-expense); }
+.flow-stat--income  .flow-stat__value { color: var(--color-income); }
+.flow-stat--expense .flow-stat__value { color: var(--color-expense); }
 
-.hero-ie-stack__sub { font-size: 0.6875rem; color: var(--color-text-muted); }
+.flow-stat__sub {
+  font-size: 0.6875rem;
+  color: var(--color-text-light);
+}
 
-.hero-stats-row {
+/* Chart inside the hero */
+.flow-hero__chart-head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border);
-  flex-wrap: wrap;
-  margin-top: auto;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
-.hero-stat-chip {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
+.chart-container--hero { height: 230px; }
+
+@media (max-width: 768px) {
+  .flow-hero { padding: 18px 16px 14px; border-radius: var(--radius-lg); }
+  .flow-hero__amount { font-size: clamp(1.875rem, 9vw, 2.5rem); }
+  .flow-hero__row { gap: 10px; margin-bottom: 14px; }
+  .flow-hero__stats { padding: 10px 0; margin-bottom: 14px; }
+  .flow-stat { min-width: 32%; padding: 4px 10px; }
+  .flow-stat:nth-child(3n) { border-right: none; }
+  .flow-stat__sub { display: none; }
+  .chart-container--hero { height: 180px; }
 }
 
-.hero-stat-chip__label {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted);
-}
+/* ============================================================
+   PORTFOLIO — token-list account rows (wallet staple)
+   ============================================================ */
+.flow-portfolio { padding: 0; overflow: hidden; }
+.flow-portfolio .card-header { padding: 16px 20px 0; margin-bottom: 10px; }
 
-.hero-stat-chip__value {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.port-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 20px;
+  border-top: 1px solid var(--color-border-light);
+  transition: background var(--transition);
+}
+.port-row:hover { background: var(--color-surface-2); }
+
+.port-row__avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 0.875rem; font-weight: 600;
   color: var(--color-text);
+  flex-shrink: 0;
 }
 
-.hero-stat-chip__sep {
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-  line-height: 1;
+.port-row__info { flex: 1; min-width: 0; }
+.port-row__name {
+  font-size: 0.875rem; font-weight: 500; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.port-row__type { font-size: 0.6875rem; color: var(--color-text-muted); margin-top: 1px; }
+
+.port-row__spark { flex-shrink: 0; opacity: .9; }
+
+.port-row__right {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  flex-shrink: 0;
+}
+.port-row__balance {
+  font-family: var(--font-display);
+  font-size: 0.9375rem; font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+.port-row__change {
+  font-size: 0.6875rem; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.port-row__change--up   { color: var(--color-income); }
+.port-row__change--down { color: var(--color-expense); }
+.port-row__change--flat { color: var(--color-text-muted); }
+
+@media (max-width: 480px) {
+  .port-row__spark { display: none; }
+  .port-row { padding: 12px 16px; }
 }
 
 /* ============================================================
@@ -131,6 +179,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 12px 20px;
+  box-shadow: var(--card-edge);
 }
 
 .spending-summary-chips {
@@ -244,7 +293,7 @@
 }
 
 /* ============================================================
-   ORIGINAL SUMMARY CARDS (kept for compatibility)
+   SUMMARY CARDS (used by money pages)
    ============================================================ */
 .summary-cards {
   display: grid;
@@ -263,29 +312,22 @@
 }
 .summary-card:hover { transform: translateY(-2px); }
 
-/* Dark mode card tints */
 .summary-card--balance {
-  background: linear-gradient(145deg, rgba(255,255,255,.05) 0%, rgba(255,255,255,.02) 100%);
-  border-color: rgba(255,255,255,.1);
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 .summary-card--income {
-  background: linear-gradient(145deg, rgba(34,197,94,.12) 0%, rgba(34,197,94,.03) 100%);
-  border-color: rgba(34,197,94,.18);
+  background: linear-gradient(145deg, rgba(0,209,143,.10) 0%, rgba(0,209,143,.02) 100%);
+  border-color: rgba(0,209,143,.18);
 }
 .summary-card--expense {
-  background: linear-gradient(145deg, rgba(239,68,68,.12) 0%, rgba(239,68,68,.03) 100%);
-  border-color: rgba(239,68,68,.18);
+  background: linear-gradient(145deg, rgba(255,92,122,.10) 0%, rgba(255,92,122,.02) 100%);
+  border-color: rgba(255,92,122,.18);
 }
 .summary-card--savings {
-  background: linear-gradient(145deg, rgba(245,158,11,.12) 0%, rgba(245,158,11,.03) 100%);
-  border-color: rgba(245,158,11,.18);
+  background: linear-gradient(145deg, rgba(212,166,74,.10) 0%, rgba(212,166,74,.02) 100%);
+  border-color: rgba(212,166,74,.18);
 }
-
-/* Light mode overrides */
-[data-theme="light"] .summary-card--balance { background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%); border-color: #e2e8f0; }
-[data-theme="light"] .summary-card--income  { background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%); border-color: #86efac; }
-[data-theme="light"] .summary-card--expense { background: linear-gradient(145deg, #fef2f2 0%, #fee2e2 100%); border-color: #fca5a5; }
-[data-theme="light"] .summary-card--savings { background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%); border-color: #fcd34d; }
 
 /* Icon chip at the top of each card */
 .summary-card__icon {
@@ -295,15 +337,10 @@
   margin-bottom: 14px;
   line-height: 0;
 }
-.summary-card--balance .summary-card__icon { background: rgba(255,255,255,.1); color: #e2e8f0; }
-.summary-card--income  .summary-card__icon { background: rgba(34,197,94,.2);   color: var(--color-income); }
-.summary-card--expense .summary-card__icon { background: rgba(239,68,68,.2);   color: var(--color-expense); }
-.summary-card--savings .summary-card__icon { background: rgba(245,158,11,.2);  color: var(--color-transfer); }
-
-[data-theme="light"] .summary-card--balance .summary-card__icon { background: rgba(59,130,246,.1); color: #2563eb; }
-[data-theme="light"] .summary-card--income  .summary-card__icon { background: rgba(34,197,94,.12); }
-[data-theme="light"] .summary-card--expense .summary-card__icon { background: rgba(239,68,68,.12); }
-[data-theme="light"] .summary-card--savings .summary-card__icon { background: rgba(245,158,11,.12); }
+.summary-card--balance .summary-card__icon { background: rgba(255,255,255,.08); color: var(--color-text); }
+.summary-card--income  .summary-card__icon { background: rgba(0,209,143,.18);  color: var(--color-income); }
+.summary-card--expense .summary-card__icon { background: rgba(255,92,122,.18); color: var(--color-expense); }
+.summary-card--savings .summary-card__icon { background: rgba(212,166,74,.18); color: var(--color-transfer); }
 
 .summary-card__label {
   font-size: 0.6875rem;
@@ -315,19 +352,18 @@
 }
 
 .summary-card__amount {
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 600;
   line-height: 1;
   margin-bottom: 8px;
   letter-spacing: -0.04em;
 }
 
-.summary-card--balance .summary-card__amount { color: #f1f5f9; }
+.summary-card--balance .summary-card__amount { color: var(--color-text); }
 .summary-card--income  .summary-card__amount { color: var(--color-income); }
 .summary-card--expense .summary-card__amount { color: var(--color-expense); }
 .summary-card--savings .summary-card__amount { color: var(--color-transfer); }
-
-[data-theme="light"] .summary-card--balance .summary-card__amount { color: #0f172a; }
 
 .summary-card__sub { font-size: 0.75rem; color: var(--color-text-muted); font-weight: 500; }
 
@@ -453,7 +489,6 @@
 @media (max-width: 1200px) {
   .summary-cards    { grid-template-columns: repeat(2, 1fr); }
   .charts-row       { grid-template-columns: 1fr; }
-  /* .dashboard-hero has its own breakpoints at 960px / 620px — do not override here */
 }
 
 @media (max-width: 900px) {
@@ -467,10 +502,6 @@
   .charts-row       { grid-template-columns: 1fr; }
   .bottom-row       { grid-template-columns: 1fr; }
   .dashboard-mid-row { grid-template-columns: 1fr; }
-  .hero-balance-amount { font-size: 2.125rem; }
-  .hero-balance-card { padding: 16px 20px; gap: 10px; }
-  .hero-ie-stack__amount { font-size: 1.0625rem; }
-  .hero-stats-row { padding-top: 8px; margin-top: 0; }
 }
 
 @media (max-width: 480px) {

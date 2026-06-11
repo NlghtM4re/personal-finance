@@ -66,9 +66,10 @@ async function initDashboard() {
   const net          = monthTotals.income - monthTotals.expense;
 
   const heroMonthEl = document.getElementById('heroMonthLabel');
-  if (heroMonthEl) heroMonthEl.textContent = now.toLocaleString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
+  if (heroMonthEl) heroMonthEl.textContent = '· ' + now.toLocaleString('en-US', { month: 'short', year: 'numeric' });
 
-  animateValue(document.getElementById('totalBalance'), totalBalance, formatCurrency);
+  /* cinematic count-up for the balance */
+  animateValue(document.getElementById('totalBalance'), totalBalance, formatCurrency, 1400);
   animateValue(document.getElementById('monthIncome'),  monthTotals.income,  formatCurrency);
   animateValue(document.getElementById('monthExpense'), monthTotals.expense, formatCurrency);
   animateValue(document.getElementById('monthNet'), Math.abs(net), v => (net >= 0 ? '+' : '-') + formatCurrency(v));
@@ -80,6 +81,25 @@ async function initDashboard() {
 
   const netEl = document.getElementById('monthNet');
   if (netEl) netEl.style.color = net >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+
+  /* Change pill next to the balance (wallet staple) */
+  const pill = document.getElementById('balanceChangePill');
+  if (pill) {
+    const prev = totalBalance - net;
+    if (!allTx.length || (Math.abs(prev) < 0.005 && Math.abs(net) < 0.005)) {
+      pill.hidden = true;
+    } else if (Math.abs(prev) > 0.005) {
+      const pct  = (net / Math.abs(prev)) * 100;
+      const up   = pct >= 0.05, down = pct <= -0.05;
+      pill.className = 'flow-pill ' + (up ? 'flow-pill--up' : down ? 'flow-pill--down' : 'flow-pill--flat');
+      pill.textContent = `${up ? '▲' : down ? '▼' : '·'} ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}% this month`;
+      pill.hidden = false;
+    } else {
+      pill.className = 'flow-pill ' + (net >= 0 ? 'flow-pill--up' : 'flow-pill--down');
+      pill.textContent = `${net >= 0 ? '▲ +' : '▼ −'}${formatCurrency(Math.abs(net))} this month`;
+      pill.hidden = false;
+    }
+  }
 
   /* Year & 90-day change */
   const yearAgoStr   = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
@@ -123,7 +143,7 @@ async function initDashboard() {
   updateMonthNav();
   await renderMonthlyChart(allTx);
 
-  renderAccounts(accounts, balanceMap);
+  renderAccounts(accounts, balanceMap, allTx);
   await renderRecentTransactions(allTx.slice(0, 5));
   await renderRecurringBanner();
 }
@@ -226,56 +246,91 @@ async function renderRecurringBanner() {
   });
 }
 
-function renderAccounts(accounts, balanceMap) {
-  const assetEl = document.getElementById('assetList');
-  const debtEl  = document.getElementById('debtList');
-  if (!assetEl && !debtEl) return;
+/* Per-account daily balance history (last `days` days, oldest first).
+   Walks backwards from the current balance using transaction effects. */
+function accountHistory(allTx, accountId, currentBal, days = 30) {
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+  const dateAt = i => new Date(today.getTime() - (days - 1 - i) * 86400000).toISOString().slice(0, 10);
+  const startStr = dateAt(0);
+
+  const delta = {};
+  allTx.forEach(t => {
+    if (t.date < startStr) return;
+    let eff = 0;
+    if (t.type === 'income'  && t.accountId === accountId) eff += t.amount;
+    if (t.type === 'expense' && t.accountId === accountId) eff -= t.amount;
+    if (t.type === 'transfer') {
+      if (t.accountId === accountId)   eff -= t.amount;
+      if (t.toAccountId === accountId) eff += t.amount;
+    }
+    if (eff !== 0) delta[t.date] = (delta[t.date] || 0) + eff;
+  });
+
+  const out = new Array(days);
+  let bal = currentBal;
+  for (let i = days - 1; i >= 0; i--) {
+    out[i] = bal;
+    bal -= (delta[dateAt(i)] || 0);
+  }
+  return out;
+}
+
+function sparklineSVG(values, w = 96, h = 28) {
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) =>
+    `${((i / (values.length - 1)) * w).toFixed(1)},${(h - 2 - ((v - min) / range) * (h - 4)).toFixed(1)}`
+  ).join(' ');
+  const first = values[0], last = values[values.length - 1];
+  const color = Math.abs(last - first) < 0.005
+    ? 'var(--color-text-muted)'
+    : (last >= first ? 'var(--color-income)' : 'var(--color-expense)');
+  return `<svg class="port-row__spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+
+function renderAccounts(accounts, balanceMap, allTx) {
+  const el = document.getElementById('portfolioList');
+  if (!el) return;
 
   if (!accounts.length) {
-    if (assetEl) assetEl.innerHTML = `<div class="empty-state">No accounts. <a href="pages/accounts.html">Add one →</a></div>`;
-    if (debtEl)  debtEl.innerHTML  = `<div class="empty-state">No debt accounts.</div>`;
+    el.innerHTML = `<div class="empty-state">No accounts yet. <a href="pages/accounts.html">Add one →</a></div>`;
     return;
   }
 
-  const withBal = accounts.map(a => ({ ...a, bal: balanceMap[a.id] ?? 0 }));
-
-  const debtTypes = new Set(['credit']);
-  const assets    = withBal.filter(a => !debtTypes.has(a.type));
-  const debts     = withBal.filter(a =>  debtTypes.has(a.type));
-
   const TYPE_LABEL = { bank: 'Bank', cash: 'Cash', savings: 'Savings', investment: 'Investment', credit: 'Credit', other: 'Other' };
 
-  function renderGroups(accs, isDebt) {
-    if (!accs.length) return `<div class="empty-state">${isDebt ? 'No debt accounts.' : 'No asset accounts.'}</div>`;
-    const byType = {};
-    accs.forEach(a => { (byType[a.type] = byType[a.type] || []).push(a); });
-    const color = isDebt ? 'var(--color-expense)' : 'var(--color-income)';
-    const pillClass = isDebt ? 'acc-group-pill--debt' : 'acc-group-pill--asset';
+  el.innerHTML = accounts.map(a => {
+    const bal  = balanceMap[a.id] ?? 0;
+    const hist = accountHistory(allTx, a.id, bal, 30);
+    const base = hist[0];
+    const diff = bal - base;
 
-    return Object.entries(byType).map(([type, list]) => {
-      const groupTotal = list.reduce((s, a) => s + Math.abs(a.bal), 0);
-      return `
-        <div class="acc-group">
-          <div class="acc-group-header">
-            <span class="acc-group-pill ${pillClass}">${TYPE_LABEL[type] || type}</span>
-            <span class="acc-group-total" style="color:${color}">${formatCurrency(groupTotal)}</span>
-          </div>
-          ${list.map(a => `
-            <div class="acc-group-item">
-              <div class="acc-group-name">${escapeHTML(a.name)}</div>
-              <div class="acc-group-actions-row">
-                <a href="pages/accounts.html" class="link--sm">Details</a>
-                <a href="pages/add-transaction.html" class="link--sm">Add</a>
-              </div>
-              <div class="acc-group-balance" style="color:${a.bal < 0 ? 'var(--color-expense)' : color}">${formatCurrency(Math.abs(a.bal))}</div>
-            </div>
-          `).join('')}
-        </div>`;
-    }).join('');
-  }
+    let changeHTML;
+    if (Math.abs(diff) < 0.005) {
+      changeHTML = `<span class="port-row__change port-row__change--flat">· 30d</span>`;
+    } else if (Math.abs(base) > 0.005) {
+      const pct = (diff / Math.abs(base)) * 100;
+      const cls = pct >= 0 ? 'up' : 'down';
+      changeHTML = `<span class="port-row__change port-row__change--${cls}">${pct >= 0 ? '▲' : '▼'} ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}% 30d</span>`;
+    } else {
+      const cls = diff >= 0 ? 'up' : 'down';
+      changeHTML = `<span class="port-row__change port-row__change--${cls}">${diff >= 0 ? '▲ +' : '▼ −'}${formatCurrency(Math.abs(diff))} 30d</span>`;
+    }
 
-  if (assetEl) assetEl.innerHTML = renderGroups(assets, false);
-  if (debtEl)  debtEl.innerHTML  = renderGroups(debts,  true);
+    return `
+      <div class="port-row">
+        <div class="port-row__avatar">${escapeHTML((a.name || '?').charAt(0).toUpperCase())}</div>
+        <div class="port-row__info">
+          <div class="port-row__name">${escapeHTML(a.name)}</div>
+          <div class="port-row__type">${TYPE_LABEL[a.type] || a.type}</div>
+        </div>
+        ${sparklineSVG(hist)}
+        <div class="port-row__right">
+          <div class="port-row__balance" style="${bal < 0 ? 'color:var(--color-expense)' : ''}">${formatCurrency(bal)}</div>
+          ${changeHTML}
+        </div>
+      </div>`;
+  }).join('');
 }
 
 async function renderRecentTransactions(txs) {

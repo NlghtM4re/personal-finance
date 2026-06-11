@@ -5,8 +5,8 @@
 const Charts = {
 
   COLORS: [
-    '#94a3b8','#10b981','#f59e0b','#ef4444','#cbd5e1',
-    '#06b6d4','#f97316','#84cc16','#ec4899','#64748b',
+    '#e8e8ec','#9a9aa4','#00d18f','#ff5c7a','#d4a64a',
+    '#5b8def','#8b5cf6','#67b7c9','#ec4899','#52525b',
   ],
 
   _state: {},
@@ -30,15 +30,19 @@ const Charts = {
     return { ctx: s._ctx, w: s._w, h: s._h, canvas: s._canvas };
   },
 
-  _isLight()    { return document.documentElement.getAttribute('data-theme') === 'light'; },
-  _textColor()  { return this._isLight() ? '#475569' : '#64748b'; },
-  _textLight()  { return this._isLight() ? '#64748b' : '#94a3b8'; },
-  _textStrong() { return this._isLight() ? '#0f172a' : '#ffffff'; },
-  _gridColor()  { return this._isLight() ? 'rgba(15,23,42,0.08)'  : 'rgba(148,163,184,0.10)'; },
-  _surface()    { return this._isLight() ? '#ffffff' : '#0d0d0d'; },
-  _lineColor()  { return this._isLight() ? '#334155' : '#e2e8f0'; },
-  _tooltipBg()      { return this._isLight() ? 'rgba(255,255,255,0.97)' : 'rgba(10,10,10,0.92)'; },
-  _tooltipBorder()  { return this._isLight() ? 'rgba(15,23,42,0.15)'    : 'rgba(226,232,240,0.20)'; },
+  /* Flow mono chart palette (single theme) */
+  _textColor()  { return '#62626c'; },
+  _textLight()  { return '#9a9aa4'; },
+  _textStrong() { return '#ffffff'; },
+  _gridColor()  { return 'rgba(255,255,255,0.07)'; },
+  _surface()    { return '#0d0d0f'; },
+  _lineColor()  { return '#ffffff'; },
+  _tooltipBg()      { return 'rgba(10,10,12,0.96)'; },
+  _tooltipBorder()  { return 'rgba(255,255,255,0.18)'; },
+
+  _reducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  },
 
   _currencySymbol() {
     const c = localStorage.getItem('pf_currency') || 'CAD';
@@ -99,7 +103,7 @@ const Charts = {
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
       ctx.fillStyle = this._textColor();
-      ctx.font = '11px "IBM Plex Sans", sans-serif';
+      ctx.font = '11px "Inter", sans-serif';
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
       ctx.fillText(this._fmt(v), pad.left - 8, y);
     }
@@ -108,17 +112,26 @@ const Charts = {
     const maxLabels = Math.max(2, Math.floor(cw / 42));
     const labelStep = Math.max(1, Math.ceil(points.length / maxLabels));
     ctx.fillStyle = this._textColor();
-    ctx.font = '11px "IBM Plex Sans", sans-serif';
+    ctx.font = '11px "Inter", sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     points.forEach((p, i) => {
       if (i % labelStep !== 0 && i !== points.length - 1) return;
       ctx.fillText(p.label, toX(i), pad.top + ch + 10);
     });
 
-    /* Gradient fill */
+    /* Draw-in: clip fill + line to animated progress (1 = fully drawn) */
+    const animT = s.animT === undefined ? 1 : s.animT;
+    ctx.save();
+    if (animT < 1) {
+      ctx.beginPath();
+      ctx.rect(0, 0, pad.left + cw * animT + 2, h);
+      ctx.clip();
+    }
+
+    /* Gradient fill — white fading up from the baseline */
     const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
-    grad.addColorStop(0, this._isLight() ? 'rgba(51,65,85,0.10)' : 'rgba(226,232,240,0.12)');
-    grad.addColorStop(1, 'rgba(99,102,241,0)');
+    grad.addColorStop(0, 'rgba(255,255,255,0.13)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.beginPath();
     ctx.moveTo(toX(0), toY(values[0]));
     for (let i = 1; i < points.length; i++) ctx.lineTo(toX(i), toY(values[i]));
@@ -134,13 +147,14 @@ const Charts = {
     ctx.moveTo(toX(0), toY(values[0]));
     for (let i = 1; i < points.length; i++) ctx.lineTo(toX(i), toY(values[i]));
     ctx.stroke();
+    ctx.restore();
 
     /* Hover */
-    const hi = s.hoverIdx;
+    const hi = animT < 1 ? -1 : s.hoverIdx;
     if (hi >= 0 && hi < points.length) {
       const hx = toX(hi), hy = toY(values[hi]);
 
-      ctx.strokeStyle = this._isLight() ? 'rgba(15,23,42,0.25)' : 'rgba(226,232,240,0.25)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.moveTo(hx, pad.top); ctx.lineTo(hx, pad.top + ch); ctx.stroke();
       ctx.setLineDash([]);
@@ -151,7 +165,7 @@ const Charts = {
 
       const t1 = points[hi].label;
       const t2 = this._fmtFull(values[hi]);
-      ctx.font = 'bold 13px "IBM Plex Sans", sans-serif';
+      ctx.font = 'bold 13px "Inter", sans-serif';
       const bw = Math.max(ctx.measureText(t1).width, ctx.measureText(t2).width) + 24;
       const bh = 46;
       let bx = hx + 12, by = hy - bh / 2;
@@ -164,13 +178,13 @@ const Charts = {
       ctx.strokeStyle = this._tooltipBorder(); ctx.lineWidth = 1; ctx.stroke();
 
       ctx.fillStyle = this._textLight();
-      ctx.font = '11px "IBM Plex Sans", sans-serif';
+      ctx.font = '11px "Inter", sans-serif';
       ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       ctx.fillText(t1, bx + 12, by + 9);
       ctx.fillStyle = this._textStrong();
-      ctx.font = 'bold 13px "IBM Plex Sans", sans-serif';
+      ctx.font = 'bold 13px "Inter", sans-serif';
       ctx.fillText(t2, bx + 12, by + 26);
-    } else {
+    } else if (animT >= 1) {
       const lx = toX(points.length - 1), ly = toY(values[values.length - 1]);
       ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2);
       ctx.fillStyle = this._lineColor(); ctx.fill();
@@ -178,6 +192,20 @@ const Charts = {
     }
 
     if (!_redraw) {
+      /* Draw-in animation on first render */
+      if (!this._reducedMotion() && points.length > 1 && !document.hidden) {
+        s.animT = 0;
+        const dur = 900, t0 = performance.now();
+        const easeOut = t => 1 - Math.pow(1 - t, 3);
+        const step = (now) => {
+          if (this._state[canvasId] !== s) return; /* superseded by a newer draw */
+          s.animT = Math.min((now - t0) / dur, 1);
+          s.animT = s.animT >= 1 ? 1 : easeOut(s.animT);
+          this.drawLineChart(canvasId, points, true);
+          if (s.animT < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
       const canvas = s._canvas;
       canvas.style.cursor = 'crosshair';
       canvas.onmousemove = (e) => {
@@ -249,20 +277,20 @@ const Charts = {
       const sl  = slices[s.hoverIdx];
       const pct = Math.round((sl.value / total) * 100);
       ctx.fillStyle = this._textStrong();
-      ctx.font = 'bold 15px "IBM Plex Sans", sans-serif';
+      ctx.font = 'bold 15px "Inter", sans-serif';
       ctx.textBaseline = 'bottom';
       ctx.fillText(this._fmtFull(sl.value), cx, cy + 2);
       ctx.fillStyle = this._textLight();
-      ctx.font = '11px "IBM Plex Sans", sans-serif';
+      ctx.font = '11px "Inter", sans-serif';
       ctx.textBaseline = 'top';
       ctx.fillText(`${pct}% · ${sl.label}`, cx, cy + 6);
     } else {
       ctx.fillStyle = this._textColor();
-      ctx.font = '11px "IBM Plex Sans", sans-serif';
+      ctx.font = '11px "Inter", sans-serif';
       ctx.textBaseline = 'bottom';
       ctx.fillText('Total spent', cx, cy + 1);
       ctx.fillStyle = this._textStrong();
-      ctx.font = 'bold 16px "IBM Plex Sans", sans-serif';
+      ctx.font = 'bold 16px "Inter", sans-serif';
       ctx.textBaseline = 'top';
       ctx.fillText(this._fmt(total), cx, cy + 5);
     }
@@ -321,7 +349,7 @@ const Charts = {
       ctx.strokeStyle = this._gridColor(); ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
       ctx.fillStyle = this._textColor();
-      ctx.font = '11px "IBM Plex Sans", sans-serif';
+      ctx.font = '11px "Inter", sans-serif';
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
       ctx.fillText(this._fmt(v), pad.left - 8, y);
     }
@@ -338,7 +366,7 @@ const Charts = {
       const eh = m.expense > 0 ? Math.max(3, (m.expense / maxVal) * ch) : 0;
 
       /* Income bar */
-      ctx.fillStyle = isHov ? '#34d399' : (isCur ? '#10b981' : 'rgba(16,185,129,0.55)');
+      ctx.fillStyle = isHov ? '#2ee8a5' : (isCur ? '#00d18f' : 'rgba(0,209,143,0.5)');
       if (ih > 0) {
         ctx.beginPath();
         ctx.roundRect(groupX, pad.top + ch - ih, barW, ih, [3, 3, 0, 0]);
@@ -346,7 +374,7 @@ const Charts = {
       }
 
       /* Expense bar */
-      ctx.fillStyle = isHov ? '#f87171' : (isCur ? '#ef4444' : 'rgba(239,68,68,0.55)');
+      ctx.fillStyle = isHov ? '#ff7d95' : (isCur ? '#ff5c7a' : 'rgba(255,92,122,0.5)');
       if (eh > 0) {
         ctx.beginPath();
         ctx.roundRect(groupX + barW + gap, pad.top + ch - eh, barW, eh, [3, 3, 0, 0]);
@@ -357,7 +385,7 @@ const Charts = {
       const barLabelStep = Math.max(1, Math.ceil(months.length / Math.max(2, Math.floor(cw / 28))));
       if (i % barLabelStep === 0) {
         ctx.fillStyle    = isCur ? this._textStrong() : this._textColor();
-        ctx.font         = isCur ? 'bold 11px "IBM Plex Sans", sans-serif' : '11px "IBM Plex Sans", sans-serif';
+        ctx.font         = isCur ? 'bold 11px "Inter", sans-serif' : '11px "Inter", sans-serif';
         ctx.textAlign    = 'center'; ctx.textBaseline = 'top';
         ctx.fillText(m.label, groupX + barW + gap / 2, pad.top + ch + 10);
       }
@@ -369,12 +397,12 @@ const Charts = {
         const net   = m.income - m.expense;
         const lines = [
           { text: m.label,                                                       color: this._textLight(), bold: false },
-          { text: `In   ${this._fmtFull(m.income)}`,                             color: '#10b981',         bold: true  },
-          { text: `Out  ${this._fmtFull(m.expense)}`,                            color: '#ef4444',         bold: true  },
-          { text: `Net  ${net >= 0 ? '+' : ''}${this._fmtFull(net)}`,            color: net >= 0 ? '#10b981' : '#ef4444', bold: true },
+          { text: `In   ${this._fmtFull(m.income)}`,                             color: '#00d18f',         bold: true  },
+          { text: `Out  ${this._fmtFull(m.expense)}`,                            color: '#ff5c7a',         bold: true  },
+          { text: `Net  ${net >= 0 ? '+' : ''}${this._fmtFull(net)}`,            color: net >= 0 ? '#00d18f' : '#ff5c7a', bold: true },
         ];
 
-        ctx.font = '12px "IBM Plex Sans", sans-serif';
+        ctx.font = '12px "Inter", sans-serif';
         const maxTW = Math.max(...lines.map(l => ctx.measureText(l.text).width));
         const bw = maxTW + 24;
         const bh = lines.length * 18 + 14;
@@ -391,7 +419,7 @@ const Charts = {
 
         lines.forEach((l, li) => {
           ctx.fillStyle = l.color;
-          ctx.font = l.bold ? 'bold 12px "IBM Plex Sans", sans-serif' : '11px "IBM Plex Sans", sans-serif';
+          ctx.font = l.bold ? 'bold 12px "Inter", sans-serif' : '11px "Inter", sans-serif';
           ctx.textAlign = 'left'; ctx.textBaseline = 'top';
           ctx.fillText(l.text, bx + 12, by + 8 + li * 18);
         });
@@ -399,12 +427,12 @@ const Charts = {
     });
 
     /* Legend */
-    ctx.textBaseline = 'bottom'; ctx.font = '11px "IBM Plex Sans", sans-serif';
-    ctx.fillStyle = 'rgba(16,185,129,0.75)';
+    ctx.textBaseline = 'bottom'; ctx.font = '11px "Inter", sans-serif';
+    ctx.fillStyle = 'rgba(0,209,143,0.75)';
     ctx.fillRect(w - 110, h - 10 - 8, 8, 8);
     ctx.fillStyle = this._textColor(); ctx.textAlign = 'left';
     ctx.fillText('Income', w - 99, h - 10);
-    ctx.fillStyle = 'rgba(239,68,68,0.75)';
+    ctx.fillStyle = 'rgba(255,92,122,0.75)';
     ctx.fillRect(w - 52, h - 10 - 8, 8, 8);
     ctx.fillStyle = this._textColor();
     ctx.fillText('Exp', w - 41, h - 10);

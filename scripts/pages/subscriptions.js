@@ -2,17 +2,17 @@
    subscriptions.js — Subscription & recurring billing tracker
    ============================================================ */
 
-const SUB_COLORS = ['#3ecfb2','#6366f1','#f59e0b','#ef4444','#22c55e','#8b5cf6','#ec4899','#0ea5e9','#f97316','#a3e635'];
+const SUB_COLORS = ['#e8e8ec','#9a9aa4','#00d18f','#ff5c7a','#d4a64a','#5b8def','#8b5cf6','#67b7c9','#ec4899','#a3e635'];
 
 const SUB_PRESETS = [
-  { name: 'Netflix',         amount: 18.99, frequency: 'monthly', color: '#ef4444' },
-  { name: 'Spotify',         amount: 11.99, frequency: 'monthly', color: '#22c55e' },
+  { name: 'Netflix',         amount: 18.99, frequency: 'monthly', color: '#ff5c7a' },
+  { name: 'Spotify',         amount: 11.99, frequency: 'monthly', color: '#00d18f' },
   { name: 'YouTube Premium', amount: 13.99, frequency: 'monthly', color: '#f97316' },
   { name: 'Disney+',         amount: 11.99, frequency: 'monthly', color: '#6366f1' },
   { name: 'Amazon Prime',    amount: 99,    frequency: 'yearly',  color: '#0ea5e9' },
   { name: 'iCloud+',         amount: 3.99,  frequency: 'monthly', color: '#8b5cf6' },
-  { name: 'Gym',             amount: 35,    frequency: 'monthly', color: '#f59e0b' },
-  { name: 'Phone plan',      amount: 45,    frequency: 'monthly', color: '#3ecfb2' },
+  { name: 'Gym',             amount: 35,    frequency: 'monthly', color: '#d4a64a' },
+  { name: 'Phone plan',      amount: 45,    frequency: 'monthly', color: '#10b981' },
 ];
 const FREQ_LABEL  = { monthly: 'Monthly', yearly: 'Yearly', weekly: 'Weekly' };
 const FREQ_FACTOR = { monthly: 1, yearly: 1/12, weekly: 4.33 };
@@ -84,9 +84,9 @@ function subRowHTML(sub, paused) {
   const dueTxt = isOver
     ? `<span style="color:var(--color-expense);">${Math.abs(days)}d overdue</span>`
     : days === 0
-      ? `<span style="color:#f59e0b;">Due today</span>`
+      ? `<span style="color:#d4a64a;">Due today</span>`
       : days <= 7
-        ? `<span style="color:#f59e0b;">In ${days}d</span>`
+        ? `<span style="color:#d4a64a;">In ${days}d</span>`
         : `<span style="color:var(--color-text-muted);">${formatDate(sub.nextDue)}</span>`;
 
   return `
@@ -318,14 +318,13 @@ let _trendChart = null;
 let _catChart   = null;
 
 function chartTheme() {
-  const light = document.documentElement.getAttribute('data-theme') === 'light';
   return {
-    grid:          light ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.04)',
-    ticks:         light ? '#64748b' : '#666',
-    tooltipBg:     light ? '#ffffff' : '#111111',
-    tooltipTitle:  light ? '#0f172a' : '#ffffff',
-    tooltipBody:   light ? '#475569' : '#aaaaaa',
-    tooltipBorder: light ? '#e2e8f0' : '#333333',
+    grid:          'rgba(255,255,255,.06)',
+    ticks:         '#62626c',
+    tooltipBg:     '#0d0d0f',
+    tooltipTitle:  '#ffffff',
+    tooltipBody:   '#9a9aa4',
+    tooltipBorder: '#2a2a30',
   };
 }
 
@@ -371,8 +370,8 @@ async function renderAnalytics(subs) {
       labels: trendLabels,
       datasets: [{
         data: trendData,
-        backgroundColor: 'rgba(62,207,178,.25)',
-        borderColor: '#3ecfb2',
+        backgroundColor: 'rgba(255,255,255,.18)',
+        borderColor: '#ffffff',
         borderWidth: 2,
         borderRadius: 4,
       }],
@@ -524,7 +523,7 @@ function renderPatternInsights(subs, allTx) {
     if (related.length < expected * 0.6 && expected > 2) {
       insights.push({
         icon: '⚠️',
-        color: '#f59e0b',
+        color: '#d4a64a',
         text: `<strong>${escapeHTML(sub.name)}</strong> was logged ${related.length} time${related.length!==1?'s':''} but expected ~${expected} over ${months} months. Check if it's still active.`,
       });
     }
