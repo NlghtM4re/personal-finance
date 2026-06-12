@@ -68,6 +68,9 @@ async function initDashboard() {
   const heroMonthEl = document.getElementById('heroMonthLabel');
   if (heroMonthEl) heroMonthEl.textContent = '· ' + now.toLocaleString('en-US', { month: 'short', year: 'numeric' });
 
+  setText('accountsCount', String(accounts.length));
+  setText('txCount', allTx.length >= 1000 ? (allTx.length / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(allTx.length));
+
   /* cinematic count-up for the balance */
   animateValue(document.getElementById('totalBalance'), totalBalance, formatCurrency, 1400);
   animateValue(document.getElementById('monthIncome'),  monthTotals.income,  formatCurrency);
@@ -144,7 +147,8 @@ async function initDashboard() {
   await renderMonthlyChart(allTx);
 
   renderAccounts(accounts, balanceMap, allTx);
-  await renderRecentTransactions(allTx.slice(0, 5));
+  renderAllocation(accounts, balanceMap);
+  await renderRecentTransactions(allTx.slice(0, 8));
   await renderRecurringBanner();
 }
 
@@ -275,7 +279,7 @@ function accountHistory(allTx, accountId, currentBal, days = 30) {
   return out;
 }
 
-function sparklineSVG(values, w = 96, h = 28) {
+function sparklineSVG(values, w = 84, h = 22) {
   const min = Math.min(...values), max = Math.max(...values);
   const range = max - min || 1;
   const pts = values.map((v, i) =>
@@ -285,50 +289,99 @@ function sparklineSVG(values, w = 96, h = 28) {
   const color = Math.abs(last - first) < 0.005
     ? 'var(--color-text-muted)'
     : (last >= first ? 'var(--color-income)' : 'var(--color-expense)');
-  return `<svg class="port-row__spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
+function deltaHTML(bal, base) {
+  const diff = bal - base;
+  if (Math.abs(diff) < 0.005) {
+    return `<span class="delta delta--flat">· 30d</span>`;
+  }
+  if (Math.abs(base) > 0.005) {
+    const pct = (diff / Math.abs(base)) * 100;
+    const cls = pct >= 0 ? 'up' : 'down';
+    return `<span class="delta delta--${cls}">${pct >= 0 ? '▲ +' : '▼ '}${pct.toFixed(1)}%</span>`;
+  }
+  const cls = diff >= 0 ? 'up' : 'down';
+  return `<span class="delta delta--${cls}">${diff >= 0 ? '▲ +' : '▼ −'}${formatCurrency(Math.abs(diff))}</span>`;
+}
+
+/* Wallet-style account tiles */
 function renderAccounts(accounts, balanceMap, allTx) {
-  const el = document.getElementById('portfolioList');
+  const el = document.getElementById('accountTiles');
   if (!el) return;
 
   if (!accounts.length) {
-    el.innerHTML = `<div class="empty-state">No accounts yet. <a href="pages/accounts.html">Add one →</a></div>`;
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">No accounts yet. <a href="pages/accounts.html">Add one →</a></div>`;
     return;
   }
 
   const TYPE_LABEL = { bank: 'Bank', cash: 'Cash', savings: 'Savings', investment: 'Investment', credit: 'Credit', other: 'Other' };
 
-  el.innerHTML = accounts.map(a => {
+  /* lead tile = largest balance */
+  const sorted = [...accounts].sort((a, b) => (balanceMap[b.id] ?? 0) - (balanceMap[a.id] ?? 0));
+
+  el.innerHTML = sorted.map((a, i) => {
     const bal  = balanceMap[a.id] ?? 0;
     const hist = accountHistory(allTx, a.id, bal, 30);
-    const base = hist[0];
-    const diff = bal - base;
-
-    let changeHTML;
-    if (Math.abs(diff) < 0.005) {
-      changeHTML = `<span class="port-row__change port-row__change--flat">· 30d</span>`;
-    } else if (Math.abs(base) > 0.005) {
-      const pct = (diff / Math.abs(base)) * 100;
-      const cls = pct >= 0 ? 'up' : 'down';
-      changeHTML = `<span class="port-row__change port-row__change--${cls}">${pct >= 0 ? '▲' : '▼'} ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}% 30d</span>`;
-    } else {
-      const cls = diff >= 0 ? 'up' : 'down';
-      changeHTML = `<span class="port-row__change port-row__change--${cls}">${diff >= 0 ? '▲ +' : '▼ −'}${formatCurrency(Math.abs(diff))} 30d</span>`;
-    }
-
     return `
-      <div class="port-row">
-        <div class="port-row__avatar">${escapeHTML((a.name || '?').charAt(0).toUpperCase())}</div>
-        <div class="port-row__info">
-          <div class="port-row__name">${escapeHTML(a.name)}</div>
-          <div class="port-row__type">${TYPE_LABEL[a.type] || a.type}</div>
+      <div class="acct-tile${i === 0 ? ' acct-tile--lead' : ''}">
+        <div class="acct-tile__top">
+          <span class="acct-tile__avatar">${escapeHTML((a.name || '?').charAt(0).toUpperCase())}</span>
+          <div class="acct-tile__id">
+            <div class="acct-tile__name">${escapeHTML(a.name)}</div>
+            <div class="acct-tile__type">${TYPE_LABEL[a.type] || a.type}</div>
+          </div>
         </div>
-        ${sparklineSVG(hist)}
-        <div class="port-row__right">
-          <div class="port-row__balance" style="${bal < 0 ? 'color:var(--color-expense)' : ''}">${formatCurrency(bal)}</div>
-          ${changeHTML}
+        <div class="acct-tile__bal font-display" style="${bal < 0 ? 'color:var(--color-expense)' : ''}">${formatCurrency(bal)}</div>
+        <div class="acct-tile__foot">
+          ${sparklineSVG(hist)}
+          ${deltaHTML(bal, hist[0])}
         </div>
+      </div>`;
+  }).join('');
+}
+
+/* Allocation — share of total positive balances, mono ring per account */
+function ringSVG(pct, color, size = 26) {
+  const r = 10, c = 2 * Math.PI * r;
+  const off = c * (1 - Math.min(pct, 100) / 100);
+  return `<svg class="alloc-row__ring" width="${size}" height="${size}" viewBox="0 0 26 26" aria-hidden="true">
+    <circle cx="13" cy="13" r="${r}" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="3"/>
+    <circle cx="13" cy="13" r="${r}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"
+      stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 13 13)"/>
+  </svg>`;
+}
+
+function renderAllocation(accounts, balanceMap) {
+  const el = document.getElementById('allocationList');
+  if (!el) return;
+
+  const pos = accounts
+    .map(a => ({ a, bal: Math.max(0, balanceMap[a.id] ?? 0) }))
+    .filter(x => x.bal > 0)
+    .sort((x, y) => y.bal - x.bal);
+  const total = pos.reduce((s, x) => s + x.bal, 0);
+
+  if (!total) {
+    el.innerHTML = `<div class="empty-state">No balances yet.</div>`;
+    return;
+  }
+
+  const SHADES = ['#ffffff', '#9a9aa4', '#62626c', '#46464e', '#34343c'];
+  const top = pos.slice(0, 4);
+  const rest = pos.slice(4);
+  const rows = top.map((x, i) => ({ name: x.a.name, bal: x.bal, color: SHADES[i] }));
+  if (rest.length) rows.push({ name: `Other (${rest.length})`, bal: rest.reduce((s, x) => s + x.bal, 0), color: SHADES[4] });
+
+  el.innerHTML = rows.map(r => {
+    const pct = (r.bal / total) * 100;
+    return `
+      <div class="alloc-row">
+        ${ringSVG(pct, r.color)}
+        <span class="alloc-row__pct">${pct.toFixed(0)}%</span>
+        <span class="alloc-row__name">${escapeHTML(r.name)}</span>
+        <span class="alloc-row__amt">${formatCurrency(r.bal)}</span>
       </div>`;
   }).join('');
 }

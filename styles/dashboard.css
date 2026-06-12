@@ -1,169 +1,272 @@
 /* ============================================================
-   DASHBOARD.CSS — Flow hero, portfolio token-list, charts
+   DASHBOARD.CSS — Flow wallet grid: stats rail, tiles,
+   allocation, charts, transactions feed
    ============================================================ */
 
 /* ============================================================
-   FLOW HERO — wallet-style: balance + change pill + chart
+   DASH GRID — 3 zones: stats rail | main | feed
    ============================================================ */
-.flow-hero {
+.dash-grid {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr) 330px;
+  gap: 16px;
+  align-items: start;
+}
+
+.dash-main,
+.dash-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 1280px) {
+  .dash-grid { grid-template-columns: 240px minmax(0, 1fr); }
+  .dash-right {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+@media (max-width: 900px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .dash-right { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   LEFT RAIL — counts, balance, period changes, CTA
+   ============================================================ */
+.dash-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  position: sticky;
+  top: calc(var(--topbar-height) + 16px);
+}
+@media (max-width: 900px) {
+  .dash-stats { position: static; }
+}
+
+.dash-counts {
+  display: flex;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 14px;
+}
+.dash-count { flex: 1; }
+.dash-count__num {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+.dash-count__label {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.dash-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+.dash-label__month { opacity: .7; }
+
+.dash-balance {
+  font-size: clamp(1.75rem, 2.4vw, 2.25rem);
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.15;
+  margin-bottom: 10px;
+  word-break: break-all;
+}
+
+.dash-minis { display: flex; flex-direction: column; }
+.dash-mini {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-top: 1px solid var(--color-border-light);
+  font-size: 0.8125rem;
+}
+.dash-mini__label { color: var(--color-text-muted); }
+.dash-mini__value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+/* ============================================================
+   ACCOUNT TILES — wallet-tile row
+   ============================================================ */
+.dash-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 12px;
+}
+
+.acct-tile {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
   box-shadow: var(--card-edge);
-  padding: 26px 28px 20px;
+  transition: border-color var(--transition), transform var(--transition);
+  min-width: 0;
 }
+.acct-tile:hover { border-color: #2e2e34; transform: translateY(-1px); }
+.acct-tile--lead { background: var(--color-surface-2); border-color: #2e2e34; }
 
-.flow-hero__label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  margin-bottom: 6px;
-}
-.flow-hero__label-month { opacity: .7; }
-
-.flow-hero__row {
+.acct-tile__top {
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-bottom: 18px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
+.acct-tile__avatar {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 0.8125rem; font-weight: 600;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+.acct-tile--lead .acct-tile__avatar { background: #ffffff; color: #0a0a0a; border-color: #ffffff; }
 
-/* The money. JetBrains Mono, white-hot. */
-.flow-hero__amount {
-  font-size: clamp(2.125rem, 4.5vw, 3.25rem);
+.acct-tile__id { min-width: 0; }
+.acct-tile__name {
+  font-size: 0.8125rem; font-weight: 500; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.acct-tile__type { font-size: 0.6563rem; color: var(--color-text-muted); }
+
+.acct-tile__bal {
+  font-size: 1.0625rem;
   font-weight: 600;
-  line-height: 1.1;
-  color: #ffffff;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  margin-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Stats band */
-.flow-hero__stats {
+.acct-tile__foot {
   display: flex;
-  gap: 0;
-  flex-wrap: wrap;
-  padding: 14px 0;
-  border-top: 1px solid var(--color-border-light);
-  border-bottom: 1px solid var(--color-border-light);
-  margin-bottom: 18px;
-}
-
-.flow-stat {
-  flex: 1;
-  min-width: 110px;
-  padding: 0 18px;
-  border-right: 1px solid var(--color-border-light);
-}
-.flow-stat:first-child { padding-left: 0; }
-.flow-stat:last-child { border-right: none; }
-
-.flow-stat__label {
-  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  margin-bottom: 2px;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.flow-stat__value {
+.spark { flex-shrink: 0; opacity: .9; }
+
+.delta {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.delta--up   { color: var(--color-income); }
+.delta--down { color: var(--color-expense); }
+.delta--flat { color: var(--color-text-muted); }
+
+/* ============================================================
+   ALLOCATION + THIS MONTH (duo row)
+   ============================================================ */
+.dash-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+@media (max-width: 640px) {
+  .dash-duo { grid-template-columns: 1fr; }
+}
+
+.alloc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.alloc-row:last-child { border-bottom: none; padding-bottom: 0; }
+.alloc-row:first-child { padding-top: 0; }
+
+.alloc-row__ring { flex-shrink: 0; }
+.alloc-row__pct {
+  width: 46px;
   font-family: var(--font-display);
   font-size: 0.9375rem;
   font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--color-text);
-  line-height: 1.4;
+  flex-shrink: 0;
 }
-.flow-stat--income  .flow-stat__value { color: var(--color-income); }
-.flow-stat--expense .flow-stat__value { color: var(--color-expense); }
-
-.flow-stat__sub {
-  font-size: 0.6875rem;
-  color: var(--color-text-light);
+.alloc-row__name {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: var(--color-text);
+  min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.alloc-row__amt {
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
-/* Chart inside the hero */
-.flow-hero__chart-head {
+.month-rows { display: flex; flex-direction: column; }
+.month-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-border-light);
 }
-
-.chart-container--hero { height: 230px; }
-
-@media (max-width: 768px) {
-  .flow-hero { padding: 18px 16px 14px; border-radius: var(--radius-lg); }
-  .flow-hero__amount { font-size: clamp(1.875rem, 9vw, 2.5rem); }
-  .flow-hero__row { gap: 10px; margin-bottom: 14px; }
-  .flow-hero__stats { padding: 10px 0; margin-bottom: 14px; }
-  .flow-stat { min-width: 32%; padding: 4px 10px; }
-  .flow-stat:nth-child(3n) { border-right: none; }
-  .flow-stat__sub { display: none; }
-  .chart-container--hero { height: 180px; }
-}
-
-/* ============================================================
-   PORTFOLIO — token-list account rows (wallet staple)
-   ============================================================ */
-.flow-portfolio { padding: 0; overflow: hidden; }
-.flow-portfolio .card-header { padding: 16px 20px 0; margin-bottom: 10px; }
-
-.port-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 13px 20px;
-  border-top: 1px solid var(--color-border-light);
-  transition: background var(--transition);
-}
-.port-row:hover { background: var(--color-surface-2); }
-
-.port-row__avatar {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  display: flex; align-items: center; justify-content: center;
+.month-row:last-child { border-bottom: none; padding-bottom: 0; }
+.month-row:first-child { padding-top: 0; }
+.month-row__label { font-size: 0.8125rem; font-weight: 500; color: var(--color-text); }
+.month-row__sub   { font-size: 0.6875rem; color: var(--color-text-muted); }
+.month-row__value {
   font-family: var(--font-display);
-  font-size: 0.875rem; font-weight: 600;
-  color: var(--color-text);
-  flex-shrink: 0;
-}
-
-.port-row__info { flex: 1; min-width: 0; }
-.port-row__name {
-  font-size: 0.875rem; font-weight: 500; color: var(--color-text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.port-row__type { font-size: 0.6875rem; color: var(--color-text-muted); margin-top: 1px; }
-
-.port-row__spark { flex-shrink: 0; opacity: .9; }
-
-.port-row__right {
-  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
-  flex-shrink: 0;
-}
-.port-row__balance {
-  font-family: var(--font-display);
-  font-size: 0.9375rem; font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--color-text);
   white-space: nowrap;
 }
-.port-row__change {
-  font-size: 0.6875rem; font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.port-row__change--up   { color: var(--color-income); }
-.port-row__change--down { color: var(--color-expense); }
-.port-row__change--flat { color: var(--color-text-muted); }
+.month-row__value--income  { color: var(--color-income); }
+.month-row__value--expense { color: var(--color-expense); }
 
-@media (max-width: 480px) {
-  .port-row__spark { display: none; }
-  .port-row { padding: 12px 16px; }
+/* ============================================================
+   CHARTS + FEED
+   ============================================================ */
+.chart-container--hero { height: 250px; }
+
+.dash-feed .transaction-list {
+  max-height: 380px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+.dash-feed .transaction-list::-webkit-scrollbar { width: 4px; }
+.dash-feed .transaction-list::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+
+@media (max-width: 768px) {
+  .chart-container--hero { height: 190px; }
 }
 
 /* ============================================================
@@ -457,32 +560,8 @@
 .monthly-summary-item--income .monthly-summary-value { color: var(--color-income); }
 .monthly-summary-item--expense .monthly-summary-value { color: var(--color-expense); }
 
-/* Mid row: monthly overview + recent transactions side by side */
-.dashboard-mid-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  align-items: stretch;
-}
-
 .chart-container--sm { position: relative; flex: 1; height: auto; min-height: 180px; max-height: 260px; width: 100%; }
 .chart-container--sm canvas { display: block; width: 100%; height: 100%; }
-
-/* Monthly overview card fills its panel height */
-.dashboard-mid-row > .card.chart-card {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Recent transactions: cap height so it stays aligned with the chart card */
-.dashboard-mid-row > .card:not(.chart-card) .transaction-list {
-  max-height: 360px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
-}
-.dashboard-mid-row > .card:not(.chart-card) .transaction-list::-webkit-scrollbar { width: 4px; }
-.dashboard-mid-row > .card:not(.chart-card) .transaction-list::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
 
 .bottom-row        { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -491,17 +570,12 @@
   .charts-row       { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 900px) {
-  .dashboard-mid-row { grid-template-columns: 1fr; }
-}
-
 @media (max-width: 768px) {
   .summary-cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .summary-card__amount { font-size: 1.375rem; }
   .summary-card__icon   { width: 28px; height: 28px; margin-bottom: 10px; }
   .charts-row       { grid-template-columns: 1fr; }
   .bottom-row       { grid-template-columns: 1fr; }
-  .dashboard-mid-row { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {
