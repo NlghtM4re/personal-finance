@@ -3,11 +3,14 @@
    Strategy:
    - Supabase (and any non-GET) requests: never intercepted.
    - Navigations: network-first, cached page as offline fallback.
-   - Static assets (same-origin + CDN): stale-while-revalidate.
+   - Same-origin CSS/JS: network-first so styles always match the
+     fresh HTML (stale-while-revalidate caused unstyled first loads
+     after every deploy), cache as offline fallback.
+   - Other static assets (icons, CDN, fonts): stale-while-revalidate.
    Bump CACHE_VERSION when shipping changes to force a refresh.
    ============================================================ */
 
-const CACHE_VERSION = 'pf-v5-flow';
+const CACHE_VERSION = 'pf-v6';
 
 const PRECACHE = [
   '/index.html',
@@ -85,7 +88,26 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  /* static assets: serve cache immediately, refresh it in the background */
+  /* same-origin CSS/JS: network-first so they never lag behind the HTML */
+  const isStyleOrScript = url.origin === self.location.origin &&
+    (req.destination === 'style' || req.destination === 'script' ||
+     url.pathname.endsWith('.css') || url.pathname.endsWith('.js'));
+  if (isStyleOrScript) {
+    event.respondWith(
+      fetch(req)
+        .then(res => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_VERSION).then(c => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  /* other static assets: serve cache immediately, refresh it in the background */
   event.respondWith(
     caches.match(req).then(hit => {
       const refresh = fetch(req)
