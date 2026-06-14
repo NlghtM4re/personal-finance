@@ -137,3 +137,9 @@ const SummaryEngine = {
     return points;
   },
 };
+
+/* Export for Node-based unit tests. Harmless in the browser, where there is
+   no `module` and `SummaryEngine` stays a global. */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { SummaryEngine };
+}
