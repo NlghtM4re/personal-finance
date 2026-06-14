@@ -215,6 +215,35 @@
 .delta--flat { color: var(--color-text-muted); }
 
 /* ============================================================
+   CRYPTO — holdings section (per-wallet tiles + net worth)
+   ============================================================ */
+.dash-crypto { display: flex; flex-direction: column; gap: 8px; }
+.dash-crypto__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 2px 2px 0;
+}
+.dash-crypto__head-right { display: flex; align-items: center; gap: 12px; }
+.dash-crypto__total {
+  font-size: 0.875rem; font-weight: 700; color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+.dash-crypto__nw {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.dash-crypto__nw-label {
+  font-family: var(--font-display);
+  font-size: 0.625rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.dash-crypto__nw-val {
+  font-size: 1rem; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+/* ============================================================
    DUO — allocation + this month (flush cells)
    ============================================================ */
 .dash-duo { grid-template-columns: 1fr 1fr; }

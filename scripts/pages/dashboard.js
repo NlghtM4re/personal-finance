@@ -148,8 +148,70 @@ async function initDashboard() {
 
   renderAccounts(accounts, balanceMap, allTx);
   renderAllocation(accounts, balanceMap);
+  /* crypto folds into net worth (not the cash balance); non-blocking so a
+     wallet/network hiccup never breaks the rest of the dashboard */
+  renderCrypto(totalBalance).catch(console.error);
   await renderRecentTransactions(allTx.slice(0, 8));
   await renderRecurringBanner();
+}
+
+/* Crypto holdings — one panel per wallet; total counts toward net worth */
+async function renderCrypto(bankBalance) {
+  const section = document.getElementById('cryptoSection');
+  const tilesEl = document.getElementById('cryptoTiles');
+  const totalEl = document.getElementById('cryptoSectionTotal');
+  const nwEl    = document.getElementById('cryptoNetWorth');
+  if (!section || !tilesEl || typeof CryptoBalances === 'undefined') return;
+
+  let snap;
+  try { snap = await CryptoBalances.snapshot(); }
+  catch { section.hidden = true; return; }
+
+  if (!snap.wallets.length) { section.hidden = true; return; }
+  section.hidden = false;
+
+  totalEl.textContent = formatCurrency(snap.total) + (snap.anyMissing ? ' +' : '');
+  tilesEl.innerHTML = snap.items.map(cryptoTileHTML).join('');
+
+  if (nwEl) {
+    const netWorth = bankBalance + snap.total;
+    nwEl.innerHTML =
+      `<span class="dash-crypto__nw-label">Net worth · cash + crypto</span>` +
+      `<span class="dash-crypto__nw-val">${formatCurrency(netWorth)}</span>`;
+  }
+}
+
+function cryptoTileHTML(r) {
+  const w = r.wallet;
+  const chain = CHAINS[w.chain] || { symbol: '?', label: w.chain, color: 'var(--color-text)' };
+  const addr = w.addresses.length > 1
+    ? `${w.addresses.length} addresses`
+    : (w.addresses[0] ? `${w.addresses[0].slice(0, 6)}…${w.addresses[0].slice(-4)}` : '');
+  let fiat, sub;
+  if (r.error) {
+    fiat = '—';
+    sub = `<span style="color:var(--color-expense)">lookup failed</span>`;
+  } else {
+    fiat = r.fiat != null ? formatCurrency(r.fiat) : '—';
+    const d = CHAINS[w.chain]?.decimals ?? 8;
+    const amt = r.amount != null ? r.amount.toFixed(d).replace(/\.?0+$/, '') : '0';
+    sub = `${amt} ${chain.symbol}`;
+  }
+  return `
+    <div class="crypto-tile" style="--chain:${chain.color};">
+      <div class="crypto-tile__top">
+        <span class="crypto-badge">${chain.symbol}</span>
+        <div style="min-width:0;">
+          <div class="crypto-tile__name">${escapeHTML(w.label)}</div>
+          <div class="crypto-tile__chain">${chain.label}</div>
+        </div>
+      </div>
+      <div class="crypto-tile__fiat">${fiat}</div>
+      <div class="crypto-tile__foot">
+        <span class="crypto-sub">${sub}</span>
+        <span class="crypto-addr">${escapeHTML(addr)}</span>
+      </div>
+    </div>`;
 }
 
 function updateMonthNav() {

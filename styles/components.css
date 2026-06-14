@@ -407,3 +407,61 @@ select.form-control {
   cursor: pointer;
 }
 .link--sm:hover { color: var(--color-primary); text-decoration: none; }
+
+/* ============================================================
+   CRYPTO WALLET CARDS — shared by the Crypto page + dashboard.
+   Flow (true black, mono, sharp corners) with a wallet-style
+   chain accent. Each element sets --chain to the chain color.
+   ============================================================ */
+.crypto-badge {
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  width: 34px; height: 34px;
+  border: 1px solid color-mix(in srgb, var(--chain, var(--color-border)) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--chain, transparent) 12%, transparent);
+  color: var(--chain, var(--color-text));
+  font-family: var(--font-display);
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em;
+}
+.crypto-amt { font-family: var(--font-display); font-weight: 700; color: var(--color-text); }
+.crypto-sub { font-family: var(--font-display); font-size: 0.72rem; color: var(--color-text-muted); }
+.crypto-addr { font-family: var(--font-display); font-size: 0.72rem; color: var(--color-text-light); }
+
+/* Crypto page — horizontal wallet row with a left chain rail */
+.crypto-row {
+  position: relative;
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px 14px 18px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.crypto-row::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 2px; background: var(--chain, var(--color-text-muted)); opacity: 0.85;
+}
+.crypto-row__del {
+  flex-shrink: 0; background: none; border: none;
+  color: var(--color-text-muted); cursor: pointer;
+  font-size: 1rem; line-height: 1; padding: 4px;
+  transition: color var(--transition);
+}
+.crypto-row__del:hover { color: var(--color-expense); }
+
+/* Dashboard — vertical wallet tile */
+.crypto-tile {
+  position: relative; overflow: hidden;
+  background: var(--color-surface);
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  min-width: 0;
+}
+.crypto-tile::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--chain, transparent) 10%, transparent), transparent 55%);
+  pointer-events: none;
+}
+.crypto-tile > * { position: relative; }
+.crypto-tile__top { display: flex; align-items: center; gap: 9px; }
+.crypto-tile__name { font-size: 0.8125rem; font-weight: 500; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crypto-tile__chain { font-family: var(--font-display); font-size: 0.625rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-text-muted); }
+.crypto-tile__fiat { font-family: var(--font-display); font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.02em; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crypto-tile__foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

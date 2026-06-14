@@ -94,3 +94,21 @@ create table if not exists recurring_rules (
 create index if not exists idx_rules_user on recurring_rules(user_id, next_due);
 alter table recurring_rules enable row level security;
 create policy "own recurring rules" on recurring_rules for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ============================================================
+-- v3 (June 2026): crypto wallets — read-only balance viewing.
+-- Stores ONLY public addresses (never keys/seeds). The app
+-- falls back to localStorage until this table exists, then
+-- migrates local wallets into it on first load. Safe to re-run.
+-- ============================================================
+create table if not exists crypto_wallets (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid references auth.users(id) on delete cascade not null,
+  label      text not null default 'Wallet',
+  chain      text not null,
+  addresses  text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_crypto_user on crypto_wallets(user_id, created_at);
+alter table crypto_wallets enable row level security;
+create policy "own crypto wallets" on crypto_wallets for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

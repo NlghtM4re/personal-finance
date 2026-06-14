@@ -105,42 +105,128 @@ const CryptoBalances = {
     for (const c of Object.values(CHAINS)) map[c.id] = j[c.coingecko]?.[cur] ?? null;
     return { currency: cur.toUpperCase(), map };
   },
+
+  /* ---- one-shot holdings snapshot: per-wallet amount + fiat + total.
+     Shared by the Crypto page, the dashboard, and the accounts net
+     worth. Pass `wallets` to skip the store round-trip. ---- */
+  async snapshot(wallets) {
+    wallets = wallets || await CryptoStore.getAll();
+    const fallbackCur = (localStorage.getItem('pf_currency') || 'CAD').toUpperCase();
+    if (!wallets.length) return { wallets: [], items: [], total: 0, currency: fallbackCur, anyMissing: false };
+
+    let prices;
+    try { prices = await this.prices(); }
+    catch { prices = { currency: fallbackCur, map: {} }; }
+
+    const items = await Promise.all(wallets.map(async (w) => {
+      try {
+        const amount = await this.walletAmount(w);
+        const price  = prices.map[w.chain];
+        const fiat   = price != null ? amount * price : null;
+        return { wallet: w, amount, fiat, error: null };
+      } catch (e) {
+        return { wallet: w, amount: null, fiat: null, error: e.message || 'Lookup failed' };
+      }
+    }));
+
+    return {
+      wallets, items,
+      total: items.reduce((s, x) => s + (x.fiat || 0), 0),
+      currency: prices.currency,
+      anyMissing: items.some(x => x.fiat == null),
+    };
+  },
 };
 
 /* ============================================================
-   CRYPTO STORE — localStorage. Public addresses only.
+   CRYPTO STORE — Supabase table `crypto_wallets`, syncing across
+   devices. Falls back to localStorage until the table exists
+   (run supabase-schema.sql), then migrates local wallets into it
+   on first load. Public addresses only — never keys/seeds.
    Wallet: { id, label, chain, addresses: string[] }
    ============================================================ */
 const CryptoStore = {
   _key: 'pf_crypto_wallets',
+  _mode: null,
 
-  _all() {
+  _local() {
     try { return JSON.parse(localStorage.getItem(this._key) || '[]'); }
     catch { return []; }
   },
-  _persist(list) { localStorage.setItem(this._key, JSON.stringify(list)); },
+  _persistLocal(list) { localStorage.setItem(this._key, JSON.stringify(list)); },
 
-  getAll() { return this._all(); },
+  _normalize(w) {
+    return { id: w.id, label: w.label, chain: w.chain, addresses: Array.isArray(w.addresses) ? w.addresses : [] };
+  },
 
-  add({ label, chain, addresses }) {
-    const list = this._all();
+  async _detect() {
+    if (this._mode) return this._mode;
+    const { error } = await sb.from('crypto_wallets').select('id').limit(1);
+    this._mode = error ? 'local' : 'table';
+    if (this._mode === 'table') await this._migrate();
+    return this._mode;
+  },
+
+  async _migrate() {
+    try {
+      const legacy = this._local();
+      if (!legacy.length) return;
+      const uid = await userId();
+      if (!uid) return;
+      const rows = legacy.map(w => ({ user_id: uid, label: w.label, chain: w.chain, addresses: w.addresses || [] }));
+      const { error } = await sb.from('crypto_wallets').insert(rows);
+      if (!error) this._persistLocal([]);
+    } catch (_) { /* local data stays until the next successful load */ }
+  },
+
+  async getAll() {
+    if (await this._detect() === 'local') return this._local().map(w => this._normalize(w));
+    const { data, error } = await sb.from('crypto_wallets').select('*').order('created_at');
+    if (error) throw new Error(error.message);
+    return (data || []).map(w => this._normalize(w));
+  },
+
+  async add({ label, chain, addresses }) {
     const wallet = {
-      id: 'cw_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       label: (label || '').trim() || CHAINS[chain]?.label || 'Wallet',
       chain,
       addresses: (addresses || []).filter(Boolean),
     };
-    list.push(wallet);
-    this._persist(list);
-    return wallet;
+    if (await this._detect() === 'local') {
+      const list = this._local();
+      wallet.id = 'cw_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      list.push(wallet);
+      this._persistLocal(list);
+      return wallet;
+    }
+    const uid = await userId();
+    const { data, error } = await sb.from('crypto_wallets').insert({ user_id: uid, ...wallet }).select().single();
+    if (error) throw new Error(error.message);
+    return this._normalize(data);
   },
 
-  addAddress(id, addr) {
-    const list = this._all();
-    const w = list.find(x => x.id === id);
-    if (w && !w.addresses.includes(addr)) { w.addresses.push(addr); this._persist(list); }
-    return w;
+  async addAddress(id, addr) {
+    const wallets = await this.getAll();
+    const w = wallets.find(x => x.id === id);
+    if (!w || w.addresses.includes(addr)) return w;
+    const addresses = [...w.addresses, addr];
+    if (await this._detect() === 'local') {
+      const list = this._local();
+      const lw = list.find(x => x.id === id);
+      if (lw) { lw.addresses = addresses; this._persistLocal(list); }
+      return lw && this._normalize(lw);
+    }
+    const { error } = await sb.from('crypto_wallets').update({ addresses }).eq('id', id);
+    if (error) throw new Error(error.message);
+    return { ...w, addresses };
   },
 
-  remove(id) { this._persist(this._all().filter(w => w.id !== id)); },
+  async remove(id) {
+    if (await this._detect() === 'local') {
+      this._persistLocal(this._local().filter(w => w.id !== id));
+      return;
+    }
+    const { error } = await sb.from('crypto_wallets').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
 };

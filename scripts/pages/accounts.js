@@ -21,17 +21,24 @@ async function loadAccountsWithBalances() {
 async function initAccounts() {
   const data = await loadAccountsWithBalances();
   await renderAccountsGrid(data);
-  renderAccountSummary(data);
+  renderAccountSummary(data, 0);   // cash-only first, instant
+  /* fold crypto holdings into net worth (assets), not the cash balances */
+  if (typeof CryptoBalances !== 'undefined') {
+    CryptoBalances.snapshot()
+      .then(snap => { if (snap.wallets.length) renderAccountSummary(data, snap.total); })
+      .catch(() => {});
+  }
 }
 
-function renderAccountSummary({ accounts, balanceMap }) {
+function renderAccountSummary({ accounts, balanceMap }, cryptoTotal = 0) {
   const withBal = accounts.map(a => ({ ...a, bal: balanceMap[a.id] ?? 0 }));
 
   const debtTypes = new Set(['credit']);
   const assets = withBal.filter(a => !debtTypes.has(a.type));
   const debts  = withBal.filter(a =>  debtTypes.has(a.type));
 
-  const totalAssets = assets.reduce((s, a) => s + Math.max(0, a.bal), 0);
+  const cashAssets  = assets.reduce((s, a) => s + Math.max(0, a.bal), 0);
+  const totalAssets = cashAssets + cryptoTotal;
   const totalDebts  = debts.reduce((s, a)  => s + Math.abs(Math.min(0, a.bal)), 0);
   const netWorth    = totalAssets - totalDebts;
 
@@ -43,6 +50,12 @@ function renderAccountSummary({ accounts, balanceMap }) {
 
   const nwEl = document.getElementById('accNetWorth');
   if (nwEl) nwEl.style.color = netWorth >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+
+  const cryptoEl = document.getElementById('accNwCrypto');
+  if (cryptoEl) {
+    if (cryptoTotal > 0) { cryptoEl.style.display = ''; cryptoEl.textContent = `incl. ${formatCurrency(cryptoTotal)} crypto`; }
+    else cryptoEl.style.display = 'none';
+  }
 
   const barFill = document.getElementById('accNwBarFill');
   if (barFill) {

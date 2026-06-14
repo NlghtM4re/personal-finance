@@ -71,6 +71,20 @@
             <div class="empty-state">No accounts yet. <a href="pages/accounts.html">Add one →</a></div>
           </div>
 
+          <!-- Crypto holdings — counts toward net worth, not the cash balance.
+               Hidden until at least one wallet exists. -->
+          <section class="dash-crypto" id="cryptoSection" hidden>
+            <div class="dash-crypto__head">
+              <span class="term__title">Crypto</span>
+              <div class="dash-crypto__head-right">
+                <span class="font-display dash-crypto__total" id="cryptoSectionTotal">—</span>
+                <a href="pages/crypto.html" class="link--sm">Manage</a>
+              </div>
+            </div>
+            <div class="term-cells dash-tiles" id="cryptoTiles"></div>
+            <div class="dash-crypto__nw" id="cryptoNetWorth"></div>
+          </section>
+
           <div class="term-cells dash-duo">
             <div class="cell">
               <div class="cell-head">
@@ -207,6 +221,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="scripts/data/supabase.js"></script>
   <script src="scripts/data/store.js"></script>
+  <script src="scripts/data/crypto.js"></script>
   <script src="scripts/engine/summary.js"></script>
   <script src="scripts/components/charts.js"></script>
   <script src="scripts/components/nav.js"></script>

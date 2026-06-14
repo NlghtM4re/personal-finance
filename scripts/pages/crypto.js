@@ -1,7 +1,7 @@
 /* ============================================================
    crypto.js (page) — read-only crypto wallet balances.
    Public addresses only; never handles keys/seeds. See
-   scripts/data/crypto.js for the security model.
+   scripts/data/crypto.js for the security model and storage.
    ============================================================ */
 
 function maskAddress(addresses) {
@@ -16,8 +16,6 @@ function formatCoin(amount, chain) {
   return `${s} ${CHAINS[chain]?.symbol || ''}`;
 }
 
-let _priceCache = null;
-
 async function renderCryptoPage() {
   const listEl  = document.getElementById('cryptoList');
   const totalEl = document.getElementById('cryptoTotal');
@@ -25,7 +23,10 @@ async function renderCryptoPage() {
   const curEl   = document.getElementById('cryptoCurrency');
   if (!listEl) return;
 
-  const wallets = CryptoStore.getAll();
+  let wallets;
+  try { wallets = await CryptoStore.getAll(); }
+  catch (e) { listEl.innerHTML = `<div style="padding:20px 16px;color:var(--color-expense);font-size:.8rem;">${escapeHTML(e.message || 'Failed to load wallets')}</div>`; return; }
+
   countEl.textContent = `${wallets.length} wallet${wallets.length === 1 ? '' : 's'}`;
 
   if (!wallets.length) {
@@ -42,70 +43,51 @@ async function renderCryptoPage() {
   listEl.innerHTML = wallets.map(w => walletRowHTML(w, null)).join('');
   totalEl.textContent = '…';
 
-  /* prices + balances in parallel */
-  let prices;
-  try {
-    prices = _priceCache = await CryptoBalances.prices();
-    curEl.textContent = prices.currency;
-  } catch {
-    prices = _priceCache || { currency: (localStorage.getItem('pf_currency') || 'CAD'), map: {} };
-  }
-
-  const results = await Promise.all(wallets.map(async (w) => {
-    try {
-      const amount = await CryptoBalances.walletAmount(w);
-      const price  = prices.map[w.chain];
-      const fiat   = price != null ? amount * price : null;
-      return { w, amount, fiat, error: null };
-    } catch (e) {
-      return { w, amount: null, fiat: null, error: e.message || 'Lookup failed' };
-    }
-  }));
-
-  listEl.innerHTML = results.map(r => walletRowHTML(r.w, r)).join('');
+  const snap = await CryptoBalances.snapshot(wallets);
+  curEl.textContent = snap.currency;
+  listEl.innerHTML = snap.items.map(r => walletRowHTML(r.wallet, r)).join('');
   wireRowActions(listEl);
-
-  const total = results.reduce((s, r) => s + (r.fiat || 0), 0);
-  const anyMissing = results.some(r => r.fiat == null);
-  totalEl.textContent = formatCurrency(total) + (anyMissing ? ' +' : '');
+  totalEl.textContent = formatCurrency(snap.total) + (snap.anyMissing ? ' +' : '');
 }
 
 function walletRowHTML(w, result) {
   const chain = CHAINS[w.chain] || { symbol: '?', label: w.chain, color: 'var(--color-text)' };
   let right;
   if (!result) {
-    right = `<div style="font-size:.8rem;color:var(--color-text-muted);">…</div>`;
+    right = `<div class="crypto-sub">…</div>`;
   } else if (result.error) {
     right = `<div style="font-size:.72rem;color:var(--color-expense);text-align:right;max-width:120px;">${escapeHTML(result.error)}</div>`;
   } else {
     const fiat = result.fiat != null ? formatCurrency(result.fiat) : '—';
     right = `
       <div style="text-align:right;">
-        <div class="font-display" style="font-size:.95rem;font-weight:700;color:var(--color-text);">${fiat}</div>
-        <div class="font-display" style="font-size:.72rem;color:var(--color-text-muted);">${formatCoin(result.amount, w.chain)}</div>
+        <div class="crypto-amt" style="font-size:.95rem;">${fiat}</div>
+        <div class="crypto-sub">${formatCoin(result.amount, w.chain)}</div>
       </div>`;
   }
   return `
-    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--color-border-light);" data-id="${w.id}">
-      <div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border:1px solid var(--color-border);font-family:var(--font-display);font-size:.66rem;font-weight:700;color:${chain.color};flex-shrink:0;">${chain.symbol}</div>
+    <div class="crypto-row" style="--chain:${chain.color};" data-id="${w.id}">
+      <div class="crypto-badge">${chain.symbol}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:.875rem;font-weight:600;color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHTML(w.label)} <span style="color:var(--color-text-muted);font-weight:400;font-size:.78rem;">· ${chain.label}</span></div>
-        <div class="font-display" style="font-size:.72rem;color:var(--color-text-muted);">${escapeHTML(maskAddress(w.addresses))}</div>
+        <div class="crypto-addr">${escapeHTML(maskAddress(w.addresses))}</div>
       </div>
       ${right}
-      <button class="cw-del" data-id="${w.id}" aria-label="Remove wallet" style="flex-shrink:0;background:none;border:none;color:var(--color-text-muted);cursor:pointer;font-size:1rem;line-height:1;padding:4px;">✕</button>
+      <button class="crypto-row__del" data-id="${w.id}" aria-label="Remove wallet">✕</button>
     </div>`;
 }
 
 function wireRowActions(container) {
-  container.querySelectorAll('.cw-del').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const w = CryptoStore.getAll().find(x => x.id === btn.dataset.id);
+  container.querySelectorAll('.crypto-row__del').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const w = (await CryptoStore.getAll()).find(x => x.id === btn.dataset.id);
       if (!w) return;
       if (!confirm(`Remove "${w.label}"? This only removes it from this view — your wallet and funds are untouched.`)) return;
-      CryptoStore.remove(btn.dataset.id);
-      renderCryptoPage();
-      showToast('Wallet removed', 'success');
+      try {
+        await CryptoStore.remove(btn.dataset.id);
+        await renderCryptoPage();
+        showToast('Wallet removed', 'success');
+      } catch (e) { showToast(e.message || 'Failed to remove', 'error'); }
     });
   });
 }
@@ -127,16 +109,23 @@ function wireAddForm() {
   addrEl.addEventListener('input', () => showError(''));
   syncHint();
 
-  const submit = () => {
+  const submit = async () => {
     const chain = chainEl.value;
     const check = CryptoBalances.validateAddress(chain, addrEl.value);
     if (!check.ok) { showError(check.error); return; }
-    CryptoStore.add({ label: labelEl.value, chain, addresses: [check.value] });
-    labelEl.value = '';
-    addrEl.value = '';
-    showError('');
-    renderCryptoPage();
-    showToast('Wallet added', 'success');
+    addBtn.disabled = true;
+    try {
+      await CryptoStore.add({ label: labelEl.value, chain, addresses: [check.value] });
+      labelEl.value = '';
+      addrEl.value = '';
+      showError('');
+      await renderCryptoPage();
+      showToast('Wallet added', 'success');
+    } catch (e) {
+      showError(e.message || 'Failed to add wallet');
+    } finally {
+      addBtn.disabled = false;
+    }
   };
 
   addBtn.addEventListener('click', submit);
@@ -150,7 +139,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderCryptoPage();
   document.getElementById('cryptoRefresh')?.addEventListener('click', (e) => {
     e.preventDefault();
-    _priceCache = null;
     renderCryptoPage();
   });
 });
