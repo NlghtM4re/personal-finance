@@ -1,7 +1,7 @@
 # Personal Finance Tracker — Project Journal
 
 > Living document. Update this file as decisions are made, phases complete, and plans change.
-> Last updated: 2026-06-06 (session 2)
+> Last updated: 2026-06-14
 
 ---
 
@@ -15,10 +15,10 @@ A self-hosted, responsive web app accessible from any browser (desktop + phone) 
 
 | Item | Value |
 |---|---|
-| Phase | 3 — UI/UX polish & power features |
-| Active step | Step 8 — ongoing (charts ✅, settings ✅, branding ✅, theme ✅) |
+| Phase | 3 — complete. App is feature-complete; full "Flow" visual redesign shipped (June 2026) |
+| Active step | Closing out the redesign — pages verified in-browser, currency-symbol bug fixed |
 | Blockers | None |
-| Next action | Mobile layout polish, currency selector, budgets |
+| Next action | Add a test layer (start with `SummaryEngine` pure functions); anything beyond is new scope |
 
 ---
 
@@ -97,9 +97,12 @@ type Budget = {
 | `settings.js` | Page | Show user email, sign out, delete all data | ✅ Done |
 | `api.js` | Service | Thin fetch wrapper for future backend (unused for now) | 🔵 Stub |
 | Supabase schema | Backend | Postgres tables + RLS (`supabase-schema.sql`) | ✅ Done |
-| `BudgetStore` | State | Monthly budget limits, usage % | ❌ Not started |
-| `RecurringStore` | State | Scheduled transactions, due-date detection | ❌ Not started |
-| `CSVService` | Service | Import/export CSV ↔ transactions | ❌ Not started |
+| `BudgetStore` | Data (`store.js`) | Monthly budget limits, usage % | ✅ Done |
+| `RecurringStore` | Data (`store.js`) | Scheduled transactions, due-date detection | ✅ Done |
+| `SubscriptionStore` | Data (`store.js`) | Subscriptions, monthly/yearly cost rollups | ✅ Done |
+| `SettingsStore` | Data (`store.js`) | Currency preference, persisted to Supabase | ✅ Done |
+| `CSVService` | Service | Import/export CSV ↔ transactions | ✅ Done |
+| Custom categories | Data (`store.js`) | User-editable categories (add/edit/emoji/delete) | ✅ Done |
 
 ---
 
@@ -111,8 +114,10 @@ Decided to go straight to Supabase instead of building a localStorage layer firs
 ### Phase 2 — Supabase backend + deployment  ✅ DONE (2026-06-05)
 Auth, Postgres DB with RLS, full CRUD across all pages, deployed schema. Site live on Vercel.
 
-### Phase 3 — UI/UX overhaul + power features  ← WE ARE HERE
-Fix mobile layout, design polish, UX flow improvements. Then budgets, recurring transactions, CSV import/export.
+### Phase 3 — UI/UX overhaul + power features  ✅ DONE (2026-06-14)
+Mobile layout, design polish, UX flow improvements, then budgets, recurring transactions, and CSV
+import/export — all shipped. Capped by a full visual redesign ("Flow", crypto-wallet mono UI). App is
+feature-complete against the PRD.
 
 ---
 
@@ -171,37 +176,40 @@ Fix mobile layout, design polish, UX flow improvements. Then budgets, recurring 
 - [x] Deployed to Vercel — site is live
 - [x] Accessible from phone browser confirmed
 
-### Step 8 — UI/UX overhaul  ← WE ARE HERE
+### Step 8 — UI/UX overhaul  ✅ DONE
 
-**Completed this session:**
-- [x] All 3 charts completely rewritten (balance line, spending donut, monthly bar)
-  - Hover tooltips on all charts showing exact values
-  - Balance chart: gradient fill, Y-axis labels, date labels, crosshair
-  - Donut chart: ring with center total, hover shows category % and amount
-  - Bar chart: current month highlighted, Income/Exp legend, full tooltip
-  - Fixed hover explosion bug (canvas resize loop) — now caches ctx/dimensions
-  - Fixed donut not filling container (CSS `width:100%; height:100%` on canvas)
-- [x] Settings page fully redesigned — grouped sections (Account, Data, Danger Zone), live tx/account counts, icon-prefixed rows
-- [x] Branding: "FinTrack" → "Personal Finance" across all pages
-- [x] Color theme: full black/white/grey — replaced all Tailwind slate (blue-tinted) tokens with true neutral greys (`#000`, `#0d0d0d`, `#1a1a1a`)
-- [x] Removed logo icon from sidebar header and all topbar instances
-- [x] Sidebar header height aligned with topbar (both 56px — same horizontal band)
-- [x] "Add Transaction" sidebar item: replaced jarring white block with outlined ghost button
+- [x] All 3 charts rewritten with hover tooltips (balance line, category donut, monthly bar); canvas
+      resize-loop bug fixed by caching ctx/dimensions
+- [x] Settings page redesigned — grouped sections, live tx/account counts, icon-prefixed rows
+- [x] Branding: "FinTrack" → "Personal Finance"
 
-**Still to do — design/UX:**
-- [ ] Mobile layout: bottom nav overlaps page content on some screens
-- [ ] Mobile layout: forms and modals not fully optimized for small screens
-- [ ] Add transaction: no feedback after save (goes straight back, no confirmation)
-- [ ] Transactions list: pagination feels abrupt
+**Functionality — all shipped:**
+- [x] Currency selector in Settings (`SettingsStore`, persisted to Supabase; default CAD)
+- [x] `BudgetStore` — monthly limits per category, inline editable
+- [x] Tags UI on add-transaction form
+- [x] `RecurringStore` — scheduled transactions, due-date banner
+- [x] `SubscriptionStore` — subscriptions page with cost rollups
+- [x] `CSVService` — export / import CSV (Settings page)
+- [x] Custom categories — add / edit / emoji picker / safe delete
 
-**Still to do — functionality:**
-- [ ] Currency selector in Settings (hardcoded USD everywhere)
-- [ ] `BudgetStore` — monthly limits per category, stored in Supabase
-- [ ] Budget progress bars on Dashboard
-- [ ] Tags UI on add-transaction form (field exists in DB, not surfaced in UI)
-- [ ] `RecurringStore` — scheduled transactions, due-date banner
-- [ ] `CSVService` — export / import CSV
-- [ ] Custom categories (currently hardcoded 14)
+### Step 9 — "Flow" redesign  ✅ DONE (2026-06-13 → 06-14)
+
+Full crypto-wallet-style mono redesign across all pages (commits `099d631` → `bd9b979`):
+- [x] New design system: true-black surfaces, white accent, color = data only, JetBrains Mono money,
+      Inter UI, no ambient motion (replaced IBM Plex Sans + the earlier black/grey theme)
+- [x] Dense 3-zone wallet dashboard grid + terminal-grid panels
+- [x] Spending + Income unified into one **Cash Flow** page (segmented toggle, one balanced donut +
+      ranked-breakdown panel)
+- [x] Equal-height Accounts / Net Worth cards on the Transactions page (void removed)
+- [x] Verified in-browser across all 8 pages (2026-06-14); fixed a CAD currency-symbol bug where the
+      donut center and amount-input prefix showed `CA$` (en-US locale) instead of `$` (en-CA, matching
+      `formatCurrency`)
+
+### Next — hardening / new scope
+
+The PRD feature set is complete. Logical next step is a **test layer** — `SummaryEngine` is pure
+functions and the highest-value place to start. Everything past that (bank sync, investments,
+multi-currency conversion) is explicitly out of PRD scope and is a product decision.
 
 ---
 
@@ -211,32 +219,33 @@ Fix mobile layout, design polish, UX flow improvements. Then budgets, recurring 
 personal finance/
 ├── index.html                        # Dashboard
 ├── login.html                        # Login / signup page
+├── manifest.json · sw.js · icons/    # PWA: manifest, service worker, icons
 ├── pages/
-│   ├── transactions.html             # Full transaction list + filters
-│   ├── add-transaction.html          # Add / Edit transaction form
-│   ├── accounts.html                 # Account cards + modal
-│   └── settings.html                 # User email, sign out, delete all data
-├── styles/                           # CSS files (design system)
+│   ├── accounts.html                 # Accounts + full transaction list ("Transactions" in nav)
+│   ├── add-transaction.html          # Add / Edit transaction form (tags, recurring, category picker)
+│   ├── spending.html                 # Cash Flow (Spending / Income toggle)
+│   ├── budget.html                   # Budget limits per category
+│   ├── subscriptions.html            # Subscriptions + cost rollups
+│   ├── recurring.html                # Recurring rules
+│   └── settings.html                 # Email, currency, CSV import/export, delete-all, sign out
+├── styles/                           # main · layout · components · dashboard · pages
 ├── scripts/
 │   ├── data/
 │   │   ├── supabase.js               # Supabase client + SupaAuth helpers
-│   │   ├── store.js                  # TransactionStore, AccountStore, CategoryStore
-│   │   └── api.js                    # Stub fetch wrapper (future backend, unused)
+│   │   └── store.js                  # Transaction/Account/Category/Budget/Recurring/
+│   │                                 #   Subscription/Settings stores, CSVService, formatters
 │   ├── engine/
 │   │   └── summary.js                # SummaryEngine pure functions
 │   ├── components/
 │   │   ├── charts.js                 # Canvas charts: line, donut, bar
-│   │   └── ui.js                     # Sidebar toggle, active nav, resize
-│   └── pages/
-│       ├── dashboard.js
-│       ├── transactions.js
-│       ├── add-transaction.js
-│       ├── accounts.js
-│       └── settings.js
+│   │   ├── nav.js                    # Centralized nav (NAV_ITEMS → sidebar/topbar/bottom/Money hub)
+│   │   └── ui.js                     # Theme, sidebar toggle, active nav, toasts, SW registration
+│   └── pages/                        # dashboard · accounts · add-transaction · spending ·
+│                                     #   budget · subscriptions · recurring · settings
 ├── design-system/                    # Design reference / tokens
 ├── supabase-schema.sql               # Postgres schema + RLS policies
 ├── vercel.json                       # Vercel static deploy config
-├── PRD.md                            # Full product requirements
+├── PRD.md · PRODUCT.md               # Product requirements / current-state doc
 └── PROJECT.md                        # ← this file
 ```
 
@@ -259,6 +268,10 @@ personal finance/
 - 2026-06-06 — Full black/white/grey color theme — removed all blue (Tailwind slate tokens replaced with true neutral greys); semantic green/red for income/expense kept
 - 2026-06-06 — Charts rewritten with hover tooltips — canvas resize loop bug fixed by caching ctx on first draw; all 3 charts functional with interactive hover
 - 2026-06-06 — Settings page redesigned — grouped sections, live data counts, cleaner layout
+- 2026-06-10 — Default currency is CAD, user-selectable in Settings (`SettingsStore`, persisted to Supabase) — was hardcoded USD
+- 2026-06-13 — "Flow" redesign — crypto-wallet mono UI: true black, white accent, color = data only, JetBrains Mono money, Inter UI; replaced IBM Plex Sans. See `MEMORY.md` / flow-design-system for the rules
+- 2026-06-14 — Spending + Income merged into one Cash Flow page — removed the redundant separate Income view
+- 2026-06-14 — Currency symbol unified to `formatCurrency`'s locale (`CURRENCY_LOCALES` map) — chart donut center and amount-input prefix were using en-US and rendered CAD as `CA$` instead of `$`
 
 ---
 
@@ -266,11 +279,14 @@ personal finance/
 
 > Things noticed during build that aren't part of the current step.
 
-- Tags field exists in the DB schema and is saved on transactions, but there's no UI to add/view tags
-- Currency is hardcoded to USD everywhere — no setting to change it
-- `api.js` stub is loaded on all pages but never used (Supabase is used directly instead)
-- No light mode — OLED dark is the only theme
-- Categories are hardcoded; no way for user to add custom categories
+- **No automated tests** — the app is feature-complete with zero test coverage. `SummaryEngine` is pure
+  functions and the obvious first target.
+- Subscriptions "Monthly subscription spend" chart shows a default $1 Y-axis when no subscription charges
+  have posted yet (all "Next" dates are future) — an empty-state polish item, not a bug.
+- Single-theme by design — "Flow" is true-black only; no light mode (intentional, not a gap).
+
+> Resolved since last update: tags UI, currency selector, custom categories, recurring rules,
+> subscriptions, and CSV import/export are all shipped. The unused `api.js` stub was deleted.
 
 ---
 

@@ -37,13 +37,13 @@ WCAG AA. Keyboard navigation throughout. Sufficient contrast for body text (≥4
 
 ---
 
-## Current State (as of 2026-06-07)
+## Current State (as of 2026-06-14)
 
 ### Pages
 
 - **Dashboard** (`index.html`) — hero balance card (total balance + month income/expense + net change over 1Y/90D), balance-over-time line chart with range selector, monthly bar chart with week-navigation, recent transactions list, asset/debt account groups, recurring-transactions-due banner.
 - **Accounts & Transactions** (`pages/accounts.html`) — left panel: compact account rows with avatar, balance, inline edit/delete; net worth card with assets/debts bar and summary. Right panel: stat chips (count, income, expenses, net), search + type/category filters, full paginated transaction list with edit/delete per row.
-- **Spending** (`pages/spending.html`) — month navigator, summary chips (spent/income/net), donut chart by category, category legend, top-expenses list with proportional progress bars.
+- **Cash Flow** (`pages/spending.html`) — month navigator, summary strip (spent/income/net), a Spending/Income segmented toggle that re-renders one balanced panel: category donut (center "Total spent"/"Total earned") + ranked breakdown, plus a monthly trend chart. Replaces the separate Spending and Income pages.
 - **Budget** (`pages/budget.html`) — month navigator, summary strip (total budget / spent / over budget), per-category rows with inline editable budget limit, spend vs. limit progress bar, over-budget / unbudgeted sections. Budget onboarding shown when no data exists.
 - **Add Transaction** (`pages/add-transaction.html`) — type toggle (expense/income/transfer), amount with currency prefix, date, account select, note, tags, recurring toggle (frequency + end date), category picker. Doubles as edit form when `?id=` is present; delete via confirmation modal.
 - **Settings** (`pages/settings.html`) — account email, transaction/account counts, currency selector, delete-all-data via confirmation modal, sign out.
@@ -51,20 +51,21 @@ WCAG AA. Keyboard navigation throughout. Sufficient contrast for body text (≥4
 ### Architecture
 
 - Static HTML/CSS/JS — no build step, no framework.
-- Supabase backend: `transactions`, `accounts` tables per user. Auth via `SupaAuth` wrapper (email/password).
-- Data layer: `TransactionStore`, `AccountStore`, `CategoryStore`, `RecurringStore`, `SettingsStore` in `scripts/data/store.js`.
-- Categories are hardcoded client-side (no DB table). Recurring rules stored in `localStorage` via `RecurringStore`.
-- Charts via Chart.js (`scripts/components/charts.js`). Summary math in `scripts/engine/summary.js`.
-- Shared UI (theme, sidebar, nav, page transitions, toast) in `scripts/components/ui.js`.
+- Supabase backend: `transactions`, `accounts`, `recurring_rules`, `subscriptions` tables per user, plus a `user_settings` blob (currency, budgets, custom categories). Auth via `SupaAuth` wrapper (email/password).
+- Data layer in `scripts/data/store.js`: `TransactionStore`, `AccountStore`, `CategoryStore`, `BudgetStore`, `RecurringStore`, `SubscriptionStore`, `SettingsStore`, plus `CSVService` and the currency/date formatters.
+- Categories: hardcoded defaults + user **custom categories** (add/edit/emoji/delete), persisted in the `user_settings` blob. `RecurringStore`/`SubscriptionStore` are table-first with a settings-blob fallback that migrates into rows once the tables exist.
+- Charts: most charts are hand-rolled canvas in `scripts/components/charts.js` (line, donut, bar). The subscriptions analytics page additionally uses **Chart.js** (CDN). Summary math in `scripts/engine/summary.js`.
+- Centralized nav in `scripts/components/nav.js` (`NAV_ITEMS` → sidebar, topbar, bottom nav, Money hub). Shared UI (theme, sidebar, toasts, PWA SW registration) in `scripts/components/ui.js`.
 
-### Design System
+### Design System — "Flow" (crypto-wallet mono, since 2026-06-13)
 
-- **Font**: IBM Plex Sans (300–700). `font-variant-numeric: tabular-nums` on body.
-- **Dark theme (default)**: true black bg (`#000`), surface `#0d0d0d`, border `#222`. Cards have `inset 0 1px 0 rgba(255,255,255,.05)` top highlight for depth.
-- **Light theme**: toggleable, persisted to `localStorage`.
-- **Semantic colors**: income `#22c55e`, expense `#ef4444`, transfer `#f59e0b`, key figure / accent `#3ecfb2`.
-- **Radius scale**: sm 6px, md 10px, lg 14px, xl 20px. Transaction icons use 10px.
-- **CSS files**: `main.css` (tokens, reset, typography), `layout.css` (sidebar, topbar, bottom nav), `components.css` (cards, buttons, forms, modals, toasts), `dashboard.css` (hero, charts, spending breakdown), `pages.css` (budget, accounts, add-transaction, settings).
+- **Fonts**: Inter for UI (`--font-body`), **JetBrains Mono** for all money/figures (`--font-display`). `tabular-nums` on body.
+- **Single theme — true black**: bg `#000`, surface `#0d0d0f`, surface-2 `#151518`, border `#222226`, text `#f4f4f6`. No light mode (by design). Card depth via a `inset 0 1px 0 rgba(255,255,255,.04)` top edge.
+- **White is the accent** — "the accent is the absence of color." `--color-primary: #fff`.
+- **Color = data only**: income `#00d18f`, expense `#ff5c7a`, transfer `#d4a64a`. Nothing else on screen is colored.
+- **Terminal grid**: all radii are `0` (sharp corners everywhere). 56px topbar, 248px sidebar, 64px bottom nav.
+- **CSS files**: `main.css` (tokens, reset, typography), `layout.css` (sidebar, topbar, bottom nav), `components.css` (cards, buttons, forms, modals, toasts), `dashboard.css` (wallet grid, charts, cash-flow breakdown), `pages.css` (budget, accounts, add-transaction, settings).
+- See `MEMORY.md` → flow-design-system for the full rule set (replaced the earlier IBM Plex Sans / teal-accent theme).
 
 ### Mobile
 
