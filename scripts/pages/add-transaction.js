@@ -238,7 +238,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const prefixEl = document.getElementById('currencyPrefix');
     if (prefixEl) {
       try {
-        const sym = (0).toLocaleString('en', { style: 'currency', currency: c, minimumFractionDigits: 0 }).replace(/[\d,.\s]/g, '').trim();
+        /* Use formatCurrency()'s locale so CAD shows "$", not the en-US "CA$". */
+        const locale = (typeof CURRENCY_LOCALES !== 'undefined' && CURRENCY_LOCALES[c]) || 'en-CA';
+        const sym = (0).toLocaleString(locale, { style: 'currency', currency: c, minimumFractionDigits: 0 }).replace(/[\d,.\s]/g, '').trim();
         prefixEl.textContent = sym || '$';
       } catch { prefixEl.textContent = '$'; }
     }

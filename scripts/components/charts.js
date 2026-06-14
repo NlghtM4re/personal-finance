@@ -44,9 +44,16 @@ const Charts = {
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   },
 
+  /* Match formatCurrency()'s locale so the symbol agrees across the page
+     (e.g. CAD → en-CA → "$", not the en-US "CA$"). */
+  _locale() {
+    const c = localStorage.getItem('pf_currency') || 'CAD';
+    return (typeof CURRENCY_LOCALES !== 'undefined' && CURRENCY_LOCALES[c]) || 'en-CA';
+  },
+
   _currencySymbol() {
     const c = localStorage.getItem('pf_currency') || 'CAD';
-    try { return (0).toLocaleString('en', { style: 'currency', currency: c, minimumFractionDigits: 0 }).replace(/[\d,.\s]/g, '').trim() || '$'; }
+    try { return (0).toLocaleString(this._locale(), { style: 'currency', currency: c, minimumFractionDigits: 0 }).replace(/[\d,.\s]/g, '').trim() || '$'; }
     catch { return '$'; }
   },
 
@@ -60,7 +67,7 @@ const Charts = {
 
   _fmtFull(val) {
     const currency = localStorage.getItem('pf_currency') || 'CAD';
-    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(val); }
+    try { return new Intl.NumberFormat(this._locale(), { style: 'currency', currency }).format(val); }
     catch { return `$${Math.abs(val).toFixed(2)}`; }
   },
 
