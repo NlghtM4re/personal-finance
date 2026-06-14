@@ -236,14 +236,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   /* Set currency prefix */
   SettingsStore.getCurrency().then(c => {
     const prefixEl = document.getElementById('currencyPrefix');
-    if (prefixEl) {
-      try {
-        /* Use formatCurrency()'s locale so CAD shows "$", not the en-US "CA$". */
-        const locale = (typeof CURRENCY_LOCALES !== 'undefined' && CURRENCY_LOCALES[c]) || 'en-CA';
-        const sym = (0).toLocaleString(locale, { style: 'currency', currency: c, minimumFractionDigits: 0 }).replace(/[\d,.\s]/g, '').trim();
-        prefixEl.textContent = sym || '$';
-      } catch { prefixEl.textContent = '$'; }
-    }
+    const amountEl = document.getElementById('txAmount');
+    if (!prefixEl) return;
+    try {
+      /* Use formatCurrency()'s locale so CAD shows "$", not the en-US "CA$". */
+      const locale = (typeof CURRENCY_LOCALES !== 'undefined' && CURRENCY_LOCALES[c]) || 'en-CA';
+      const sym = (0).toLocaleString(locale, { style: 'currency', currency: c, minimumFractionDigits: 0 }).replace(/[\d,.\s]/g, '').trim();
+      prefixEl.textContent = sym || '$';
+    } catch { prefixEl.textContent = '$'; }
+
+    /* Pad the input to clear the prefix's real width — a fixed padding
+       overlaps multi-char symbols (CA$, US$) as you type, esp. on mobile. */
+    const syncPad = () => {
+      if (!amountEl) return;
+      amountEl.style.paddingLeft = `${Math.ceil(prefixEl.offsetLeft + prefixEl.getBoundingClientRect().width + 8)}px`;
+    };
+    syncPad();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncPad);
   });
 
   try {
