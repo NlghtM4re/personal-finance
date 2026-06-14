@@ -151,7 +151,6 @@
   min-width: 0;
 }
 .acct-tile:hover { background: var(--color-surface-2); }
-.acct-tile--lead { background: var(--color-surface-2); }
 
 .acct-tile__top {
   display: flex;
@@ -170,7 +169,6 @@
   color: var(--color-text);
   flex-shrink: 0;
 }
-.acct-tile--lead .acct-tile__avatar { background: #ffffff; color: #0a0a0a; border-color: #ffffff; }
 
 .acct-tile__id { min-width: 0; }
 .acct-tile__name {
@@ -320,7 +318,44 @@
   flex-wrap: wrap;
 }
 
-/* Spending page: donut + top-expenses two-up (was orphaned by rewrite) */
+/* Spending / Income segmented toggle */
+.seg-toggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  align-self: flex-start;
+}
+.seg-btn {
+  padding: 9px 20px;
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: none;
+  border-right: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.seg-btn:last-child { border-right: none; }
+.seg-btn:hover { color: var(--color-text); }
+.seg-btn.active { background: #ffffff; color: #0a0a0a; }
+
+/* Spending/Income: donut + ranked breakdown in one balanced panel */
+.cat-overview__body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  align-items: center;
+}
+.cat-overview__donut { height: 230px; }
+.cat-overview__list { width: 100%; }
+@media (max-width: 700px) {
+  .cat-overview__body { grid-template-columns: 1fr; gap: 16px; }
+}
+
+/* legacy two-up (kept harmless) */
 .dashboard-hero {
   display: grid;
   grid-template-columns: 1.1fr 1fr;

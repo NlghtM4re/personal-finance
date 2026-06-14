@@ -1,10 +1,11 @@
 /* ============================================================
-   spending.js — Spending analysis page
+   spending.js — Spending / Income analysis (toggle between the two)
    ============================================================ */
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 let currentMonth = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+let mode = 'expense';  /* 'expense' (Spending) | 'income' (Income) */
 
 function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
 
@@ -20,6 +21,12 @@ function updateMonthNav() {
 async function renderSpending() {
   updateMonthNav();
 
+  const isIncome = mode === 'income';
+
+  /* Panel titles reflect the active mode (topbar stays "Cash Flow") */
+  setText('catTitle',   isIncome ? 'Income by Category' : 'Spending by Category');
+  setText('trendTitle', isIncome ? 'Income Trend'       : 'Spending Trend');
+
   const allTx = await TransactionStore.getAll();
   const prefix = getMonthPrefix(currentMonth.year, currentMonth.month);
   const monthTx = allTx.filter(t => t.date.startsWith(prefix));
@@ -33,11 +40,13 @@ async function renderSpending() {
   const netEl = document.getElementById('spendNet');
   if (netEl) netEl.style.color = net >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
 
-  /* Category donut */
-  const byCategory = SummaryEngine.getByCategory(monthTx);
+  /* Category donut for the active type */
+  const byCategory = SummaryEngine.getByCategory(monthTx, mode);
   const catEmpty = document.getElementById('categoryChartEmpty');
-  const legendEl = document.getElementById('categoryLegend');
   const breakdownEl = document.getElementById('spendingBreakdown');
+  const amtColor = isIncome ? 'var(--color-income)' : 'var(--color-expense)';
+
+  if (catEmpty) catEmpty.querySelector('span').textContent = isIncome ? 'No income this period.' : 'No expenses this period.';
 
   if (byCategory.length > 0) {
     catEmpty?.setAttribute('hidden', '');
@@ -45,19 +54,10 @@ async function renderSpending() {
     const slices = byCategory.map((b, i) => ({
       label: escapeHTML(catObjects[i]?.name) || 'Other',
       value: b.total,
-      icon:  catObjects[i]?.icon || '📦',
+      icon:  catObjects[i]?.icon || (isIncome ? '💰' : '📦'),
     }));
 
-    Charts.drawDonutChart('categoryCanvas', slices);
-
-    if (legendEl) {
-      legendEl.innerHTML = slices.map((sl, i) => `
-        <div class="legend-item">
-          <span class="legend-dot" style="background:${Charts.COLORS[i % Charts.COLORS.length]}"></span>
-          <span class="legend-label">${sl.label}</span>
-          <span class="legend-amount">${formatCurrency(sl.value)}</span>
-        </div>`).join('');
-    }
+    Charts.drawDonutChart('categoryCanvas', slices, false, isIncome ? 'Total earned' : 'Total spent');
 
     const total = slices.reduce((s, sl) => s + sl.value, 0);
     const barHTML = slices.map((sl, i) => {
@@ -72,7 +72,7 @@ async function renderSpending() {
             </div>
           </div>
           <div class="spending-item__meta">
-            <div class="spending-item__amount">${formatCurrency(sl.value)}</div>
+            <div class="spending-item__amount" style="color:${amtColor}">${formatCurrency(sl.value)}</div>
             <div class="spending-item__pct">${pct}%</div>
           </div>
         </div>`;
@@ -81,20 +81,22 @@ async function renderSpending() {
     if (breakdownEl) breakdownEl.innerHTML = barHTML;
   } else {
     catEmpty?.removeAttribute('hidden');
-    if (legendEl)    legendEl.innerHTML    = '';
-    if (breakdownEl) breakdownEl.innerHTML = '<div class="empty-state">No expenses this month.</div>';
+    if (breakdownEl) breakdownEl.innerHTML = `<div class="empty-state">No ${isIncome ? 'income' : 'expenses'} this month.</div>`;
   }
 
-  /* Spending trend bar chart (monthly totals for selected year) */
+  /* Monthly trend bar chart for the selected year */
   const year = parseInt(document.getElementById('trendYear')?.value || new Date().getFullYear());
   const monthly = SummaryEngine.getMonthlyRollup(allTx, year);
   const trendEmpty = document.getElementById('trendChartEmpty');
-  const hasData = monthly.some(m => m.expense > 0);
+  if (trendEmpty) trendEmpty.querySelector('span').textContent = isIncome ? 'No income data yet.' : 'No expense data yet.';
+  const hasData = monthly.some(m => (isIncome ? m.income : m.expense) > 0);
   if (hasData) {
     trendEmpty?.setAttribute('hidden', '');
-    const expenseOnly = monthly.map(m => ({ label: m.label, income: 0, expense: m.expense }));
-    if (year === new Date().getFullYear()) expenseOnly[new Date().getMonth()].highlight = true;
-    Charts.drawBarChart('trendCanvas', expenseOnly);
+    const bars = monthly.map(m => isIncome
+      ? ({ label: m.label, income: m.income, expense: 0 })
+      : ({ label: m.label, income: 0, expense: m.expense }));
+    if (year === new Date().getFullYear()) bars[new Date().getMonth()].highlight = true;
+    Charts.drawBarChart('trendCanvas', bars);
   } else {
     trendEmpty?.removeAttribute('hidden');
   }
@@ -118,6 +120,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Spending page error:', err);
     showToast('Error loading data: ' + err.message, 'error');
   }
+
+  /* Spending / Income toggle */
+  document.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.mode === mode) return;
+      mode = btn.dataset.mode;
+      document.querySelectorAll('.seg-btn').forEach(b => {
+        const on = b === btn;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      renderSpending().catch(console.error);
+    });
+  });
 
   document.getElementById('monthNavPrev')?.addEventListener('click', async () => {
     currentMonth.month--;

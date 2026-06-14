@@ -228,11 +228,12 @@ const Charts = {
   },
 
   /* ── DONUT CHART ─────────────────────────────────────────── */
-  drawDonutChart(canvasId, slices, _redraw) {
+  drawDonutChart(canvasId, slices, _redraw, centerLabel) {
     if (!_redraw) {
       const r = this._setup(canvasId);
       if (!r) return;
       this._state[canvasId] = { type: 'donut', data: slices, hoverIdx: -1,
+        centerLabel: centerLabel || 'Total spent',
         _ctx: r.ctx, _w: r.w, _h: r.h, _canvas: r.canvas };
     }
     const s = this._state[canvasId];
@@ -288,7 +289,7 @@ const Charts = {
       ctx.fillStyle = this._textColor();
       ctx.font = '11px "Inter", sans-serif';
       ctx.textBaseline = 'bottom';
-      ctx.fillText('Total spent', cx, cy + 1);
+      ctx.fillText(s.centerLabel || 'Total spent', cx, cy + 1);
       ctx.fillStyle = this._textStrong();
       ctx.font = 'bold 16px "Inter", sans-serif';
       ctx.textBaseline = 'top';

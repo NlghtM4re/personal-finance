@@ -318,14 +318,14 @@ function renderAccounts(accounts, balanceMap, allTx) {
 
   const TYPE_LABEL = { bank: 'Bank', cash: 'Cash', savings: 'Savings', investment: 'Investment', credit: 'Credit', other: 'Other' };
 
-  /* lead tile = largest balance */
+  /* largest balance first */
   const sorted = [...accounts].sort((a, b) => (balanceMap[b.id] ?? 0) - (balanceMap[a.id] ?? 0));
 
-  el.innerHTML = sorted.map((a, i) => {
+  el.innerHTML = sorted.map((a) => {
     const bal  = balanceMap[a.id] ?? 0;
     const hist = accountHistory(allTx, a.id, bal, 30);
     return `
-      <div class="acct-tile${i === 0 ? ' acct-tile--lead' : ''}">
+      <div class="acct-tile">
         <div class="acct-tile__top">
           <span class="acct-tile__avatar">${escapeHTML((a.name || '?').charAt(0).toUpperCase())}</span>
           <div class="acct-tile__id">

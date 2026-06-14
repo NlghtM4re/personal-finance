@@ -17,6 +17,7 @@
     dashboard:     '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
     transactions:  '<path d="M7 16V4m0 0L3 8m4-4 4 4M17 8v12m0 0 4-4m-4 4-4-4"/>',
     spending:      '<path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>',
+    income:        '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
     budget:        '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
     subscriptions: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
     recurring:     '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
@@ -34,7 +35,7 @@
   const NAV_ITEMS = [
     { id: 'dashboard',     label: 'Dashboard',       icon: 'dashboard',     href: 'index.html',                sidebar: true, bottom: true },
     { id: 'transactions',  label: 'Transactions',    icon: 'transactions',  href: 'pages/accounts.html',       sidebar: true, bottom: true },
-    { id: 'spending',      label: 'Spending',        icon: 'spending',      href: 'pages/spending.html',       sidebar: true, money: true, sheet: true },
+    { id: 'spending',      label: 'Cash Flow',       icon: 'spending',      href: 'pages/spending.html',       sidebar: true, money: true, sheet: true },
     { id: 'budget',        label: 'Budget',          icon: 'budget',        href: 'pages/budget.html',         sidebar: true, money: true, sheet: true },
     { id: 'subscriptions', label: 'Subscriptions',   icon: 'subscriptions', href: 'pages/subscriptions.html',  sidebar: true, money: true, sheet: true },
     { id: 'recurring',     label: 'Recurring',       icon: 'recurring',     href: 'pages/recurring.html',      sidebar: true, sheet: true },

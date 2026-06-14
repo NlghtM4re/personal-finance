@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="apple-touch-icon" href="/icons/icon-180.png" />
-  <title>Spending — Flow</title>
+  <title>Cash Flow — Flow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="../styles/pages.css" />
   <link rel="stylesheet" href="../styles/dashboard.css" />
 </head>
-<body data-title="Spending">
+<body data-title="Cash Flow">
 
   <aside class="sidebar" id="sidebar"></aside>
 
@@ -26,6 +26,12 @@
     <header class="topbar" id="topbar"></header>
 
     <main class="main-content">
+
+      <!-- Spending / Income toggle -->
+      <div class="seg-toggle" role="tablist" aria-label="View">
+        <button type="button" class="seg-btn active" id="modeExpense" data-mode="expense" role="tab" aria-selected="true">Spending</button>
+        <button type="button" class="seg-btn" id="modeIncome" data-mode="income" role="tab" aria-selected="false">Income</button>
+      </div>
 
       <!-- Period picker -->
       <div class="spending-period-bar">
@@ -56,33 +62,29 @@
         </div>
       </div>
 
-      <!-- Top row: donut + top expenses -->
-      <section class="dashboard-hero">
-        <div class="card chart-card">
-          <div class="card-header">
-            <h2 class="card-title">Spending by Category</h2>
-          </div>
-          <div class="chart-container chart-container--donut">
-            <canvas id="categoryCanvas" role="img" aria-label="Spending by category donut chart"></canvas>
-            <div class="chart-empty" id="categoryChartEmpty"><span>No expenses this period.</span></div>
-          </div>
-          <div class="legend" id="categoryLegend"></div>
+      <!-- Category breakdown: donut + ranked list in one panel -->
+      <section class="card chart-card cat-overview">
+        <div class="card-header">
+          <h2 class="card-title" id="catTitle">Spending by Category</h2>
         </div>
-        <div class="card spending-breakdown-card">
-          <div class="card-header"><h2 class="card-title">Top Expenses</h2></div>
-          <div id="spendingBreakdown" class="spending-breakdown"></div>
+        <div class="cat-overview__body">
+          <div class="chart-container chart-container--donut cat-overview__donut">
+            <canvas id="categoryCanvas" role="img" aria-label="Category breakdown donut chart"></canvas>
+            <div class="chart-empty" id="categoryChartEmpty"><span>No data this period.</span></div>
+          </div>
+          <div id="spendingBreakdown" class="spending-breakdown cat-overview__list"></div>
         </div>
       </section>
 
       <!-- Monthly trend -->
       <section class="card chart-card chart-card--full">
         <div class="card-header">
-          <h2 class="card-title">Spending Trend</h2>
+          <h2 class="card-title" id="trendTitle">Spending Trend</h2>
           <select class="select--sm" id="trendYear"></select>
         </div>
         <div class="chart-container">
-          <canvas id="trendCanvas" role="img" aria-label="Monthly spending trend bar chart"></canvas>
-          <div class="chart-empty" id="trendChartEmpty"><span>No expense data yet.</span></div>
+          <canvas id="trendCanvas" role="img" aria-label="Monthly trend bar chart"></canvas>
+          <div class="chart-empty" id="trendChartEmpty"><span>No data yet.</span></div>
         </div>
       </section>
 

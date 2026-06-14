@@ -33,11 +33,11 @@ const SummaryEngine = {
     return map;
   },
 
-  /* Spending totals grouped by category */
-  getByCategory(transactions) {
+  /* Totals grouped by category for a given type (expense by default) */
+  getByCategory(transactions, type = 'expense') {
     const map = {};
     transactions.forEach(t => {
-      if (t.type !== 'expense') return;
+      if (t.type !== type) return;
       if (!map[t.categoryId]) map[t.categoryId] = 0;
       map[t.categoryId] += t.amount;
     });
