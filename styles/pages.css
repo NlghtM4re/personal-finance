@@ -6,29 +6,35 @@
    BUDGET PAGE
    ============================================================ */
 
-.budget-page { display: flex; flex-direction: column; gap: 12px; }
+.budget-page { display: flex; flex-direction: column; gap: 10px; }
 
-/* Month navigator */
+/* Month navigator — compact left group (no edge-pinned buttons) */
 .budget-month-nav {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
+  display: flex; align-items: center; justify-content: flex-start;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 7px 10px;
 }
 .budget-month-label {
-  font-size: 1.125rem; font-weight: 700; letter-spacing: -0.03em;
-  color: var(--color-text); flex: 1; text-align: center;
+  font-family: var(--font-display);
+  font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.02em;
+  color: var(--color-text); flex: 0 0 auto; min-width: 150px; text-align: center;
 }
 
 /* Summary strip */
 .budget-summary-strip {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
 }
 .budget-summary-card { padding: 16px 20px; }
 .budget-summary-card__label {
-  font-size: 0.6875rem; font-weight: 600; color: var(--color-text-muted);
-  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;
+  font-family: var(--font-display);
+  font-size: 0.625rem; font-weight: 600; color: var(--color-text-muted);
+  text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px;
 }
 .budget-summary-card__value {
-  font-size: 1.5rem; font-weight: 700; letter-spacing: -0.04em; color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.5rem; font-weight: 600; letter-spacing: -0.04em; color: var(--color-text);
 }
 .budget-summary-card__value--expense { color: var(--color-expense); }
 
@@ -315,16 +321,22 @@
 .acc-group-balance { font-size: 0.9375rem; font-weight: 600; white-space: nowrap; text-align: right; }
 
 /* --- Combined accounts + transactions layout --- */
+/* Stacked: accounts + net worth on top (side by side), transactions full-width below */
 .acctx-layout {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 16px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.acctx-accounts { display: flex; flex-direction: column; gap: 12px; position: sticky; top: calc(var(--topbar-height) + 12px); min-width: 0; }
+.acctx-accounts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+}
 .acctx-accounts > .card { display: flex; flex-direction: column; }
 .acctx-accounts .accounts-grid { display: flex; flex-direction: column; }
-.acctx-transactions { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.acctx-transactions { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .acctx-transactions > .card:last-child { display: flex; flex-direction: column; }
 .acctx-transactions > .card:last-child .tx-list-full { max-height: max(420px, calc(100vh - 320px)); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
 .acctx-transactions > .card:last-child .tx-list-full::-webkit-scrollbar { width: 4px; }
@@ -429,9 +441,8 @@
 .acc-stat-value--income  { color: var(--color-income); }
 .acc-stat-value--expense { color: var(--color-expense); }
 
-@media (max-width: 1100px) {
-  .acctx-layout { grid-template-columns: 1fr; }
-  .acctx-accounts { position: static; }
+@media (max-width: 640px) {
+  .acctx-accounts { grid-template-columns: 1fr; }
 }
 
 /* --- Transactions header --- */
@@ -783,14 +794,17 @@
    SUBSCRIPTIONS PAGE
    ============================================================ */
 
-.subs-page { display: flex; flex-direction: column; gap: 12px; }
+.subs-page { display: flex; flex-direction: column; gap: 10px; }
 
-/* Main two-col grid: list left, form right */
+/* Main grid: list full-width until the add/edit form is open */
 .subs-main-grid {
   display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 10px;
   align-items: start;
+}
+.subs-main-grid.form-open {
+  grid-template-columns: 1fr 360px;
 }
 
 /* List header */
@@ -936,7 +950,7 @@
 .subs-analytics__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 .subs-chart-card { padding: 16px 20px; }
 

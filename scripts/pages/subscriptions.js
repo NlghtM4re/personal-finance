@@ -306,10 +306,12 @@ async function openEditForm(id) {
 
 function showForm() {
   const card = document.getElementById('subFormCard');
+  document.querySelector('.subs-main-grid')?.classList.add('form-open');
   if (card) { card.style.display = ''; card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
 }
 function hideForm() {
   const card = document.getElementById('subFormCard');
+  document.querySelector('.subs-main-grid')?.classList.remove('form-open');
   if (card) card.style.display = 'none';
 }
 

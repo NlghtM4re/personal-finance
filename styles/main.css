@@ -48,10 +48,11 @@
   --sidebar-width:     248px;
   --topbar-height:     56px;
   --bottom-nav-height: 64px;
-  --radius-sm:  6px;
-  --radius-md:  10px;
-  --radius-lg:  14px;
-  --radius-xl:  20px;
+  /* Terminal grid: sharp corners everywhere */
+  --radius-sm:  0;
+  --radius-md:  0;
+  --radius-lg:  0;
+  --radius-xl:  0;
 
   /* Transitions */
   --transition:      0.15s ease;
@@ -120,9 +121,10 @@ h3 { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 0.75rem;
+  padding: 3px 8px;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0;
   white-space: nowrap;
