@@ -214,6 +214,23 @@
 .delta--down { color: var(--color-expense); }
 .delta--flat { color: var(--color-text-muted); }
 
+/* Crypto wallet tiles reuse the account-tile design, distinguished only
+   by a chain-colored coin badge + a coin-amount sub-line. */
+.acct-tile__sub {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.crypto-acct-tile .acct-tile__bal { margin-bottom: 2px; }
+.crypto-acct-tile .acct-tile__avatar {
+  color: var(--chain, var(--color-text));
+  border-color: color-mix(in srgb, var(--chain, var(--color-border)) 45%, var(--color-border));
+  background: color-mix(in srgb, var(--chain, transparent) 14%, transparent);
+  font-size: 0.6rem;
+}
+
 /* ============================================================
    CRYPTO — holdings section (per-wallet tiles + net worth)
    ============================================================ */

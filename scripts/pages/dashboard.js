@@ -181,37 +181,39 @@ async function renderCrypto(bankBalance) {
   }
 }
 
+/* Crypto wallet tile — mirrors the account tile design (avatar + name +
+   type, big value, sparkline + change foot), with a chain-colored coin
+   badge. Shows the wallet's current fiat value and its coin amount. */
 function cryptoTileHTML(r) {
   const w = r.wallet;
   const chain = CHAINS[w.chain] || { symbol: '?', label: w.chain, color: 'var(--color-text)' };
-  const addr = w.addresses.length > 1
-    ? `${w.addresses.length} addresses`
-    : (w.addresses[0] ? `${w.addresses[0].slice(0, 6)}…${w.addresses[0].slice(-4)}` : '');
-  let fiat, sub;
-  if (r.error) {
-    fiat = '—';
-    sub = `<span style="color:var(--color-expense)">lookup failed</span>`;
-  } else {
-    fiat = r.fiat != null ? formatCurrency(r.fiat) : '—';
-    const d = CHAINS[w.chain]?.decimals ?? 8;
-    const amt = r.amount != null ? r.amount.toFixed(d).replace(/\.?0+$/, '') : '0';
-    sub = `${amt} ${chain.symbol}`;
-  }
+  const ok   = !r.error;
+  const fiat = (ok && r.fiat != null) ? formatCurrency(r.fiat) : '—';
+  const dec  = CHAINS[w.chain]?.decimals ?? 8;
+  const sub  = ok
+    ? `${r.amount != null ? r.amount.toFixed(dec).replace(/\.?0+$/, '') : '0'} ${chain.symbol}`
+    : `<span style="color:var(--color-expense)">lookup failed</span>`;
+  const spark = (ok && r.sparkline && r.sparkline.length > 1) ? sparklineSVG(r.sparkline) : '';
+  const foot  = ok ? `${spark}${cryptoDeltaHTML(r.change24h)}` : '';
   return `
-    <div class="crypto-tile" style="--chain:${chain.color};">
-      <div class="crypto-tile__top">
-        <span class="crypto-badge">${chain.symbol}</span>
-        <div style="min-width:0;">
-          <div class="crypto-tile__name">${escapeHTML(w.label)}</div>
-          <div class="crypto-tile__chain">${chain.label}</div>
+    <div class="acct-tile crypto-acct-tile" style="--chain:${chain.color};">
+      <div class="acct-tile__top">
+        <span class="acct-tile__avatar">${chain.symbol}</span>
+        <div class="acct-tile__id">
+          <div class="acct-tile__name">${escapeHTML(w.label)}</div>
+          <div class="acct-tile__type">${chain.label}</div>
         </div>
       </div>
-      <div class="crypto-tile__fiat">${fiat}</div>
-      <div class="crypto-tile__foot">
-        <span class="crypto-sub">${sub}</span>
-        <span class="crypto-addr">${escapeHTML(addr)}</span>
-      </div>
+      <div class="acct-tile__bal font-display">${fiat}</div>
+      <div class="acct-tile__sub">${sub}</div>
+      <div class="acct-tile__foot">${foot}</div>
     </div>`;
+}
+
+function cryptoDeltaHTML(change24h) {
+  if (change24h == null) return `<span class="delta delta--flat">· 24h</span>`;
+  const cls = change24h >= 0 ? 'up' : 'down';
+  return `<span class="delta delta--${cls}">${change24h >= 0 ? '▲ +' : '▼ −'}${Math.abs(change24h).toFixed(1)}% · 24h</span>`;
 }
 
 function updateMonthNav() {

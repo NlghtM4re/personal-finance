@@ -90,19 +90,29 @@ const CryptoBalances = {
     return amounts.reduce((s, x) => s + x, 0);
   },
 
-  /* ---- spot prices in the user's currency (falls back to USD) ---- */
+  /* ---- spot price + 24h change + 7-day sparkline, in the user's
+     currency (falls back to USD). One CoinGecko call. ---- */
   async prices() {
     let cur = (localStorage.getItem('pf_currency') || 'CAD').toLowerCase();
     const ids = Object.values(CHAINS).map(c => c.coingecko).join(',');
     const fetchFor = async (vs) => {
-      const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=${vs}`);
+      const r = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${ids}&sparkline=true&price_change_percentage=24h`);
       if (!r.ok) throw new Error('Price lookup failed');
       return r.json();
     };
-    let j = await fetchFor(cur);
-    if (Object.values(CHAINS).every(c => j[c.coingecko]?.[cur] == null)) { cur = 'usd'; j = await fetchFor(cur); }
+    let arr = await fetchFor(cur);
+    if (!Array.isArray(arr) || !arr.length) { cur = 'usd'; arr = await fetchFor(cur); }
+    const byGecko = {};
+    (Array.isArray(arr) ? arr : []).forEach(c => { byGecko[c.id] = c; });
     const map = {};
-    for (const c of Object.values(CHAINS)) map[c.id] = j[c.coingecko]?.[cur] ?? null;
+    for (const c of Object.values(CHAINS)) {
+      const d = byGecko[c.coingecko];
+      map[c.id] = {
+        price:     d?.current_price ?? null,
+        change24h: d?.price_change_percentage_24h ?? null,
+        sparkline: d?.sparkline_in_7d?.price || [],
+      };
+    }
     return { currency: cur.toUpperCase(), map };
   },
 
@@ -121,11 +131,11 @@ const CryptoBalances = {
     const items = await Promise.all(wallets.map(async (w) => {
       try {
         const amount = await this.walletAmount(w);
-        const price  = prices.map[w.chain];
-        const fiat   = price != null ? amount * price : null;
-        return { wallet: w, amount, fiat, error: null };
+        const p      = prices.map[w.chain] || {};
+        const fiat   = p.price != null ? amount * p.price : null;
+        return { wallet: w, amount, fiat, change24h: p.change24h ?? null, sparkline: p.sparkline || [], error: null };
       } catch (e) {
-        return { wallet: w, amount: null, fiat: null, error: e.message || 'Lookup failed' };
+        return { wallet: w, amount: null, fiat: null, change24h: null, sparkline: [], error: e.message || 'Lookup failed' };
       }
     }));
 
