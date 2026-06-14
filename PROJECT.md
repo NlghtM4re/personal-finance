@@ -103,6 +103,7 @@ type Budget = {
 | `SettingsStore` | Data (`store.js`) | Currency preference, persisted to Supabase | ✅ Done |
 | `CSVService` | Service | Import/export CSV ↔ transactions | ✅ Done |
 | Custom categories | Data (`store.js`) | User-editable categories (add/edit/emoji/delete) | ✅ Done |
+| `CryptoBalances` / `CryptoStore` | Data (`crypto.js`) | Read-only BTC/SOL wallet balances via public APIs; localStorage | ✅ Done |
 
 ---
 
@@ -272,6 +273,7 @@ personal finance/
 - 2026-06-13 — "Flow" redesign — crypto-wallet mono UI: true black, white accent, color = data only, JetBrains Mono money, Inter UI; replaced IBM Plex Sans. See `MEMORY.md` / flow-design-system for the rules
 - 2026-06-14 — Spending + Income merged into one Cash Flow page — removed the redundant separate Income view
 - 2026-06-14 — Currency symbol unified to `formatCurrency`'s locale (`CURRENCY_LOCALES` map) — chart donut center and amount-input prefix were using en-US and rendered CAD as `CA$` instead of `$`
+- 2026-06-14 — Added read-only **Crypto** balances (BTC + SOL) — public addresses only, never keys/seeds, no signing. Balances via keyless public APIs (Blockstream / publicnode RPC / CoinGecko). v1 stores wallets in localStorage; Supabase sync and net-worth integration are follow-ups
 
 ---
 
