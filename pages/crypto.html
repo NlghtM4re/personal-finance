@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+  <title>Crypto — Flow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+  <link rel="stylesheet" href="../styles/layout.css" />
+  <link rel="stylesheet" href="../styles/components.css" />
+  <link rel="stylesheet" href="../styles/pages.css" />
+</head>
+<body data-title="Crypto">
+
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="overlay" id="overlay"></div>
+  <div class="main-wrapper">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="main-content">
+      <div class="crypto-page" id="cryptoPage">
+
+        <!-- Total -->
+        <div class="card" style="padding:18px 20px;">
+          <div style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-muted);">Crypto holdings · <span id="cryptoCurrency">CAD</span></div>
+          <div class="font-display" id="cryptoTotal" style="font-size:2rem;font-weight:700;margin-top:4px;">—</div>
+          <div style="font-size:.75rem;color:var(--color-text-muted);margin-top:2px;"><span id="cryptoWalletCount">0 wallets</span> · read-only · <a href="#" id="cryptoRefresh" style="color:var(--color-text-light);">refresh</a></div>
+        </div>
+
+        <!-- Security note -->
+        <div class="card" style="padding:12px 16px;display:flex;gap:10px;align-items:flex-start;">
+          <span style="flex-shrink:0;color:var(--color-income);margin-top:1px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </span>
+          <div style="font-size:.75rem;line-height:1.55;color:var(--color-text-muted);">
+            <strong style="color:var(--color-text);">Read-only.</strong> Paste your <strong style="color:var(--color-text);">public receive address</strong> only — the app just looks up the balance. It can never move funds.
+            <strong style="color:var(--color-expense);">Never paste a seed phrase or private key</strong> here (or anywhere you didn't generate it).
+          </div>
+        </div>
+
+        <!-- Add wallet -->
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="padding:13px 16px;border-bottom:1px solid var(--color-border);font-size:.875rem;font-weight:600;">Add a wallet</div>
+          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <select id="cwChain" class="settings-select" style="flex:0 0 auto;">
+                <option value="btc">Bitcoin (BTC)</option>
+                <option value="sol">Solana (SOL)</option>
+              </select>
+              <input id="cwLabel" class="form-input" type="text" placeholder="Label (optional)" maxlength="32" style="flex:1 1 140px;min-width:120px;" autocomplete="off" />
+            </div>
+            <input id="cwAddress" class="form-input" type="text" placeholder="Public address" autocomplete="off" spellcheck="false" />
+            <div id="cwError" style="display:none;font-size:.75rem;color:var(--color-expense);"></div>
+            <div id="cwBtcHint" style="display:none;font-size:.72rem;color:var(--color-text-muted);line-height:1.5;">
+              Exodus rotates BTC receive addresses, so one address may show only part of your balance. Add each address you've received to, to cover the full total.
+            </div>
+            <div>
+              <button id="cwAddBtn" class="btn btn--primary btn--sm">Add wallet</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wallet list -->
+        <div class="card" id="cryptoListCard" style="padding:0;overflow:hidden;">
+          <div id="cryptoList"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <nav class="bottom-nav" id="bottomNav" aria-label="Main navigation"></nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../scripts/data/supabase.js"></script>
+  <script src="../scripts/data/store.js"></script>
+  <script src="../scripts/data/crypto.js"></script>
+  <script src="../scripts/components/nav.js"></script>
+  <script src="../scripts/components/ui.js"></script>
+  <script src="../scripts/pages/crypto.js"></script>
+</body>
+</html>
