@@ -191,7 +191,6 @@ function cryptoTileHTML(r) {
     ? `${r.amount != null ? r.amount.toFixed(dec).replace(/\.?0+$/, '') : '0'} ${chain.symbol}`
     : `<span style="color:var(--color-expense)">lookup failed</span>`;
   const spark = (ok && r.sparkline && r.sparkline.length > 1) ? sparklineSVG(r.sparkline) : '';
-  const foot  = ok ? `${spark}${cryptoDeltaHTML(r.change24h)}` : '';
   return `
     <div class="acct-tile crypto-acct-tile" style="--chain:${chain.color};">
       <div class="acct-tile__top">
@@ -201,9 +200,14 @@ function cryptoTileHTML(r) {
           <div class="acct-tile__type">${chain.label}</div>
         </div>
       </div>
-      <div class="acct-tile__bal font-display">${fiat}</div>
-      <div class="acct-tile__sub">${sub}</div>
-      <div class="acct-tile__foot">${foot}</div>
+      <div class="acct-tile__main">
+        <div class="acct-tile__figures">
+          <div class="acct-tile__bal font-display">${fiat}</div>
+          <div class="acct-tile__sub">${sub}</div>
+          ${ok ? cryptoDeltaHTML(r.change24h) : ''}
+        </div>
+        <div class="acct-tile__chart">${spark}</div>
+      </div>
     </div>`;
 }
 
@@ -340,7 +344,9 @@ function accountHistory(allTx, accountId, currentBal, days = 30) {
   return out;
 }
 
-function sparklineSVG(values, w = 84, h = 22) {
+/* Responsive sparkline — stretches to its container (preserveAspectRatio
+   none) with a non-scaling stroke so the line stays crisp at any size. */
+function sparklineSVG(values, w = 120, h = 48) {
   const min = Math.min(...values), max = Math.max(...values);
   const range = max - min || 1;
   const pts = values.map((v, i) =>
@@ -350,7 +356,7 @@ function sparklineSVG(values, w = 84, h = 22) {
   const color = Math.abs(last - first) < 0.005
     ? 'var(--color-text-muted)'
     : (last >= first ? 'var(--color-income)' : 'var(--color-expense)');
-  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  return `<svg class="spark" width="100%" height="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
 function deltaHTML(bal, base) {
@@ -394,10 +400,12 @@ function renderAccounts(accounts, balanceMap, allTx) {
             <div class="acct-tile__type">${TYPE_LABEL[a.type] || a.type}</div>
           </div>
         </div>
-        <div class="acct-tile__bal font-display" style="${bal < 0 ? 'color:var(--color-expense)' : ''}">${formatCurrency(bal)}</div>
-        <div class="acct-tile__foot">
-          ${sparklineSVG(hist)}
-          ${deltaHTML(bal, hist[0])}
+        <div class="acct-tile__main">
+          <div class="acct-tile__figures">
+            <div class="acct-tile__bal font-display" style="${bal < 0 ? 'color:var(--color-expense)' : ''}">${formatCurrency(bal)}</div>
+            ${deltaHTML(bal, hist[0])}
+          </div>
+          <div class="acct-tile__chart">${sparklineSVG(hist)}</div>
         </div>
       </div>`;
   }).join('');

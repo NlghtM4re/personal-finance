@@ -4,7 +4,7 @@
    scripts/data/crypto.js for the security model and storage.
    ============================================================ */
 
-function sparklineSVG(values, w = 84, h = 22) {
+function sparklineSVG(values, w = 120, h = 48) {
   const min = Math.min(...values), max = Math.max(...values);
   const range = max - min || 1;
   const pts = values.map((v, i) =>
@@ -14,7 +14,7 @@ function sparklineSVG(values, w = 84, h = 22) {
   const color = Math.abs(last - first) < 1e-9
     ? 'var(--color-text-muted)'
     : (last >= first ? 'var(--color-income)' : 'var(--color-expense)');
-  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  return `<svg class="spark" width="100%" height="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
 function delta24hHTML(change24h) {
@@ -36,9 +36,10 @@ function cryptoTileHTML(r) {
     fiat = r.fiat != null ? formatCurrency(r.fiat) : '—';
     const dec = CHAINS[w.chain]?.decimals ?? 8;
     sub = `${r.amount != null ? r.amount.toFixed(dec).replace(/\.?0+$/, '') : '0'} ${chain.symbol}`;
-    const spark = (r.sparkline && r.sparkline.length > 1) ? sparklineSVG(r.sparkline) : '';
-    foot = `${spark}${delta24hHTML(r.change24h)}`;
+    const sp = (r.sparkline && r.sparkline.length > 1) ? sparklineSVG(r.sparkline) : '';
+    foot = sp;
   }
+  const delta = (!r.loading && !r.error) ? delta24hHTML(r.change24h) : '';
   return `
     <div class="acct-tile crypto-acct-tile" style="--chain:${chain.color};" data-id="${w.id}">
       <div class="crypto-tile__actions">
@@ -54,9 +55,14 @@ function cryptoTileHTML(r) {
           <div class="acct-tile__type">${chain.label}</div>
         </div>
       </div>
-      <div class="acct-tile__bal font-display">${fiat}</div>
-      <div class="acct-tile__sub">${sub}</div>
-      <div class="acct-tile__foot">${foot}</div>
+      <div class="acct-tile__main">
+        <div class="acct-tile__figures">
+          <div class="acct-tile__bal font-display">${fiat}</div>
+          <div class="acct-tile__sub">${sub}</div>
+          ${delta}
+        </div>
+        <div class="acct-tile__chart">${foot}</div>
+      </div>
     </div>`;
 }
 

@@ -149,6 +149,9 @@
   padding: 14px 16px;
   transition: background var(--transition);
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .acct-tile:hover { background: var(--color-surface-2); }
 
@@ -156,7 +159,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
 }
 .acct-tile__avatar {
   width: 28px; height: 28px;
@@ -183,25 +185,29 @@
   color: var(--color-text-muted);
 }
 
+/* lower row: figures on the left, a big graph on the right */
+.acct-tile__main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.acct-tile__figures { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.acct-tile__chart { flex: 0 0 46%; max-width: 46%; height: 48px; align-self: center; }
+.acct-tile__chart .spark { display: block; width: 100%; height: 100%; opacity: .9; }
+
 .acct-tile__bal {
-  font-size: 1.0625rem;
+  font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--color-text);
-  margin-bottom: 10px;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.acct-tile__foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.spark { flex-shrink: 0; opacity: .9; }
+.spark { opacity: .9; }
 
 .delta {
   font-family: var(--font-display);
@@ -220,11 +226,10 @@
   font-family: var(--font-display);
   font-size: 0.72rem;
   color: var(--color-text-muted);
-  margin-bottom: 10px;
+  margin: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .crypto-acct-tile { position: relative; }
-.crypto-acct-tile .acct-tile__bal { margin-bottom: 2px; }
 .crypto-acct-tile .acct-tile__avatar {
   color: var(--chain, var(--color-text));
   border-color: color-mix(in srgb, var(--chain, var(--color-border)) 45%, var(--color-border));
