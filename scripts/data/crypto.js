@@ -231,6 +231,21 @@ const CryptoStore = {
     return { ...w, addresses };
   },
 
+  async update(id, patch) {
+    if (await this._detect() === 'local') {
+      const list = this._local();
+      const w = list.find(x => x.id === id);
+      if (w) { Object.assign(w, patch); this._persistLocal(list); }
+      return w && this._normalize(w);
+    }
+    const row = {};
+    if (patch.label     !== undefined) row.label     = patch.label;
+    if (patch.addresses !== undefined) row.addresses = patch.addresses;
+    const { data, error } = await sb.from('crypto_wallets').update(row).eq('id', id).select().single();
+    if (error) throw new Error(error.message);
+    return this._normalize(data);
+  },
+
   async remove(id) {
     if (await this._detect() === 'local') {
       this._persistLocal(this._local().filter(w => w.id !== id));

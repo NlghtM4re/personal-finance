@@ -128,7 +128,7 @@
 .dash-right {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
   min-width: 0;
 }
 @media (max-width: 1100px) {
@@ -231,14 +231,26 @@
   background: color-mix(in srgb, var(--chain, transparent) 14%, transparent);
   font-size: 0.6rem;
 }
-/* remove control on the Crypto page tiles (not shown on the dashboard) */
+/* edit/remove controls on the Crypto page tiles (not on the dashboard) */
+.crypto-tile__actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 2px; }
+.crypto-tile__edit,
 .crypto-tile__del {
-  position: absolute; top: 8px; right: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
   background: none; border: none; cursor: pointer;
-  color: var(--color-text-light); font-size: 0.85rem; line-height: 1; padding: 4px;
+  color: var(--color-text-light); padding: 4px; line-height: 1;
   opacity: 0.55; transition: opacity var(--transition), color var(--transition);
 }
+.crypto-tile__del { font-size: 0.85rem; }
+.crypto-tile__edit:hover { opacity: 1; color: var(--color-text); }
 .crypto-tile__del:hover { opacity: 1; color: var(--color-expense); }
+.crypto-rename-input {
+  font-family: var(--font-body);
+  font-size: 0.8125rem; font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border: 1px solid var(--chain, var(--color-border));
+  padding: 2px 6px; width: 100%; max-width: 150px; outline: none;
+}
 
 /* ============================================================
    CRYPTO — holdings section (per-wallet tiles + net worth)

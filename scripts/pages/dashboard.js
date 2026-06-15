@@ -68,9 +68,6 @@ async function initDashboard() {
   const heroMonthEl = document.getElementById('heroMonthLabel');
   if (heroMonthEl) heroMonthEl.textContent = '· ' + now.toLocaleString('en-US', { month: 'short', year: 'numeric' });
 
-  setText('accountsCount', String(accounts.length));
-  setText('txCount', allTx.length >= 1000 ? (allTx.length / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(allTx.length));
-
   /* cinematic count-up for the balance */
   animateValue(document.getElementById('totalBalance'), totalBalance, formatCurrency, 1400);
   animateValue(document.getElementById('monthIncome'),  monthTotals.income,  formatCurrency);

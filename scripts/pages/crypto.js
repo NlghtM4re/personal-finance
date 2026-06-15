@@ -41,7 +41,12 @@ function cryptoTileHTML(r) {
   }
   return `
     <div class="acct-tile crypto-acct-tile" style="--chain:${chain.color};" data-id="${w.id}">
-      <button class="crypto-tile__del" data-id="${w.id}" aria-label="Remove wallet">✕</button>
+      <div class="crypto-tile__actions">
+        <button class="crypto-tile__edit" data-id="${w.id}" aria-label="Rename wallet">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+        </button>
+        <button class="crypto-tile__del" data-id="${w.id}" aria-label="Remove wallet">✕</button>
+      </div>
       <div class="acct-tile__top">
         <span class="acct-tile__avatar">${chain.symbol}</span>
         <div class="acct-tile__id">
@@ -141,6 +146,38 @@ function wireTileActions(container) {
         await renderCryptoPage();
         showToast('Wallet removed', 'success');
       } catch (e2) { showToast(e2.message || 'Failed to remove', 'error'); }
+    });
+  });
+
+  /* inline rename: pencil → editable name input, save on Enter/blur */
+  container.querySelectorAll('.crypto-tile__edit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const nameEl = btn.closest('.acct-tile')?.querySelector('.acct-tile__name');
+      if (!nameEl) return;
+      const current = nameEl.textContent;
+      const input = document.createElement('input');
+      input.type = 'text'; input.value = current; input.maxLength = 32;
+      input.className = 'crypto-rename-input';
+      nameEl.replaceWith(input);
+      input.focus(); input.select();
+
+      let settled = false;
+      const finish = async (commit) => {
+        if (settled) return; settled = true;
+        const next = input.value.trim();
+        if (commit && next && next !== current) {
+          try { await CryptoStore.update(id, { label: next }); showToast('Wallet renamed', 'success'); }
+          catch (err) { showToast(err.message || 'Rename failed', 'error'); }
+        }
+        renderCryptoPage();
+      };
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
+        else if (ev.key === 'Escape') { finish(false); }
+      });
+      input.addEventListener('blur', () => finish(true));
     });
   });
 }

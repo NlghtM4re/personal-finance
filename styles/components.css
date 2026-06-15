@@ -446,4 +446,4 @@ select.form-control {
 .crypto-add__form { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
 .crypto-add__row { display: flex; gap: 8px; flex-wrap: wrap; }
 .crypto-add__row .settings-select { flex: 0 0 auto; }
-.crypto-add__row .form-input { flex: 1 1 140px; min-width: 120px; }
+.crypto-add__row .form-control { flex: 1 1 140px; min-width: 120px; }
