@@ -149,7 +149,7 @@
             <div class="settings-divider" id="customCatsDivider" style="display:none;"></div>
             <div class="settings-row" style="gap:10px;flex-wrap:wrap;padding:14px 18px;">
               <input type="text" id="newCatName" class="form-control" placeholder="Category name" maxlength="30" style="flex:1;min-width:120px;font-size:.875rem;padding:7px 10px;" />
-              <input type="text" id="newCatIcon" class="form-control" placeholder="🏷️" maxlength="4" style="width:54px;font-size:1.1rem;text-align:center;padding:7px 6px;" />
+              <input type="hidden" id="newCatIcon" />
               <select id="newCatType" class="settings-select">
                 <option value="expense">Expense</option>
                 <option value="income">Income</option>
@@ -158,7 +158,7 @@
               <button type="button" id="addCatBtn" class="btn btn--primary btn--sm">Add</button>
               <button type="button" id="cancelEditCatBtn" class="btn btn--ghost btn--sm" style="display:none;">Cancel</button>
             </div>
-            <div id="emojiQuickRow" style="display:flex;gap:4px;flex-wrap:wrap;padding:0 18px 14px;"></div>
+            <div id="newCatIconGrid" class="icon-picker" style="padding:0 18px 14px;"></div>
           </div>
         </section>
 

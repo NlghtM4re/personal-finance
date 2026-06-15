@@ -4,7 +4,7 @@
 
 /* ---- Custom categories ---- */
 const CAT_TYPE_LABEL = { expense: 'Expense', income: 'Income', both: 'Income & expense' };
-const CAT_EMOJIS = ['🏷️','🍕','☕','🍺','⛽','🚲','🚌','💊','👶','🧸','🧹','🛠️','🎵','📱','💻','🌱','🎨','⚽','🎬','💄','🏦','🎓','🧳','🐕'];
+/* category icons come from the Lucide picker (see icons.js) */
 let editingCatId = null;
 
 async function renderCustomCats() {
@@ -40,7 +40,7 @@ async function renderCustomCats() {
       if (!cat) return;
       editingCatId = cat.id;
       document.getElementById('newCatName').value = cat.name;
-      document.getElementById('newCatIcon').value = cat.icon || '';
+      renderIconPicker(document.getElementById('newCatIconGrid'), document.getElementById('newCatIcon'), cat.lucide);
       document.getElementById('newCatType').value = cat.type || 'expense';
       document.getElementById('addCatBtn').textContent = 'Update';
       document.getElementById('cancelEditCatBtn').style.display = '';
@@ -56,7 +56,7 @@ async function renderCustomCats() {
 function resetCatForm() {
   editingCatId = null;
   document.getElementById('newCatName').value = '';
-  document.getElementById('newCatIcon').value = '';
+  renderIconPicker(document.getElementById('newCatIconGrid'), document.getElementById('newCatIcon'));
   document.getElementById('newCatType').value = 'expense';
   document.getElementById('addCatBtn').textContent = 'Add';
   document.getElementById('cancelEditCatBtn').style.display = 'none';
@@ -64,7 +64,7 @@ function resetCatForm() {
 
 async function saveCustomCat() {
   const name = document.getElementById('newCatName')?.value.trim().slice(0, 30);
-  const icon = document.getElementById('newCatIcon')?.value.trim() || '🏷️';
+  const lucide = document.getElementById('newCatIcon')?.value.trim() || 'tag';
   const type = document.getElementById('newCatType')?.value || 'expense';
   if (!name) { showToast('Enter a category name', 'error'); return; }
 
@@ -78,11 +78,11 @@ async function saveCustomCat() {
   const cats = await SettingsStore.getCustomCategories();
   if (editingCatId) {
     const cat = cats.find(c => c.id === editingCatId);
-    if (cat) { cat.name = name; cat.icon = icon; cat.type = type; }
+    if (cat) { cat.name = name; cat.lucide = lucide; delete cat.icon; cat.type = type; }
     await SettingsStore.setCustomCategories(cats);
     showToast('Category updated', 'success');
   } else {
-    cats.push({ id: 'custom-' + Date.now().toString(36), name, icon, type });
+    cats.push({ id: 'custom-' + Date.now().toString(36), name, lucide, type });
     await SettingsStore.setCustomCategories(cats);
     showToast('Category added', 'success');
   }
@@ -189,26 +189,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('addCatBtn')?.addEventListener('click', saveCustomCat);
   document.getElementById('cancelEditCatBtn')?.addEventListener('click', resetCatForm);
 
-  /* Enter in either input saves */
-  ['newCatName', 'newCatIcon'].forEach(id => {
-    document.getElementById(id)?.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); saveCustomCat(); }
-    });
+  /* Enter in the name input saves */
+  document.getElementById('newCatName')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); saveCustomCat(); }
   });
 
-  /* emoji quick-pick fills the icon field */
-  const emojiRow = document.getElementById('emojiQuickRow');
-  if (emojiRow) {
-    emojiRow.innerHTML = CAT_EMOJIS.map(e =>
-      `<button type="button" class="emoji-pick-btn" data-emoji="${e}" aria-label="Use ${e} as icon">${e}</button>`
-    ).join('');
-    emojiRow.querySelectorAll('.emoji-pick-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.getElementById('newCatIcon').value = btn.dataset.emoji;
-        document.getElementById('newCatName').focus();
-      });
-    });
-  }
+  /* Lucide icon picker fills the hidden icon field */
+  renderIconPicker(document.getElementById('newCatIconGrid'), document.getElementById('newCatIcon'));
 
   document.getElementById('logoutBtn')?.addEventListener('click', async () => {
     await SupaAuth.signOut();

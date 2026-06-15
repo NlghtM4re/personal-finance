@@ -170,9 +170,9 @@
       </div>
       <div style="display:flex;gap:10px;margin-bottom:10px;">
         <input type="text" id="quickCatName" class="form-control" placeholder="Category name" maxlength="30" style="flex:1;" />
-        <input type="text" id="quickCatIcon" class="form-control" placeholder="🏷️" maxlength="4" style="width:54px;font-size:1.1rem;text-align:center;" />
+        <input type="hidden" id="quickCatIcon" />
       </div>
-      <div id="quickCatEmojiRow" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;"></div>
+      <div id="quickCatEmojiRow" class="icon-picker" style="margin-bottom:6px;"></div>
       <p style="color:var(--color-text-muted);font-size:.75rem;line-height:1.5;" id="quickCatTypeHint"></p>
       <div class="modal-footer">
         <button class="btn btn--ghost" id="cancelNewCat">Cancel</button>

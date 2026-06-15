@@ -64,31 +64,20 @@ async function renderCategoryPicker() {
 }
 
 /* ---- quick custom category from the picker ---- */
-const QUICK_CAT_EMOJIS = ['🏷️','🍕','☕','🍺','⛽','🚲','💊','👶','🧹','🛠️','🎵','📱','🌱','🎨','⚽','💄','🏦','🐕'];
-
 function openNewCatModal() {
   const modal = document.getElementById('newCatModal');
   if (!modal) return;
   document.getElementById('quickCatName').value = '';
-  document.getElementById('quickCatIcon').value = '';
   document.getElementById('quickCatTypeHint').textContent =
     `Will be created as ${selectedType === 'income' ? 'an income' : 'an expense'} category. Manage categories in Settings.`;
-  const row = document.getElementById('quickCatEmojiRow');
-  if (row && !row.children.length) {
-    row.innerHTML = QUICK_CAT_EMOJIS.map(e =>
-      `<button type="button" class="emoji-pick-btn" data-emoji="${e}" aria-label="Use ${e} as icon">${e}</button>`
-    ).join('');
-    row.querySelectorAll('.emoji-pick-btn').forEach(btn => {
-      btn.addEventListener('click', () => { document.getElementById('quickCatIcon').value = btn.dataset.emoji; });
-    });
-  }
+  renderIconPicker(document.getElementById('quickCatEmojiRow'), document.getElementById('quickCatIcon'));
   modal.classList.add('open');
   document.getElementById('quickCatName').focus();
 }
 
 async function saveQuickCat() {
   const name = document.getElementById('quickCatName')?.value.trim().slice(0, 30);
-  const icon = document.getElementById('quickCatIcon')?.value.trim() || '🏷️';
+  const lucide = document.getElementById('quickCatIcon')?.value.trim() || 'tag';
   if (!name) { showToast('Enter a category name', 'error'); return; }
 
   const all = await CategoryStore.getAll();
@@ -101,13 +90,13 @@ async function saveQuickCat() {
   btn.disabled = true;
   try {
     const cats = await SettingsStore.getCustomCategories();
-    const cat = { id: 'custom-' + Date.now().toString(36), name, icon, type: selectedType === 'income' ? 'income' : 'expense' };
+    const cat = { id: 'custom-' + Date.now().toString(36), name, lucide, type: selectedType === 'income' ? 'income' : 'expense' };
     cats.push(cat);
     await SettingsStore.setCustomCategories(cats);
     selectedCategory = cat.id;
     document.getElementById('newCatModal')?.classList.remove('open');
     await renderCategoryPicker();
-    showToast(`${icon} ${name} created`, 'success');
+    showToast(`${name} created`, 'success');
   } catch (err) {
     showToast(err.message || 'Failed to create category', 'error');
   } finally {
