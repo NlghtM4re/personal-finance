@@ -22,7 +22,7 @@ async function renderCustomCats() {
 
   listEl.innerHTML = cats.map(c => `
     <div class="settings-row" style="gap:10px;">
-      <span style="font-size:1.2rem;width:32px;text-align:center;flex-shrink:0;">${escapeHTML(c.icon) || '🏷️'}</span>
+      <span style="width:32px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;color:var(--color-text-muted);">${categoryIconHTML(c, 18)}</span>
       <div class="settings-row__info">
         <div class="settings-row__title">${escapeHTML(c.name)}</div>
         <div class="settings-row__sub">${CAT_TYPE_LABEL[c.type] || escapeHTML(c.type)}</div>

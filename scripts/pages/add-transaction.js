@@ -48,7 +48,7 @@ async function renderCategoryPicker() {
     : await CategoryStore.getByType(selectedType);
   container.innerHTML = cats.map(c => `
     <button type="button" class="category-btn${selectedCategory === c.id ? ' selected' : ''}" data-cat="${c.id}">
-      <span class="cat-icon">${c.icon}</span>
+      <span class="cat-icon">${categoryIconHTML(c, 22)}</span>
       <span>${escapeHTML(c.name)}</span>
     </button>
   `).join('') + (selectedType === 'transfer' ? '' : `

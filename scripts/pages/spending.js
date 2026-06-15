@@ -54,7 +54,7 @@ async function renderSpending() {
     const slices = byCategory.map((b, i) => ({
       label: escapeHTML(catObjects[i]?.name) || 'Other',
       value: b.total,
-      icon:  catObjects[i]?.icon || (isIncome ? '💰' : '📦'),
+      cat:   catObjects[i],
     }));
 
     Charts.drawDonutChart('categoryCanvas', slices, false, isIncome ? 'Total earned' : 'Total spent');
@@ -64,7 +64,7 @@ async function renderSpending() {
       const pct = total > 0 ? Math.round((sl.value / total) * 100) : 0;
       return `
         <div class="spending-item">
-          <div class="spending-item__icon">${sl.icon}</div>
+          <div class="spending-item__icon">${categoryIconHTML(sl.cat, 18)}</div>
           <div class="spending-item__info">
             <div class="spending-item__name">${sl.label}</div>
             <div class="spending-item__bar-wrap">

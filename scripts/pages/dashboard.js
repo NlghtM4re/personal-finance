@@ -268,7 +268,7 @@ async function renderRecurringBanner() {
     <div class="recurring-banner__list">
       ${due.map((r, i) => `
         <div class="recurring-item" data-id="${r.id}">
-          <div class="recurring-item__icon">${cats[i]?.icon || '📦'}</div>
+          <div class="recurring-item__icon">${categoryIconHTML(cats[i], 16)}</div>
           <div class="recurring-item__info">
             <div class="recurring-item__name">${escapeHTML(r.note) || cats[i]?.name || 'Transaction'}</div>
             <div class="recurring-item__meta">${freqLabel[r.frequency] || r.frequency} · due ${formatDate(r.nextDue)}</div>
@@ -474,7 +474,7 @@ function txItemHTML(t, cat) {
   const sign = t.type === 'income' ? '+' : t.type === 'expense' ? '−' : '↔';
   return `
     <div class="tx-item">
-      <div class="tx-icon tx-icon--${t.type}">${cat?.icon || '📦'}</div>
+      <div class="tx-icon tx-icon--${t.type}">${categoryIconHTML(cat, 18)}</div>
       <div class="tx-info">
         <div class="tx-name">${escapeHTML(t.note) || cat?.name || 'Transaction'}</div>
         <div class="tx-meta">${formatDate(t.date)} · ${cat?.name || '—'}</div>

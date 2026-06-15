@@ -472,11 +472,11 @@ async function renderAnalytics(subs) {
     if (legendEl) {
       legendEl.innerHTML = catEntries.map(([id, val], i) => {
         const name = escapeHTML(catLookup[id]?.name) || 'Uncategorized';
-        const icon = catLookup[id]?.icon || '📦';
+        const icon = categoryIconHTML(catLookup[id], 14);
         return `
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="width:8px;height:8px;border-radius:50%;background:${SUB_COLORS[i % SUB_COLORS.length]};flex-shrink:0;"></span>
-            <span style="font-size:.8125rem;color:var(--color-text-muted);flex:1;">${icon} ${name}</span>
+            <span style="font-size:.8125rem;color:var(--color-text-muted);flex:1;display:inline-flex;align-items:center;gap:5px;">${icon}${name}</span>
             <span style="font-size:.8125rem;font-weight:600;color:var(--color-text);">${formatCurrency(val)}/mo</span>
           </div>`;
       }).join('');

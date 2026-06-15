@@ -162,7 +162,7 @@ function categoryRowHTML(cat, spent, budget) {
   return `
     <div class="budget-row" data-cat="${cat.id}">
       <div class="budget-row__cat">
-        <div class="budget-row__icon">${cat.icon}</div>
+        <div class="budget-row__icon">${categoryIconHTML(cat, 18)}</div>
         <div class="budget-row__name">${cat.name}</div>
       </div>
       <div class="budget-row__bar-wrap">

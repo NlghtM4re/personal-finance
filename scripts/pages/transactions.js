@@ -83,7 +83,7 @@ function txItemFullHTML(t, cat, acc) {
   const sign = t.type === 'income' ? '+' : t.type === 'expense' ? '−' : '↔';
   return `
     <div class="tx-item" data-id="${t.id}">
-      <div class="tx-icon tx-icon--${t.type}">${cat?.icon || '📦'}</div>
+      <div class="tx-icon tx-icon--${t.type}">${categoryIconHTML(cat, 18)}</div>
       <div class="tx-info">
         <div class="tx-name">${escapeHTML(t.note) || escapeHTML(cat?.name) || 'Transaction'}</div>
         <div class="tx-meta">${escapeHTML(cat?.name) || '—'} · ${escapeHTML(acc?.name) || '—'}</div>

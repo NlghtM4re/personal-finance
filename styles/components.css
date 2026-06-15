@@ -224,9 +224,10 @@ select.form-control {
   transition: transform var(--transition);
 }
 .tx-item:hover .tx-icon { transform: scale(1.05); }
-.tx-icon--income   { background: var(--color-income-light); }
-.tx-icon--expense  { background: var(--color-expense-light); }
-.tx-icon--transfer { background: var(--color-transfer-light); }
+.tx-icon--income   { background: var(--color-income-light);   color: var(--color-income); }
+.tx-icon--expense  { background: var(--color-expense-light);  color: var(--color-expense); }
+.tx-icon--transfer { background: var(--color-transfer-light); color: var(--color-transfer); }
+.cat-emoji { font-style: normal; line-height: 1; }
 
 .tx-info { flex: 1; min-width: 0; }
 .tx-name {
