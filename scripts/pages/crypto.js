@@ -1,19 +1,93 @@
 /* ============================================================
-   crypto.js (page) — read-only crypto wallet balances.
+   crypto.js (page) — read-only crypto portfolio.
    Public addresses only; never handles keys/seeds. See
    scripts/data/crypto.js for the security model and storage.
    ============================================================ */
 
-function maskAddress(addresses) {
-  if (addresses.length > 1) return `${addresses.length} addresses`;
-  const a = addresses[0] || '';
-  return a.length > 14 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a;
+function sparklineSVG(values, w = 84, h = 22) {
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) =>
+    `${((i / (values.length - 1)) * w).toFixed(1)},${(h - 2 - ((v - min) / range) * (h - 4)).toFixed(1)}`
+  ).join(' ');
+  const first = values[0], last = values[values.length - 1];
+  const color = Math.abs(last - first) < 1e-9
+    ? 'var(--color-text-muted)'
+    : (last >= first ? 'var(--color-income)' : 'var(--color-expense)');
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
-function formatCoin(amount, chain) {
-  const d = CHAINS[chain]?.decimals ?? 8;
-  const s = amount.toFixed(d).replace(/\.?0+$/, '');
-  return `${s} ${CHAINS[chain]?.symbol || ''}`;
+function delta24hHTML(change24h) {
+  if (change24h == null) return `<span class="delta delta--flat">· 24h</span>`;
+  const cls = change24h >= 0 ? 'up' : 'down';
+  return `<span class="delta delta--${cls}">${change24h >= 0 ? '▲ +' : '▼ −'}${Math.abs(change24h).toFixed(1)}% · 24h</span>`;
+}
+
+/* Account-style wallet tile (matches the dashboard) */
+function cryptoTileHTML(r) {
+  const w = r.wallet;
+  const chain = CHAINS[w.chain] || { symbol: '?', label: w.chain, color: 'var(--color-text)' };
+  let fiat, sub, foot;
+  if (r.loading) {
+    fiat = '…'; sub = ''; foot = '';
+  } else if (r.error) {
+    fiat = '—'; sub = `<span style="color:var(--color-expense)">lookup failed</span>`; foot = '';
+  } else {
+    fiat = r.fiat != null ? formatCurrency(r.fiat) : '—';
+    const dec = CHAINS[w.chain]?.decimals ?? 8;
+    sub = `${r.amount != null ? r.amount.toFixed(dec).replace(/\.?0+$/, '') : '0'} ${chain.symbol}`;
+    const spark = (r.sparkline && r.sparkline.length > 1) ? sparklineSVG(r.sparkline) : '';
+    foot = `${spark}${delta24hHTML(r.change24h)}`;
+  }
+  return `
+    <div class="acct-tile crypto-acct-tile" style="--chain:${chain.color};" data-id="${w.id}">
+      <button class="crypto-tile__del" data-id="${w.id}" aria-label="Remove wallet">✕</button>
+      <div class="acct-tile__top">
+        <span class="acct-tile__avatar">${chain.symbol}</span>
+        <div class="acct-tile__id">
+          <div class="acct-tile__name">${escapeHTML(w.label)}</div>
+          <div class="acct-tile__type">${chain.label}</div>
+        </div>
+      </div>
+      <div class="acct-tile__bal font-display">${fiat}</div>
+      <div class="acct-tile__sub">${sub}</div>
+      <div class="acct-tile__foot">${foot}</div>
+    </div>`;
+}
+
+function renderHeroChange(items) {
+  const el = document.getElementById('cryptoHeroChange');
+  if (!el) return;
+  let num = 0, den = 0;
+  items.forEach(it => { if (it.fiat != null && it.change24h != null) { num += it.fiat * it.change24h; den += it.fiat; } });
+  if (!den) { el.hidden = true; return; }
+  const pct = num / den;
+  el.hidden = false;
+  el.className = 'delta ' + (pct >= 0 ? 'delta--up' : 'delta--down');
+  el.textContent = `${pct >= 0 ? '▲ +' : '▼ −'}${Math.abs(pct).toFixed(1)}% · 24h`;
+}
+
+function renderAllocation(items) {
+  const allocEl  = document.getElementById('cryptoAlloc');
+  const legendEl = document.getElementById('cryptoLegend');
+  if (!allocEl || !legendEl) return;
+
+  const byChain = {};
+  items.forEach(it => { if (it.fiat) byChain[it.wallet.chain] = (byChain[it.wallet.chain] || 0) + it.fiat; });
+  const total = Object.values(byChain).reduce((s, v) => s + v, 0);
+  if (!total) { allocEl.hidden = true; legendEl.hidden = true; return; }
+
+  const entries = Object.entries(byChain).sort((a, b) => b[1] - a[1]);
+  allocEl.hidden = false; legendEl.hidden = false;
+  allocEl.innerHTML = entries.map(([chain, v]) => {
+    const c = CHAINS[chain]?.color || 'var(--color-text-muted)';
+    return `<span class="crypto-alloc__seg" style="width:${(v / total) * 100}%;background:${c};"></span>`;
+  }).join('');
+  legendEl.innerHTML = entries.map(([chain, v]) => {
+    const pct = (v / total) * 100;
+    const c = CHAINS[chain]?.color || 'var(--color-text-muted)';
+    return `<span class="crypto-legend__item"><span class="crypto-legend__dot" style="background:${c};"></span>${CHAINS[chain]?.symbol || chain} ${pct.toFixed(pct < 10 ? 1 : 0)}%</span>`;
+  }).join('');
 }
 
 async function renderCryptoPage() {
@@ -25,61 +99,40 @@ async function renderCryptoPage() {
 
   let wallets;
   try { wallets = await CryptoStore.getAll(); }
-  catch (e) { listEl.innerHTML = `<div style="padding:20px 16px;color:var(--color-expense);font-size:.8rem;">${escapeHTML(e.message || 'Failed to load wallets')}</div>`; return; }
+  catch (e) { listEl.innerHTML = `<div class="empty-state" style="grid-column:1/-1;background:var(--color-surface);color:var(--color-expense);padding:24px;">${escapeHTML(e.message || 'Failed to load wallets')}</div>`; return; }
 
   countEl.textContent = `${wallets.length} wallet${wallets.length === 1 ? '' : 's'}`;
 
   if (!wallets.length) {
     totalEl.textContent = formatCurrency(0);
+    document.getElementById('cryptoHeroChange').hidden = true;
+    document.getElementById('cryptoAlloc').hidden = true;
+    document.getElementById('cryptoLegend').hidden = true;
     listEl.innerHTML = `
-      <div style="padding:36px 24px;text-align:center;color:var(--color-text-muted);">
-        <div style="font-size:.9375rem;font-weight:600;color:var(--color-text);margin-bottom:6px;">No wallets yet</div>
-        <div style="font-size:.8125rem;line-height:1.6;">Add a Bitcoin or Solana <strong>public address</strong> above to see its live balance.</div>
+      <div class="empty-state" style="grid-column:1/-1;background:var(--color-surface);padding:36px 24px;text-align:center;">
+        <div style="font-weight:600;color:var(--color-text);margin-bottom:6px;">No wallets yet</div>
+        <div style="font-size:.8125rem;line-height:1.6;">Add a Bitcoin or Solana <strong>public address</strong> to see its live balance.</div>
       </div>`;
     return;
   }
 
   /* loading state */
-  listEl.innerHTML = wallets.map(w => walletRowHTML(w, null)).join('');
+  listEl.innerHTML = wallets.map(w => cryptoTileHTML({ wallet: w, loading: true })).join('');
   totalEl.textContent = '…';
 
   const snap = await CryptoBalances.snapshot(wallets);
   curEl.textContent = snap.currency;
-  listEl.innerHTML = snap.items.map(r => walletRowHTML(r.wallet, r)).join('');
-  wireRowActions(listEl);
   totalEl.textContent = formatCurrency(snap.total) + (snap.anyMissing ? ' +' : '');
+  renderHeroChange(snap.items);
+  renderAllocation(snap.items);
+  listEl.innerHTML = snap.items.map(cryptoTileHTML).join('');
+  wireTileActions(listEl);
 }
 
-function walletRowHTML(w, result) {
-  const chain = CHAINS[w.chain] || { symbol: '?', label: w.chain, color: 'var(--color-text)' };
-  let right;
-  if (!result) {
-    right = `<div class="crypto-sub">…</div>`;
-  } else if (result.error) {
-    right = `<div style="font-size:.72rem;color:var(--color-expense);text-align:right;max-width:120px;">${escapeHTML(result.error)}</div>`;
-  } else {
-    const fiat = result.fiat != null ? formatCurrency(result.fiat) : '—';
-    right = `
-      <div style="text-align:right;">
-        <div class="crypto-amt" style="font-size:.95rem;">${fiat}</div>
-        <div class="crypto-sub">${formatCoin(result.amount, w.chain)}</div>
-      </div>`;
-  }
-  return `
-    <div class="crypto-row" style="--chain:${chain.color};" data-id="${w.id}">
-      <div class="crypto-badge">${chain.symbol}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:.875rem;font-weight:600;color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHTML(w.label)} <span style="color:var(--color-text-muted);font-weight:400;font-size:.78rem;">· ${chain.label}</span></div>
-        <div class="crypto-addr">${escapeHTML(maskAddress(w.addresses))}</div>
-      </div>
-      ${right}
-      <button class="crypto-row__del" data-id="${w.id}" aria-label="Remove wallet">✕</button>
-    </div>`;
-}
-
-function wireRowActions(container) {
-  container.querySelectorAll('.crypto-row__del').forEach(btn => {
-    btn.addEventListener('click', async () => {
+function wireTileActions(container) {
+  container.querySelectorAll('.crypto-tile__del').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
       const w = (await CryptoStore.getAll()).find(x => x.id === btn.dataset.id);
       if (!w) return;
       if (!confirm(`Remove "${w.label}"? This only removes it from this view — your wallet and funds are untouched.`)) return;
@@ -87,12 +140,14 @@ function wireRowActions(container) {
         await CryptoStore.remove(btn.dataset.id);
         await renderCryptoPage();
         showToast('Wallet removed', 'success');
-      } catch (e) { showToast(e.message || 'Failed to remove', 'error'); }
+      } catch (e2) { showToast(e2.message || 'Failed to remove', 'error'); }
     });
   });
 }
 
 function wireAddForm() {
+  const toggle    = document.getElementById('cwToggle');
+  const panel     = document.getElementById('cwPanel');
   const chainEl   = document.getElementById('cwChain');
   const labelEl   = document.getElementById('cwLabel');
   const addrEl    = document.getElementById('cwAddress');
@@ -100,11 +155,15 @@ function wireAddForm() {
   const btcHintEl = document.getElementById('cwBtcHint');
   const addBtn    = document.getElementById('cwAddBtn');
 
-  const showError = (msg) => {
-    errEl.textContent = msg;
-    errEl.style.display = msg ? '' : 'none';
-  };
-  const syncHint = () => { btcHintEl.style.display = chainEl.value === 'btc' ? '' : 'none'; };
+  const showError = (msg) => { errEl.textContent = msg; errEl.style.display = msg ? '' : 'none'; };
+  const syncHint  = () => { btcHintEl.style.display = chainEl.value === 'btc' ? '' : 'none'; };
+
+  toggle.addEventListener('click', () => {
+    const open = panel.hidden;
+    panel.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    if (open) addrEl.focus();
+  });
   chainEl.addEventListener('change', () => { syncHint(); showError(''); });
   addrEl.addEventListener('input', () => showError(''));
   syncHint();
@@ -116,9 +175,8 @@ function wireAddForm() {
     addBtn.disabled = true;
     try {
       await CryptoStore.add({ label: labelEl.value, chain, addresses: [check.value] });
-      labelEl.value = '';
-      addrEl.value = '';
-      showError('');
+      labelEl.value = ''; addrEl.value = ''; showError('');
+      panel.hidden = true; toggle.setAttribute('aria-expanded', 'false');
       await renderCryptoPage();
       showToast('Wallet added', 'success');
     } catch (e) {
@@ -137,8 +195,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!user) return;
   wireAddForm();
   renderCryptoPage();
-  document.getElementById('cryptoRefresh')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    renderCryptoPage();
-  });
+  document.getElementById('cryptoRefresh')?.addEventListener('click', (e) => { e.preventDefault(); renderCryptoPage(); });
 });

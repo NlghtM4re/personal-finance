@@ -409,39 +409,41 @@ select.form-control {
 .link--sm:hover { color: var(--color-primary); text-decoration: none; }
 
 /* ============================================================
-   CRYPTO WALLET CARDS — shared by the Crypto page + dashboard.
-   Flow (true black, mono, sharp corners) with a wallet-style
-   chain accent. Each element sets --chain to the chain color.
+   CRYPTO PAGE — portfolio hero, allocation bar, add-wallet.
+   (Wallet tiles reuse the .acct-tile design from dashboard.css.)
    ============================================================ */
-.crypto-badge {
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  width: 34px; height: 34px;
-  border: 1px solid color-mix(in srgb, var(--chain, var(--color-border)) 40%, var(--color-border));
-  background: color-mix(in srgb, var(--chain, transparent) 12%, transparent);
-  color: var(--chain, var(--color-text));
-  font-family: var(--font-display);
-  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em;
-}
-.crypto-amt { font-family: var(--font-display); font-weight: 700; color: var(--color-text); }
-.crypto-sub { font-family: var(--font-display); font-size: 0.72rem; color: var(--color-text-muted); }
-.crypto-addr { font-family: var(--font-display); font-size: 0.72rem; color: var(--color-text-light); }
+.crypto-page { display: flex; flex-direction: column; gap: 10px; }
 
-/* Crypto page — horizontal wallet row with a left chain rail */
-.crypto-row {
-  position: relative;
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px 14px 18px;
-  border-bottom: 1px solid var(--color-border-light);
+.crypto-hero { padding: 18px 20px; }
+.crypto-hero__label {
+  font-family: var(--font-display);
+  font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--color-text-muted);
 }
-.crypto-row::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 2px; background: var(--chain, var(--color-text-muted)); opacity: 0.85;
+.crypto-hero__row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+.crypto-hero__total { font-size: 2.1rem; font-weight: 700; letter-spacing: -0.02em; color: var(--color-text); }
+.crypto-hero__meta { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 12px; }
+.crypto-hero__meta a { color: var(--color-text-light); }
+
+.crypto-alloc { display: flex; height: 6px; gap: 2px; margin-top: 14px; overflow: hidden; }
+.crypto-alloc__seg { height: 100%; min-width: 3px; }
+.crypto-legend {
+  display: flex; flex-wrap: wrap; gap: 14px; margin-top: 9px;
+  font-family: var(--font-display); font-size: 0.72rem; color: var(--color-text-muted);
 }
-.crypto-row__del {
-  flex-shrink: 0; background: none; border: none;
-  color: var(--color-text-muted); cursor: pointer;
-  font-size: 1rem; line-height: 1; padding: 4px;
-  transition: color var(--transition);
+.crypto-legend__item { display: inline-flex; align-items: center; gap: 6px; }
+.crypto-legend__dot { width: 8px; height: 8px; flex-shrink: 0; }
+
+.crypto-add { display: flex; flex-direction: column; gap: 8px; }
+.crypto-add__toggle { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; }
+.crypto-add__panel { padding: 0; overflow: hidden; }
+.crypto-add__note {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 16px; border-bottom: 1px solid var(--color-border);
+  font-size: 0.75rem; line-height: 1.5; color: var(--color-text-muted);
 }
-.crypto-row__del:hover { color: var(--color-expense); }
+.crypto-add__shield { flex-shrink: 0; color: var(--color-income); margin-top: 1px; }
+.crypto-add__form { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.crypto-add__row { display: flex; gap: 8px; flex-wrap: wrap; }
+.crypto-add__row .settings-select { flex: 0 0 auto; }
+.crypto-add__row .form-input { flex: 1 1 140px; min-width: 120px; }

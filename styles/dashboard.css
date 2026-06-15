@@ -223,6 +223,7 @@
   margin-bottom: 10px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.crypto-acct-tile { position: relative; }
 .crypto-acct-tile .acct-tile__bal { margin-bottom: 2px; }
 .crypto-acct-tile .acct-tile__avatar {
   color: var(--chain, var(--color-text));
@@ -230,6 +231,14 @@
   background: color-mix(in srgb, var(--chain, transparent) 14%, transparent);
   font-size: 0.6rem;
 }
+/* remove control on the Crypto page tiles (not shown on the dashboard) */
+.crypto-tile__del {
+  position: absolute; top: 8px; right: 8px;
+  background: none; border: none; cursor: pointer;
+  color: var(--color-text-light); font-size: 0.85rem; line-height: 1; padding: 4px;
+  opacity: 0.55; transition: opacity var(--transition), color var(--transition);
+}
+.crypto-tile__del:hover { opacity: 1; color: var(--color-expense); }
 
 /* ============================================================
    CRYPTO — holdings section (per-wallet tiles + net worth)

@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="../styles/layout.css" />
   <link rel="stylesheet" href="../styles/components.css" />
   <link rel="stylesheet" href="../styles/pages.css" />
+  <link rel="stylesheet" href="../styles/dashboard.css" />
 </head>
 <body data-title="Crypto">
 
@@ -26,50 +27,59 @@
     <main class="main-content">
       <div class="crypto-page" id="cryptoPage">
 
-        <!-- Total -->
-        <div class="card" style="padding:18px 20px;">
-          <div style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-muted);">Crypto holdings · <span id="cryptoCurrency">CAD</span></div>
-          <div class="font-display" id="cryptoTotal" style="font-size:2rem;font-weight:700;margin-top:4px;">—</div>
-          <div style="font-size:.75rem;color:var(--color-text-muted);margin-top:2px;"><span id="cryptoWalletCount">0 wallets</span> · read-only · <a href="#" id="cryptoRefresh" style="color:var(--color-text-light);">refresh</a></div>
-        </div>
-
-        <!-- Security note -->
-        <div class="card" style="padding:12px 16px;display:flex;gap:10px;align-items:flex-start;">
-          <span style="flex-shrink:0;color:var(--color-income);margin-top:1px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </span>
-          <div style="font-size:.75rem;line-height:1.55;color:var(--color-text-muted);">
-            <strong style="color:var(--color-text);">Read-only.</strong> Paste your <strong style="color:var(--color-text);">public receive address</strong> only — the app just looks up the balance. It can never move funds.
-            <strong style="color:var(--color-expense);">Never paste a seed phrase or private key</strong> here (or anywhere you didn't generate it).
+        <!-- Portfolio hero -->
+        <div class="card crypto-hero">
+          <div class="crypto-hero__label">Crypto portfolio · <span id="cryptoCurrency">CAD</span></div>
+          <div class="crypto-hero__row">
+            <div class="font-display crypto-hero__total" id="cryptoTotal">—</div>
+            <span class="delta delta--flat" id="cryptoHeroChange" hidden></span>
+          </div>
+          <div class="crypto-alloc" id="cryptoAlloc" hidden></div>
+          <div class="crypto-legend" id="cryptoLegend" hidden></div>
+          <div class="crypto-hero__meta">
+            <span id="cryptoWalletCount">0 wallets</span> · read-only ·
+            <a href="#" id="cryptoRefresh">refresh</a>
           </div>
         </div>
 
-        <!-- Add wallet -->
-        <div class="card" style="padding:0;overflow:hidden;">
-          <div style="padding:13px 16px;border-bottom:1px solid var(--color-border);font-size:.875rem;font-weight:600;">Add a wallet</div>
-          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <select id="cwChain" class="settings-select" style="flex:0 0 auto;">
-                <option value="btc">Bitcoin (BTC)</option>
-                <option value="sol">Solana (SOL)</option>
-              </select>
-              <input id="cwLabel" class="form-input" type="text" placeholder="Label (optional)" maxlength="32" style="flex:1 1 140px;min-width:120px;" autocomplete="off" />
+        <!-- Add wallet (collapsible) -->
+        <div class="crypto-add">
+          <button class="btn btn--ghost crypto-add__toggle" id="cwToggle" aria-expanded="false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add wallet
+          </button>
+          <div class="card crypto-add__panel" id="cwPanel" hidden>
+            <div class="crypto-add__note">
+              <span class="crypto-add__shield">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </span>
+              <div>
+                <strong style="color:var(--color-text);">Read-only.</strong> Paste your <strong style="color:var(--color-text);">public receive address</strong> only.
+                <strong style="color:var(--color-expense);">Never a seed phrase or private key.</strong>
+              </div>
             </div>
-            <input id="cwAddress" class="form-input" type="text" placeholder="Public address" autocomplete="off" spellcheck="false" />
-            <div id="cwError" style="display:none;font-size:.75rem;color:var(--color-expense);"></div>
-            <div id="cwBtcHint" style="display:none;font-size:.72rem;color:var(--color-text-muted);line-height:1.5;">
-              Exodus rotates BTC receive addresses, so one address may show only part of your balance. Add each address you've received to, to cover the full total.
-            </div>
-            <div>
-              <button id="cwAddBtn" class="btn btn--primary btn--sm">Add wallet</button>
+            <div class="crypto-add__form">
+              <div class="crypto-add__row">
+                <select id="cwChain" class="settings-select">
+                  <option value="btc">Bitcoin (BTC)</option>
+                  <option value="sol">Solana (SOL)</option>
+                </select>
+                <input id="cwLabel" class="form-input" type="text" placeholder="Label (optional)" maxlength="32" autocomplete="off" />
+              </div>
+              <input id="cwAddress" class="form-input" type="text" placeholder="Public address" autocomplete="off" spellcheck="false" />
+              <div id="cwError" style="display:none;font-size:.75rem;color:var(--color-expense);"></div>
+              <div id="cwBtcHint" style="display:none;font-size:.72rem;color:var(--color-text-muted);line-height:1.5;">
+                Exodus rotates BTC receive addresses, so one address may show only part of your balance. Add each address you've received to, to cover the full total.
+              </div>
+              <div>
+                <button id="cwAddBtn" class="btn btn--primary btn--sm">Add wallet</button>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Wallet list -->
-        <div class="card" id="cryptoListCard" style="padding:0;overflow:hidden;">
-          <div id="cryptoList"></div>
-        </div>
+        <!-- Wallet tiles -->
+        <div class="term-cells dash-tiles" id="cryptoList"></div>
 
       </div>
     </main>
