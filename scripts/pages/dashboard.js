@@ -193,22 +193,22 @@ function cryptoTileHTML(r) {
   const spark = (ok && r.sparkline && r.sparkline.length > 1) ? sparklineSVG(r.sparkline) : '';
   return `
     <div class="acct-tile crypto-acct-tile" style="--chain:${chain.color};">
-      <div class="acct-tile__top">
-        <span class="acct-tile__avatar">${chain.symbol}</span>
-        <div class="acct-tile__id">
-          <div class="acct-tile__name">${escapeHTML(w.label)}</div>
-          <div class="acct-tile__type">${chain.label}</div>
+      <div class="acct-tile__row1">
+        <div class="acct-tile__top">
+          <span class="acct-tile__avatar">${chain.symbol}</span>
+          <div class="acct-tile__id">
+            <div class="acct-tile__name">${escapeHTML(w.label)}</div>
+            <div class="acct-tile__type">${chain.label}</div>
+          </div>
         </div>
+        <div class="acct-tile__chart">${spark}</div>
       </div>
-      <div class="acct-tile__main">
+      <div class="acct-tile__row2">
         <div class="acct-tile__figures">
           <div class="acct-tile__bal font-display">${fiat}</div>
           <div class="acct-tile__sub">${sub}</div>
         </div>
-        <div class="acct-tile__chartcol">
-          <div class="acct-tile__chart">${spark}</div>
-          ${ok ? cryptoDeltaHTML(r.change24h) : ''}
-        </div>
+        ${ok ? cryptoDeltaHTML(r.change24h) : ''}
       </div>
     </div>`;
 }
@@ -395,21 +395,21 @@ function renderAccounts(accounts, balanceMap, allTx) {
     const hist = accountHistory(allTx, a.id, bal, 30);
     return `
       <div class="acct-tile">
-        <div class="acct-tile__top">
-          <span class="acct-tile__avatar">${escapeHTML((a.name || '?').charAt(0).toUpperCase())}</span>
-          <div class="acct-tile__id">
-            <div class="acct-tile__name">${escapeHTML(a.name)}</div>
-            <div class="acct-tile__type">${TYPE_LABEL[a.type] || a.type}</div>
+        <div class="acct-tile__row1">
+          <div class="acct-tile__top">
+            <span class="acct-tile__avatar">${escapeHTML((a.name || '?').charAt(0).toUpperCase())}</span>
+            <div class="acct-tile__id">
+              <div class="acct-tile__name">${escapeHTML(a.name)}</div>
+              <div class="acct-tile__type">${TYPE_LABEL[a.type] || a.type}</div>
+            </div>
           </div>
+          <div class="acct-tile__chart">${sparklineSVG(hist)}</div>
         </div>
-        <div class="acct-tile__main">
+        <div class="acct-tile__row2">
           <div class="acct-tile__figures">
             <div class="acct-tile__bal font-display" style="${bal < 0 ? 'color:var(--color-expense)' : ''}">${formatCurrency(bal)}</div>
           </div>
-          <div class="acct-tile__chartcol">
-            <div class="acct-tile__chart">${sparklineSVG(hist)}</div>
-            ${deltaHTML(bal, hist[0])}
-          </div>
+          ${deltaHTML(bal, hist[0])}
         </div>
       </div>`;
   }).join('');

@@ -199,6 +199,14 @@
 .acct-tile__chart { width: 100%; height: 44px; }
 .acct-tile__chart .spark { display: block; width: 100%; height: 100%; opacity: .9; }
 
+/* dashboard tiles: graph up in the top row (beside the name); balance +
+   % change on the row below */
+.acct-tile__row1 { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.acct-tile__row1 .acct-tile__top { flex: 1; min-width: 0; }
+.acct-tile__row1 .acct-tile__chart { flex: 0 0 38%; max-width: 38%; height: 40px; }
+.acct-tile__row2 { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.acct-tile__row2 .acct-tile__figures { min-width: 0; }
+
 .acct-tile__bal {
   font-size: 1.0625rem;
   font-weight: 600;
