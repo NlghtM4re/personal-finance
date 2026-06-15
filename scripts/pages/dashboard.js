@@ -204,9 +204,11 @@ function cryptoTileHTML(r) {
         <div class="acct-tile__figures">
           <div class="acct-tile__bal font-display">${fiat}</div>
           <div class="acct-tile__sub">${sub}</div>
+        </div>
+        <div class="acct-tile__chartcol">
+          <div class="acct-tile__chart">${spark}</div>
           ${ok ? cryptoDeltaHTML(r.change24h) : ''}
         </div>
-        <div class="acct-tile__chart">${spark}</div>
       </div>
     </div>`;
 }
@@ -403,9 +405,11 @@ function renderAccounts(accounts, balanceMap, allTx) {
         <div class="acct-tile__main">
           <div class="acct-tile__figures">
             <div class="acct-tile__bal font-display" style="${bal < 0 ? 'color:var(--color-expense)' : ''}">${formatCurrency(bal)}</div>
+          </div>
+          <div class="acct-tile__chartcol">
+            <div class="acct-tile__chart">${sparklineSVG(hist)}</div>
             ${deltaHTML(bal, hist[0])}
           </div>
-          <div class="acct-tile__chart">${sparklineSVG(hist)}</div>
         </div>
       </div>`;
   }).join('');
