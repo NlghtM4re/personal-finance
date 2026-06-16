@@ -175,17 +175,6 @@ function clearErrors() {
 function setValue(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 
-function computeNextDue(fromDate, frequency) {
-  const d = new Date(fromDate + 'T00:00:00');
-  switch (frequency) {
-    case 'daily':   d.setDate(d.getDate() + 1); break;
-    case 'weekly':  d.setDate(d.getDate() + 7); break;
-    case 'monthly': d.setMonth(d.getMonth() + 1); break;
-    case 'yearly':  d.setFullYear(d.getFullYear() + 1); break;
-  }
-  return d.toISOString().slice(0, 10);
-}
-
 function showSaveSuccess() {
   const actions = document.getElementById('formActions');
   if (!actions) { setTimeout(() => window.location.href = 'accounts.html', 500); return; }
@@ -263,12 +252,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('cancelNewCat')?.addEventListener('click', () => document.getElementById('newCatModal')?.classList.remove('open'));
   document.getElementById('closeNewCatModal')?.addEventListener('click', () => document.getElementById('newCatModal')?.classList.remove('open'));
 
-  const recurringToggle = document.getElementById('recurringToggle');
-  const recurringOptions = document.getElementById('recurringOptions');
-  recurringToggle?.addEventListener('change', () => {
-    if (recurringOptions) recurringOptions.style.display = recurringToggle.checked ? 'block' : 'none';
-  });
-
   const tagInput = document.getElementById('tagInput');
   tagInput?.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ',') {
@@ -304,23 +287,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => window.location.href = 'accounts.html', 500);
       } else {
         await TransactionStore.add(data);
-        const isRecurring = document.getElementById('recurringToggle')?.checked;
-        if (isRecurring) {
-          const freq    = document.getElementById('recurringFreq')?.value || 'monthly';
-          const endDate = document.getElementById('recurringEnd')?.value || null;
-          await RecurringStore.add({
-            note:        data.note,
-            amount:      data.amount,
-            type:        data.type,
-            categoryId:  data.categoryId,
-            accountId:   data.accountId,
-            toAccountId: data.toAccountId || null,
-            frequency:   freq,
-            nextDue:     computeNextDue(data.date, freq),
-            endDate,
-            active:      true,
-          });
-        }
         showSaveSuccess();
       }
     } catch (err) {

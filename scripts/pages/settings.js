@@ -211,10 +211,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         await sb.from('transactions').delete().eq('user_id', user.id);
         await sb.from('subscriptions').delete().eq('user_id', user.id);     /* no-op if table not created yet */
-        await sb.from('recurring_rules').delete().eq('user_id', user.id);   /* no-op if table not created yet */
         await sb.from('accounts').delete().eq('user_id', user.id);
         await SettingsStore.setBudgets({});
-        await SettingsStore.setRecurringRules([]);
         await SettingsStore.setSubscriptions([]);
         await SettingsStore.setCustomCategories([]);
         showToast('All data deleted.', 'success');

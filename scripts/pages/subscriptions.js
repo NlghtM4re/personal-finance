@@ -1,5 +1,5 @@
 /* ============================================================
-   subscriptions.js — Subscription & recurring billing tracker
+   subscriptions.js — Subscription / recurring-bill tracker
    ============================================================ */
 
 const SUB_COLORS = ['#e8e8ec','#9a9aa4','#00d18f','#ff5c7a','#d4a64a','#5b8def','#8b5cf6','#67b7c9','#ec4899','#a3e635'];

@@ -239,7 +239,7 @@ const SettingsStore = {
   _cache: null,
 
   _defaults() {
-    return { currency: 'CAD', budgets: {}, custom_categories: [], recurring_rules: [], subscriptions: [] };
+    return { currency: 'CAD', budgets: {}, custom_categories: [], subscriptions: [] };
   },
 
   async _load() {
@@ -299,16 +299,6 @@ const SettingsStore = {
     await this._save({ budgets });
   },
 
-  async getRecurringRules() {
-    const s = await this._load();
-    return Array.isArray(s.recurring_rules) ? s.recurring_rules : [];
-  },
-
-  async setRecurringRules(rules) {
-    if (this._cache) this._cache.recurring_rules = rules;
-    await this._save({ recurring_rules: rules });
-  },
-
   async getSubscriptions() {
     const s = await this._load();
     return Array.isArray(s.subscriptions) ? s.subscriptions : [];
@@ -357,9 +347,7 @@ const BudgetStore = {
 };
 
 /* ============================================================
-   RECURRING STORE — Supabase table `recurring_rules`.
-   Falls back to the legacy user_settings jsonb blob until the
-   table exists; migrates blob rows into the table once it does.
+   SHARED ID / DATE HELPERS (used by SubscriptionStore)
    ============================================================ */
 const IS_UUID = s => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s || '');
 function newUUID() {
@@ -378,140 +366,10 @@ function advanceDate(iso, frequency) {
   return d.toISOString().slice(0, 10);
 }
 
-function ruleToCamel(r) {
-  return {
-    id: r.id, note: r.note, amount: Number(r.amount), type: r.type,
-    categoryId: r.category_id, accountId: r.account_id, toAccountId: r.to_account_id,
-    frequency: r.frequency, nextDue: r.next_due, endDate: r.end_date,
-    active: r.active, createdAt: r.created_at,
-  };
-}
-
-function ruleToRow(r) {
-  const row = {};
-  if (r.note        !== undefined) row.note          = r.note || '';
-  if (r.amount      !== undefined) row.amount        = r.amount;
-  if (r.type        !== undefined) row.type          = r.type;
-  if (r.categoryId  !== undefined) row.category_id   = r.categoryId  || null;
-  if (r.accountId   !== undefined) row.account_id    = r.accountId   || null;
-  if (r.toAccountId !== undefined) row.to_account_id = r.toAccountId || null;
-  if (r.frequency   !== undefined) row.frequency     = r.frequency;
-  if (r.nextDue     !== undefined) row.next_due      = r.nextDue;
-  if (r.endDate     !== undefined) row.end_date      = r.endDate || null;
-  if (r.active      !== undefined) row.active        = r.active !== false;
-  return row;
-}
-
-const RecurringStore = {
-  _mode: null,
-
-  async _detect() {
-    if (this._mode) return this._mode;
-    const { error } = await sb.from('recurring_rules').select('id').limit(1);
-    this._mode = error ? 'legacy' : 'table';
-    if (this._mode === 'table') await this._migrate();
-    return this._mode;
-  },
-
-  async _migrate() {
-    try {
-      const legacy = await SettingsStore.getRecurringRules();
-      if (!legacy.length) return;
-      const uid = await userId();
-      if (!uid) return;
-      const accounts = await AccountStore.getAll();
-      const accIds   = new Set(accounts.map(a => a.id));
-      const rows = legacy.map(r => ({
-        id: IS_UUID(r.id) ? r.id : newUUID(),
-        user_id: uid,
-        ...ruleToRow({
-          ...r,
-          accountId:   accIds.has(r.accountId)   ? r.accountId   : null,
-          toAccountId: accIds.has(r.toAccountId) ? r.toAccountId : null,
-          note: r.note || '', amount: r.amount, type: r.type || 'expense',
-          frequency: r.frequency || 'monthly', nextDue: r.nextDue, endDate: r.endDate, active: r.active,
-          categoryId: r.categoryId,
-        }),
-      }));
-      const { error } = await sb.from('recurring_rules').insert(rows);
-      if (!error) await SettingsStore.setRecurringRules([]);
-    } catch (_) { /* legacy data stays in the blob; retried next load */ }
-  },
-
-  async getAll() {
-    if (await this._detect() === 'legacy') return SettingsStore.getRecurringRules();
-    const { data, error } = await sb.from('recurring_rules').select('*').order('created_at');
-    if (error) throw new Error(error.message);
-    return (data || []).map(ruleToCamel);
-  },
-
-  async add(rule) {
-    if (await this._detect() === 'legacy') {
-      const rules = await SettingsStore.getRecurringRules();
-      rule.id = newUUID();
-      rules.push(rule);
-      await SettingsStore.setRecurringRules(rules);
-      return rule;
-    }
-    const uid = await userId();
-    const { data, error } = await sb.from('recurring_rules').insert({ user_id: uid, ...ruleToRow(rule) }).select().single();
-    if (error) throw new Error(error.message);
-    return ruleToCamel(data);
-  },
-
-  async remove(id) {
-    if (await this._detect() === 'legacy') {
-      const rules = await SettingsStore.getRecurringRules();
-      await SettingsStore.setRecurringRules(rules.filter(r => r.id !== id));
-      return;
-    }
-    const { error } = await sb.from('recurring_rules').delete().eq('id', id);
-    if (error) throw new Error(error.message);
-  },
-
-  async getDue() {
-    const today = new Date().toISOString().slice(0, 10);
-    const rules = await this.getAll();
-    return rules.filter(r => r.active !== false && r.nextDue <= today);
-  },
-
-  async advanceNext(id) {
-    if (await this._detect() === 'legacy') {
-      const rules = await SettingsStore.getRecurringRules();
-      const rule  = rules.find(r => r.id === id);
-      if (!rule) return;
-      rule.nextDue = advanceDate(rule.nextDue, rule.frequency);
-      await SettingsStore.setRecurringRules(rules);
-      return;
-    }
-    const rules = await this.getAll();
-    const rule  = rules.find(r => r.id === id);
-    if (!rule) return;
-    const { error } = await sb.from('recurring_rules').update({ next_due: advanceDate(rule.nextDue, rule.frequency) }).eq('id', id);
-    if (error) throw new Error(error.message);
-  },
-
-  async toggle(id) {
-    if (await this._detect() === 'legacy') {
-      const rules = await SettingsStore.getRecurringRules();
-      const rule  = rules.find(r => r.id === id);
-      if (!rule) return;
-      rule.active = rule.active === false ? true : false;
-      await SettingsStore.setRecurringRules(rules);
-      return;
-    }
-    const rules = await this.getAll();
-    const rule  = rules.find(r => r.id === id);
-    if (!rule) return;
-    const { error } = await sb.from('recurring_rules').update({ active: rule.active === false }).eq('id', id);
-    if (error) throw new Error(error.message);
-  },
-};
-
 /* ============================================================
    SUBSCRIPTION STORE — Supabase table `subscriptions`.
-   Same table-first / legacy-fallback / lazy-migration pattern
-   as RecurringStore.
+   Table-first, with a legacy user_settings jsonb-blob fallback
+   and lazy migration into the table once it exists.
    ============================================================ */
 function subToCamel(r) {
   return {

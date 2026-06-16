@@ -48,7 +48,6 @@ type Transaction = {
   toAccountId?: string;   // transfers only
   note: string;
   tags: string[];
-  recurringId?: string;   // Phase 3
 };
 
 type Account = {
@@ -98,7 +97,6 @@ type Budget = {
 | `api.js` | Service | Thin fetch wrapper for future backend (unused for now) | 🔵 Stub |
 | Supabase schema | Backend | Postgres tables + RLS (`supabase-schema.sql`) | ✅ Done |
 | `BudgetStore` | Data (`store.js`) | Monthly budget limits, usage % | ✅ Done |
-| `RecurringStore` | Data (`store.js`) | Scheduled transactions, due-date detection | ✅ Done |
 | `SubscriptionStore` | Data (`store.js`) | Subscriptions, monthly/yearly cost rollups | ✅ Done |
 | `SettingsStore` | Data (`store.js`) | Currency preference, persisted to Supabase | ✅ Done |
 | `CSVService` | Service | Import/export CSV ↔ transactions | ✅ Done |
@@ -116,7 +114,7 @@ Decided to go straight to Supabase instead of building a localStorage layer firs
 Auth, Postgres DB with RLS, full CRUD across all pages, deployed schema. Site live on Vercel.
 
 ### Phase 3 — UI/UX overhaul + power features  ✅ DONE (2026-06-14)
-Mobile layout, design polish, UX flow improvements, then budgets, recurring transactions, and CSV
+Mobile layout, design polish, UX flow improvements, then budgets and CSV
 import/export — all shipped. Capped by a full visual redesign ("Flow", crypto-wallet mono UI). App is
 feature-complete against the PRD.
 
@@ -188,7 +186,6 @@ feature-complete against the PRD.
 - [x] Currency selector in Settings (`SettingsStore`, persisted to Supabase; default CAD)
 - [x] `BudgetStore` — monthly limits per category, inline editable
 - [x] Tags UI on add-transaction form
-- [x] `RecurringStore` — scheduled transactions, due-date banner
 - [x] `SubscriptionStore` — subscriptions page with cost rollups
 - [x] `CSVService` — export / import CSV (Settings page)
 - [x] Custom categories — add / edit / emoji picker / safe delete
@@ -223,17 +220,16 @@ personal finance/
 ├── manifest.json · sw.js · icons/    # PWA: manifest, service worker, icons
 ├── pages/
 │   ├── accounts.html                 # Accounts + full transaction list ("Transactions" in nav)
-│   ├── add-transaction.html          # Add / Edit transaction form (tags, recurring, category picker)
+│   ├── add-transaction.html          # Add / Edit transaction form (tags, category picker)
 │   ├── spending.html                 # Cash Flow (Spending / Income toggle)
 │   ├── budget.html                   # Budget limits per category
 │   ├── subscriptions.html            # Subscriptions + cost rollups
-│   ├── recurring.html                # Recurring rules
 │   └── settings.html                 # Email, currency, CSV import/export, delete-all, sign out
 ├── styles/                           # main · layout · components · dashboard · pages
 ├── scripts/
 │   ├── data/
 │   │   ├── supabase.js               # Supabase client + SupaAuth helpers
-│   │   └── store.js                  # Transaction/Account/Category/Budget/Recurring/
+│   │   └── store.js                  # Transaction/Account/Category/Budget/
 │   │                                 #   Subscription/Settings stores, CSVService, formatters
 │   ├── engine/
 │   │   └── summary.js                # SummaryEngine pure functions
@@ -242,7 +238,7 @@ personal finance/
 │   │   ├── nav.js                    # Centralized nav (NAV_ITEMS → sidebar/topbar/bottom/Money hub)
 │   │   └── ui.js                     # Theme, sidebar toggle, active nav, toasts, SW registration
 │   └── pages/                        # dashboard · accounts · add-transaction · spending ·
-│                                     #   budget · subscriptions · recurring · settings
+│                                     #   budget · subscriptions · crypto · settings
 ├── design-system/                    # Design reference / tokens
 ├── supabase-schema.sql               # Postgres schema + RLS policies
 ├── vercel.json                       # Vercel static deploy config
@@ -274,7 +270,8 @@ personal finance/
 - 2026-06-14 — Spending + Income merged into one Cash Flow page — removed the redundant separate Income view
 - 2026-06-14 — Currency symbol unified to `formatCurrency`'s locale (`CURRENCY_LOCALES` map) — chart donut center and amount-input prefix were using en-US and rendered CAD as `CA$` instead of `$`
 - 2026-06-14 — Added read-only **Crypto** balances (BTC + SOL) — public addresses only, never keys/seeds, no signing. Balances via keyless public APIs (Blockstream / publicnode RPC / CoinGecko). v1 stored wallets in localStorage
-- 2026-06-14 — Crypto sync + net-worth integration — wallets now sync via a Supabase `crypto_wallets` table (table-first, localStorage fallback + lazy migration, mirrors `RecurringStore`). Crypto folds into **net worth** (Dashboard "Net worth · cash + crypto" line + per-wallet panels; Accounts "incl. $X crypto") but never into the cash **balance**. Styling: Flow + crypto-wallet flair (per-chain `--chain` color, badges, gradient tiles)
+- 2026-06-14 — Crypto sync + net-worth integration — wallets now sync via a Supabase `crypto_wallets` table (table-first, localStorage fallback + lazy migration, same pattern as `SubscriptionStore`). Crypto folds into **net worth** (Dashboard "Net worth · cash + crypto" line + per-wallet panels; Accounts "incl. $X crypto") but never into the cash **balance**. Styling: Flow + crypto-wallet flair (per-chain `--chain` color, badges, gradient tiles)
+- 2026-06-15 — **Removed the Recurring-transactions feature** — Subscriptions already covers scheduled/repeating charges, so the Recurring page, the dashboard due-banner, the add-transaction "Repeat" toggle, `RecurringStore`, and the `recurring_rules` table/column were all removed. Existing `recurring_rules` tables can be dropped manually in Supabase.
 
 ---
 

@@ -41,20 +41,20 @@ WCAG AA. Keyboard navigation throughout. Sufficient contrast for body text (≥4
 
 ### Pages
 
-- **Dashboard** (`index.html`) — hero balance card (total balance + month income/expense + net change over 1Y/90D), balance-over-time line chart with range selector, monthly bar chart with week-navigation, recent transactions list, asset/debt account groups, recurring-transactions-due banner.
+- **Dashboard** (`index.html`) — hero balance card (total balance + month income/expense + net change over 1Y/90D), balance-over-time line chart with range selector, monthly bar chart with week-navigation, recent transactions list, asset/debt account groups, crypto holdings panels.
 - **Accounts & Transactions** (`pages/accounts.html`) — left panel: compact account rows with avatar, balance, inline edit/delete; net worth card with assets/debts bar and summary. Right panel: stat chips (count, income, expenses, net), search + type/category filters, full paginated transaction list with edit/delete per row.
 - **Cash Flow** (`pages/spending.html`) — month navigator, summary strip (spent/income/net), a Spending/Income segmented toggle that re-renders one balanced panel: category donut (center "Total spent"/"Total earned") + ranked breakdown, plus a monthly trend chart. Replaces the separate Spending and Income pages.
 - **Budget** (`pages/budget.html`) — month navigator, summary strip (total budget / spent / over budget), per-category rows with inline editable budget limit, spend vs. limit progress bar, over-budget / unbudgeted sections. Budget onboarding shown when no data exists.
-- **Add Transaction** (`pages/add-transaction.html`) — type toggle (expense/income/transfer), amount with currency prefix, date, account select, note, tags, recurring toggle (frequency + end date), category picker. Doubles as edit form when `?id=` is present; delete via confirmation modal.
+- **Add Transaction** (`pages/add-transaction.html`) — type toggle (expense/income/transfer), amount with currency prefix, date, account select, note, tags, category picker. Doubles as edit form when `?id=` is present; delete via confirmation modal.
 - **Crypto** (`pages/crypto.html`) — read-only crypto wallet balances (BTC + SOL). Paste a **public address** only; the app fetches the live balance from keyless public APIs (Blockstream / publicnode RPC), converts to the user's currency (CoinGecko), and shows it in the Flow style. Never accepts a private key or seed phrase; never signs or sends. Supports multiple addresses per wallet (BTC HD wallets rotate receive addresses). Wallets sync via the Supabase `crypto_wallets` table (localStorage fallback until the schema is run). The holdings total folds into **net worth** on the Dashboard (per-wallet panels + "Net worth · cash + crypto" line) and Accounts ("incl. $X crypto") — never into the cash balance.
 - **Settings** (`pages/settings.html`) — account email, transaction/account counts, currency selector, delete-all-data via confirmation modal, sign out.
 
 ### Architecture
 
 - Static HTML/CSS/JS — no build step, no framework.
-- Supabase backend: `transactions`, `accounts`, `recurring_rules`, `subscriptions` tables per user, plus a `user_settings` blob (currency, budgets, custom categories). Auth via `SupaAuth` wrapper (email/password).
-- Data layer in `scripts/data/store.js`: `TransactionStore`, `AccountStore`, `CategoryStore`, `BudgetStore`, `RecurringStore`, `SubscriptionStore`, `SettingsStore`, plus `CSVService` and the currency/date formatters.
-- Categories: hardcoded defaults + user **custom categories** (add/edit/emoji/delete), persisted in the `user_settings` blob. `RecurringStore`/`SubscriptionStore` are table-first with a settings-blob fallback that migrates into rows once the tables exist.
+- Supabase backend: `transactions`, `accounts`, `subscriptions`, `crypto_wallets` tables per user, plus a `user_settings` blob (currency, budgets, custom categories). Auth via `SupaAuth` wrapper (email/password).
+- Data layer in `scripts/data/store.js`: `TransactionStore`, `AccountStore`, `CategoryStore`, `BudgetStore`, `SubscriptionStore`, `SettingsStore`, plus `CSVService` and the currency/date formatters (crypto stores live in `crypto.js`).
+- Categories: hardcoded defaults + user **custom categories** (add/edit/icon/delete), persisted in the `user_settings` blob. `SubscriptionStore` is table-first with a settings-blob fallback that migrates into rows once the table exists.
 - Charts: most charts are hand-rolled canvas in `scripts/components/charts.js` (line, donut, bar). The subscriptions analytics page additionally uses **Chart.js** (CDN). Summary math in `scripts/engine/summary.js`.
 - Centralized nav in `scripts/components/nav.js` (`NAV_ITEMS` → sidebar, topbar, bottom nav, Money hub). Shared UI (theme, sidebar, toasts, PWA SW registration) in `scripts/components/ui.js`.
 
@@ -79,7 +79,6 @@ WCAG AA. Keyboard navigation throughout. Sufficient contrast for body text (≥4
 
 - **Delete confirmation modals** on all destructive actions (account delete, transaction delete, delete-all-data). No `window.confirm()` anywhere.
 - **Inline budget editing** — click any budget amount to edit in place; click away or press Enter to save.
-- **Recurring transactions** — banner on dashboard when any rules are due; Log or Skip per item.
 - **Chart empty states** — skeleton loaders while data fetches; empty state with CTA if no data exists.
 - **Budget onboarding** — shown in place of the budget list when no budgets and no spending exist.
 - **Counter animations** — financial numbers animate from their current value to the new value on data refresh (not from zero). Skeletons only shown on first page load.
@@ -91,12 +90,12 @@ WCAG AA. Keyboard navigation throughout. Sufficient contrast for body text (≥4
 1. **Centralized nav + Money hub** ✅ — All navigation chrome (sidebar, topbar, bottom nav, Money pill tabs,
    More sheet) renders from `scripts/components/nav.js`. **To add a new section, add one entry to `NAV_ITEMS`**
    — no HTML edits needed. Mobile bottom nav: Dashboard · Transactions · [+] · Money · More.
-   Spending/Budget/Subscriptions are the Money hub (pill tabs at the top of each); Recurring and Settings
+   Spending/Budget/Subscriptions are the Money hub (pill tabs at the top of each); Crypto and Settings
    live in the More sheet and the sidebar.
-2. **Real tables for subscriptions & recurring rules** ✅ — `subscriptions` and `recurring_rules` tables
-   (see supabase-schema.sql v2 section — run it in the Supabase SQL editor). The stores are table-first with
-   automatic fallback to the legacy `user_settings` jsonb blobs until the tables exist, then they lazily
-   migrate blob data into rows and empty the blobs. No page code changed.
+2. **Real table for subscriptions** ✅ — the `subscriptions` table
+   (see supabase-schema.sql v2 section — run it in the Supabase SQL editor). The store is table-first with
+   automatic fallback to the legacy `user_settings` jsonb blob until the table exists, then it lazily
+   migrates blob data into rows and empties the blob. No page code changed.
 3. **PWA** ✅ — `manifest.json`, icons (`/icons`), and `sw.js` (network-first navigations, stale-while-
    revalidate statics, Supabase requests never cached). Registered from ui.js on https/localhost.
    **Bump `CACHE_VERSION` in sw.js when shipping changes.**
