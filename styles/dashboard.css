@@ -144,6 +144,10 @@
 .dash-tiles {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
+/* one tile per row on phones — 2-up is too narrow and truncates balances */
+@media (max-width: 560px) {
+  .dash-tiles { grid-template-columns: 1fr; }
+}
 .dash-tiles .empty-state { background: var(--color-surface); grid-column: 1 / -1; }
 
 .acct-tile {
@@ -248,7 +252,7 @@
   font-size: 0.6rem;
 }
 /* edit/remove controls on the Crypto page tiles (not on the dashboard) */
-.crypto-tile__actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 2px; }
+.crypto-tile__actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 2px; background: var(--color-surface); padding: 1px; }
 .crypto-tile__edit,
 .crypto-tile__del {
   display: inline-flex; align-items: center; justify-content: center;

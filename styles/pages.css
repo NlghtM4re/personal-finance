@@ -691,8 +691,8 @@
 }
 
 @media (max-width: 768px) {
-  .transactions-stats { width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
-  .transactions-stats::-webkit-scrollbar { display: none; }
+  .transactions-stats { width: 100%; flex-wrap: wrap; }
+  .transactions-stats .stat-chip { flex: 1 1 calc(50% - 4px); justify-content: center; }
   .tx-actions            { opacity: 1; }
   .account-card__actions { opacity: 1; }
   .acc-row__actions      { opacity: 1; }

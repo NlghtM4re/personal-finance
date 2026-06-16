@@ -253,7 +253,7 @@ select.form-control {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   transition: color var(--transition);
 }
-.tx-meta { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 1px; }
+.tx-meta { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .tx-amount { font-size: 0.9375rem; font-weight: 600; white-space: nowrap; }
 .tx-amount--income   { color: var(--color-income); }
