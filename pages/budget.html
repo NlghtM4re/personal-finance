@@ -63,6 +63,15 @@
           <button class="btn btn--ghost btn--sm" id="copyBtn">Copy from last month</button>
         </div>
 
+        <!-- Suggest budgets from history (Phase 2 intelligence) -->
+        <div class="card budget-copy-card" id="suggestBudgets" style="display:none;">
+          <div class="budget-copy-card__text">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>
+            <span id="suggestBudgetsText">Set budgets from your last 3 months</span>
+          </div>
+          <button class="btn btn--ghost btn--sm" id="suggestBtn">Suggest budgets</button>
+        </div>
+
         <!-- Category list -->
         <div class="card budget-list-card">
           <div class="budget-list-header">
@@ -89,6 +98,7 @@
   <script src="../scripts/data/store.js"></script>
   <script src="../scripts/components/icons.js"></script>
   <script src="../scripts/engine/summary.js"></script>
+  <script src="../scripts/engine/insights.js"></script>
   <script src="../scripts/components/nav.js"></script>
   <script src="../scripts/components/ui.js"></script>
   <script src="../scripts/pages/budget.js"></script>

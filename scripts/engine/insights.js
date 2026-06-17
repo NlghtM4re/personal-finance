@@ -143,6 +143,45 @@ const InsightsEngine = {
       basis:         { lookbackDays: elapsed, sampleCount },
     };
   },
+  /* Recommend a monthly budget per expense category from trailing history.
+     Averages each category's spend over the `months` complete calendar
+     months before `asOf` (the current, partial month is excluded so a
+     half-finished month doesn't drag the average down), then rounds for
+     tidiness with a little headroom. Months with no spend count as 0, so
+     sporadic categories get a conservative figure.
+
+     opts: { months=3, asOf=new Date() }
+     Returns [{ categoryId, amount, monthlyAvg, monthsWithData }] desc. */
+  recommendBudgets(transactions, opts = {}) {
+    const { months = 3, asOf = new Date() } = opts;
+    const ref = new Date(asOf); ref.setDate(1); ref.setHours(0, 0, 0, 0);
+
+    const keySet = new Set();
+    for (let i = 1; i <= months; i++) {
+      const d = new Date(ref.getFullYear(), ref.getMonth() - i, 1);
+      keySet.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+
+    const byCat = {};
+    transactions.forEach(t => {
+      if (t.type !== 'expense' || !t.categoryId) return;
+      if (!keySet.has(t.date.slice(0, 7))) return;
+      const c = byCat[t.categoryId] || (byCat[t.categoryId] = { total: 0, monthsSeen: new Set() });
+      c.total += t.amount;
+      c.monthsSeen.add(t.date.slice(0, 7));
+    });
+
+    const round = v => v >= 10 ? Math.ceil(v / 5) * 5 : Math.max(1, Math.ceil(v));
+    return Object.entries(byCat)
+      .map(([categoryId, c]) => ({
+        categoryId,
+        amount:         round(c.total / months),
+        monthlyAvg:     c.total / months,
+        monthsWithData: c.monthsSeen.size,
+      }))
+      .filter(r => r.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+  },
 };
 
 /* Export for Node-based unit tests. Harmless in the browser, where there is

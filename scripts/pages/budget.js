@@ -55,8 +55,24 @@ async function loadMonthData(monthKey) {
   return { txs, expCats, budgets, spending };
 }
 
+/* Phase 2 intelligence — recommend a monthly budget per category from the
+   trailing 3 full months of history. Returns a { catId: amount } map. */
+async function getRecommendations(monthKey) {
+  if (typeof InsightsEngine === 'undefined') return {};
+  const ref  = new Date(monthKey + '-01T00:00:00');
+  const from = new Date(ref.getFullYear(), ref.getMonth() - 3, 1);
+  const to   = new Date(ref.getFullYear(), ref.getMonth(), 0); /* last day of prev month */
+  const iso  = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  let txs = [];
+  try { txs = await TransactionStore.query({ from: iso(from), to: iso(to) }); } catch { return {}; }
+  const map = {};
+  InsightsEngine.recommendBudgets(txs, { months: 3, asOf: ref }).forEach(r => { map[r.categoryId] = r.amount; });
+  return map;
+}
+
 async function renderBudgetPage() {
   const { expCats, budgets, spending } = await loadMonthData(currentMonth);
+  const recs = await getRecommendations(currentMonth);
 
   /* Month nav */
   document.getElementById('monthLabel').textContent = monthLabel(currentMonth);
@@ -110,19 +126,19 @@ async function renderBudgetPage() {
   }
 
   if (budgeted.length) {
-    html += budgeted.map(c => categoryRowHTML(c, spending[c.id] || 0, budgets[c.id])).join('');
+    html += budgeted.map(c => categoryRowHTML(c, spending[c.id] || 0, budgets[c.id], recs[c.id])).join('');
   }
 
   if (unbudgeted.length) {
     html += `<div class="budget-section-label">Unbudgeted spending</div>`;
-    html += unbudgeted.map(c => categoryRowHTML(c, spending[c.id], 0)).join('');
+    html += unbudgeted.map(c => categoryRowHTML(c, spending[c.id], 0, recs[c.id])).join('');
   }
 
   if (dormant.length) {
     if (budgeted.length || unbudgeted.length) {
       html += `<div class="budget-section-label">No activity</div>`;
     }
-    html += dormant.map(c => categoryRowHTML(c, 0, 0)).join('');
+    html += dormant.map(c => categoryRowHTML(c, 0, 0, recs[c.id])).join('');
   }
 
   listEl.innerHTML = html;
@@ -131,6 +147,35 @@ async function renderBudgetPage() {
   listEl.querySelectorAll('.budget-amount-display').forEach(el => {
     el.addEventListener('click', () => startEdit(el));
   });
+
+  /* Per-row "apply suggested budget" chips */
+  listEl.querySelectorAll('.budget-suggest-chip').forEach(el => {
+    el.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await BudgetStore.set(currentMonth, el.dataset.cat, parseFloat(el.dataset.amount));
+      await renderBudgetPage();
+      showToast('Budget set from suggestion', 'success');
+    });
+  });
+
+  /* Bulk "Suggest budgets from your last 3 months" banner */
+  const unbudgetedWithRec = expCats.filter(c => !budgets[c.id] && recs[c.id] > 0);
+  const suggestCard = document.getElementById('suggestBudgets');
+  if (suggestCard) {
+    if (unbudgetedWithRec.length) {
+      suggestCard.style.display = '';
+      setText('suggestBudgetsText', `Suggest budgets for ${unbudgetedWithRec.length} categor${unbudgetedWithRec.length === 1 ? 'y' : 'ies'} from your last 3 months`);
+      const btn = suggestCard.querySelector('#suggestBtn');
+      btn.onclick = async () => {
+        btn.disabled = true;
+        for (const c of unbudgetedWithRec) await BudgetStore.set(currentMonth, c.id, recs[c.id]);
+        await renderBudgetPage();
+        showToast('Budgets suggested from your history', 'success');
+      };
+    } else {
+      suggestCard.style.display = 'none';
+    }
+  }
 
   /* Copy from last month button */
   const prevKey = prevMonthKey(currentMonth);
@@ -152,15 +197,18 @@ async function renderBudgetPage() {
   }
 }
 
-function categoryRowHTML(cat, spent, budget) {
+function categoryRowHTML(cat, spent, budget, rec) {
   const pct      = budget > 0 ? (spent / budget) * 100 : 0;
   const over     = budget > 0 && spent > budget;
   const barPct   = Math.min(pct, 100);
   const barColor = pct >= 100 ? 'var(--color-expense)' : pct >= 75 ? 'var(--color-transfer)' : 'var(--color-income)';
 
+  const suggestChip = (!(budget > 0) && rec > 0)
+    ? `<button type="button" class="budget-suggest-chip" data-cat="${cat.id}" data-amount="${rec}" title="Apply suggested budget from your last 3 months">~${formatCurrency(rec)}</button>`
+    : '';
   const budgetDisplay = budget > 0
     ? `<span class="budget-amount-display" data-cat="${cat.id}" data-value="${budget}">${formatCurrency(budget)}</span>`
-    : `<span class="budget-amount-display budget-amount-display--empty" data-cat="${cat.id}" data-value="0">Set limit</span>`;
+    : `<span class="budget-amount-display budget-amount-display--empty" data-cat="${cat.id}" data-value="0">Set limit</span>${suggestChip}`;
 
   return `
     <div class="budget-row" data-cat="${cat.id}">

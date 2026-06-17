@@ -88,6 +88,46 @@ test('forecastBalance — scheduled recurring bills', async (t) => {
   });
 });
 
+test('recommendBudgets', async (t) => {
+  // ASOF = 2026-06-16 → trailing 3 full months = Mar, Apr, May 2026
+  const mk = (mo, day, amount, categoryId, type = 'expense') =>
+    ({ type, amount, categoryId, date: `2026-${String(mo).padStart(2,'0')}-${String(day).padStart(2,'0')}` });
+
+  await t.test('averages spend over the trailing 3 months and rounds up to $5', () => {
+    const txns = [
+      mk(3, 10, 200, 'food'), mk(4, 10, 220, 'food'), mk(5, 10, 210, 'food'), // avg 210 → 210
+      mk(5, 12, 12,  'coffee'),                                                // 12/3 = 4 → 4 (<10, ceil to 1s)
+    ];
+    const recs = InsightsEngine.recommendBudgets(txns, { months: 3, asOf: ASOF });
+    const food = recs.find(r => r.categoryId === 'food');
+    assert.equal(food.amount, 210);
+    assert.equal(food.monthsWithData, 3);
+    const coffee = recs.find(r => r.categoryId === 'coffee');
+    assert.equal(coffee.amount, 4);
+  });
+
+  await t.test('excludes the current (partial) month and ignores income/transfers/uncategorized', () => {
+    const txns = [
+      mk(6, 5, 999, 'food'),                 // current month — excluded
+      mk(4, 5, 90,  'food'),                 // counted (90/3 = 30)
+      mk(4, 6, 5000, 'salary', 'income'),    // income — ignored
+      mk(4, 7, 100, null),                   // uncategorized — ignored
+      { type: 'transfer', amount: 500, categoryId: 'x', date: '2026-04-08' }, // ignored
+    ];
+    const recs = InsightsEngine.recommendBudgets(txns, { months: 3, asOf: ASOF });
+    assert.equal(recs.length, 1);
+    assert.equal(recs[0].categoryId, 'food');
+    assert.equal(recs[0].amount, 30);
+  });
+
+  await t.test('returns results sorted by amount desc; empty input → []', () => {
+    const txns = [mk(4, 1, 60, 'small'), mk(4, 2, 600, 'big')];
+    const recs = InsightsEngine.recommendBudgets(txns, { months: 3, asOf: ASOF });
+    assert.deepEqual(recs.map(r => r.categoryId), ['big', 'small']);
+    assert.deepEqual(InsightsEngine.recommendBudgets([], { asOf: ASOF }), []);
+  });
+});
+
 test('forecastBalance — variance band & transfers', async (t) => {
   await t.test('the confidence band widens further into the future', () => {
     // alternating swings create volatility

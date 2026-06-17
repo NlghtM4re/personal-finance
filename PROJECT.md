@@ -16,9 +16,9 @@ A self-hosted, responsive web app accessible from any browser (desktop + phone) 
 | Item | Value |
 |---|---|
 | Phase | 3 — complete. App is feature-complete; full "Flow" visual redesign shipped (June 2026) |
-| Active step | Phase 4 (Intelligence layer) — Phase 1 cash-flow forecast shipped on the dashboard |
+| Active step | Phase 4 (Intelligence) — Phase 1 cash-flow forecast + Phase 2 budget recommendations shipped |
 | Blockers | None |
-| Next action | Intelligence Phase 2 (budget recommendations from history), then Phase 3 (app-wide insight engine) |
+| Next action | Intelligence Phase 3 (app-wide insight engine — spikes, drift, new recurring charges) |
 
 ---
 
