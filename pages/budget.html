@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -7,7 +7,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="apple-touch-icon" href="/icons/icon-180.png" />
-  <title>Budget â€” Flow</title>
+  <title>Flow — Budget</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -32,7 +32,7 @@
           <button class="btn btn--ghost btn--sm" id="prevMonthBtn" aria-label="Previous month">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <span class="budget-month-label" id="monthLabel">â€”</span>
+          <span class="budget-month-label" id="monthLabel">—</span>
           <button class="btn btn--ghost btn--sm" id="nextMonthBtn" aria-label="Next month">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
@@ -42,15 +42,15 @@
         <div class="budget-summary-strip">
           <div class="card budget-summary-card">
             <div class="budget-summary-card__label">Total Budget</div>
-            <div class="budget-summary-card__value" id="summaryBudget">â€”</div>
+            <div class="budget-summary-card__value" id="summaryBudget">—</div>
           </div>
           <div class="card budget-summary-card">
             <div class="budget-summary-card__label">Spent</div>
-            <div class="budget-summary-card__value budget-summary-card__value--expense" id="summarySpent">â€”</div>
+            <div class="budget-summary-card__value budget-summary-card__value--expense" id="summarySpent">—</div>
           </div>
           <div class="card budget-summary-card">
             <div class="budget-summary-card__label" id="summaryRemainingLabel">Remaining</div>
-            <div class="budget-summary-card__value" id="summaryRemaining">â€”</div>
+            <div class="budget-summary-card__value" id="summaryRemaining">—</div>
           </div>
         </div>
 
@@ -71,7 +71,7 @@
             <span class="budget-list-header__nums">Spent / Budget</span>
           </div>
           <div id="budgetCategoryList">
-            <div class="empty-state">Loadingâ€¦</div>
+            <div class="empty-state">Loading…</div>
           </div>
         </div>
 
