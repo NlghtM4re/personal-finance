@@ -35,7 +35,8 @@ function cryptoTileHTML(r) {
   } else {
     fiat = r.fiat != null ? formatCurrency(r.fiat) : '—';
     const dec = CHAINS[w.chain]?.decimals ?? 8;
-    sub = `${r.amount != null ? r.amount.toFixed(dec).replace(/\.?0+$/, '') : '0'} ${chain.symbol}`;
+    const amt = `${r.amount != null ? r.amount.toFixed(dec).replace(/\.?0+$/, '') : '0'} ${chain.symbol}`;
+    sub = r.stale ? `${amt} <span title="Live lookup failed — showing the last fetched balance.">· last known</span>` : amt;
     const sp = (r.sparkline && r.sparkline.length > 1) ? sparklineSVG(r.sparkline) : '';
     foot = sp;
   }

@@ -110,13 +110,7 @@ async function initDashboard() {
   const spanDays = firstDate
     ? Math.max(1, Math.ceil((Date.now() - new Date(firstDate + 'T00:00:00').getTime()) / DAY_MS))
     : 0;
-  const periodLabel = d => d >= 365 ? '1 year' : (d <= 1 ? '1 day' : `${d} days`);
-  const longW = spanDays >= 365
-    ? { days: 365, label: '1 year' }
-    : { days: Math.max(spanDays, 1), label: 'All time' };
-  let shortDays = [90, 30, 7].find(d => d < longW.days);
-  if (!shortDays) shortDays = Math.max(1, Math.floor(longW.days / 2));
-  const shortW = { days: shortDays, label: periodLabel(shortDays) };
+  const { shortW, longW } = SummaryEngine.pickChangeWindows(spanDays);
 
   const netOver = days => {
     const cutoff = new Date(Date.now() - days * DAY_MS).toISOString().slice(0, 10);
@@ -206,8 +200,9 @@ function cryptoTileHTML(r) {
   const ok   = !r.error;
   const fiat = (ok && r.fiat != null) ? formatCurrency(r.fiat) : '—';
   const dec  = CHAINS[w.chain]?.decimals ?? 8;
+  const amt  = `${r.amount != null ? r.amount.toFixed(dec).replace(/\.?0+$/, '') : '0'} ${chain.symbol}`;
   const sub  = ok
-    ? `${r.amount != null ? r.amount.toFixed(dec).replace(/\.?0+$/, '') : '0'} ${chain.symbol}`
+    ? (r.stale ? `${amt} <span title="Live lookup failed — showing the last fetched balance.">· last known</span>` : amt)
     : `<span style="color:var(--color-expense)">lookup failed</span>`;
   const spark = (ok && r.sparkline && r.sparkline.length > 1) ? sparklineSVG(r.sparkline) : '';
   return `

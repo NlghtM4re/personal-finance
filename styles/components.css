@@ -260,6 +260,18 @@ select.form-control {
 .tx-amount--expense  { color: var(--color-expense); }
 .tx-amount--transfer { color: var(--color-transfer); }
 
+/* Mobile: let long transaction names wrap to two lines before truncating
+   (single-line ellipsis cuts most names off at phone widths). */
+@media (max-width: 768px) {
+  .tx-name {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.25;
+  }
+}
+
 /* --- Account item --- */
 .account-item {
   display: flex; align-items: center; gap: 12px;

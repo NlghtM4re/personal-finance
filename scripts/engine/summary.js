@@ -18,6 +18,25 @@ const SummaryEngine = {
     return { ...acc, net: acc.income - acc.expense };
   },
 
+  /* Pick two distinct net-change windows for the dashboard stat cells.
+     `spanDays` is the account age (days since the first transaction).
+     The long window is "1 year" once there's a year of history, else
+     "All time" (the full span); the short window is the largest of
+     90/30/7 days that is strictly shorter than the long one (or half the
+     span on a very young account). This guarantees the two cells show
+     distinct periods instead of identical values on a young account.
+     Returns { shortW, longW }, each { days, label }. */
+  pickChangeWindows(spanDays) {
+    const span  = Math.max(1, spanDays || 0);
+    const label = d => d >= 365 ? '1 year' : (d <= 1 ? '1 day' : `${d} days`);
+    const longW = span >= 365
+      ? { days: 365, label: '1 year' }
+      : { days: span, label: 'All time' };
+    let shortDays = [90, 30, 7].find(d => d < longW.days);
+    if (!shortDays) shortDays = Math.max(1, Math.floor(longW.days / 2));
+    return { shortW: { days: shortDays, label: label(shortDays) }, longW };
+  },
+
   /* Per-account balances computed from one transaction list (avoids per-account queries) */
   computeAccountBalances(accounts, transactions) {
     const map = {};

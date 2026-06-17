@@ -30,7 +30,7 @@ const CryptoBalances = {
      manual page refresh (i.e. a manual retry) would clear. This auto-
      retries transient failures (network error, abort/timeout, 429, 5xx)
      so the first load behaves like the refresh did. ---- */
-  async _fetch(url, opts = {}, { tries = 3, timeout = 8000 } = {}) {
+  async _fetch(url, opts = {}, { tries = 3, timeout = 8000, delay = 500 } = {}) {
     let lastErr;
     for (let attempt = 1; attempt <= tries; attempt++) {
       try {
@@ -45,9 +45,24 @@ const CryptoBalances = {
       } catch (e) {
         lastErr = e;
       }
-      if (attempt < tries) await new Promise(res => setTimeout(res, 500 * attempt));
+      if (attempt < tries) await new Promise(res => setTimeout(res, delay * attempt));
     }
     throw lastErr;
+  },
+
+  /* ---- last-known balance cache (localStorage). Lets a failed live
+     lookup fall back to the most recent good coin amount instead of
+     showing nothing — the value is then flagged `stale` for the UI. ---- */
+  _cacheKey: 'pf_crypto_lastknown',
+  _cacheGet() {
+    try {
+      if (typeof localStorage === 'undefined') return {};
+      return JSON.parse(localStorage.getItem(this._cacheKey) || '{}') || {};
+    } catch { return {}; }
+  },
+  _cacheSet(map) {
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem(this._cacheKey, JSON.stringify(map)); }
+    catch { /* quota / private mode — non-fatal */ }
   },
 
   /* ---- secret detection: returns a human label if the input looks
@@ -154,22 +169,33 @@ const CryptoBalances = {
     try { prices = await this.prices(); }
     catch { prices = { currency: fallbackCur, map: {} }; }
 
+    const cache = this._cacheGet();
     const items = await Promise.all(wallets.map(async (w) => {
+      const p = prices.map[w.chain] || {};
       try {
         const amount = await this.walletAmount(w);
-        const p      = prices.map[w.chain] || {};
+        cache[w.id]  = { amount, ts: Date.now() };
         const fiat   = p.price != null ? amount * p.price : null;
-        return { wallet: w, amount, fiat, change24h: p.change24h ?? null, sparkline: p.sparkline || [], error: null };
+        return { wallet: w, amount, fiat, change24h: p.change24h ?? null, sparkline: p.sparkline || [], error: null, stale: false };
       } catch (e) {
-        return { wallet: w, amount: null, fiat: null, change24h: null, sparkline: [], error: e.message || 'Lookup failed' };
+        /* live lookup failed — fall back to the last known balance if we
+           have one, priced at the current rate, and mark it stale */
+        const cached = cache[w.id];
+        if (cached && typeof cached.amount === 'number') {
+          const fiat = p.price != null ? cached.amount * p.price : null;
+          return { wallet: w, amount: cached.amount, fiat, change24h: p.change24h ?? null, sparkline: p.sparkline || [], error: null, stale: true, asOf: cached.ts };
+        }
+        return { wallet: w, amount: null, fiat: null, change24h: null, sparkline: [], error: e.message || 'Lookup failed', stale: false };
       }
     }));
+    this._cacheSet(cache);
 
     return {
       wallets, items,
       total: items.reduce((s, x) => s + (x.fiat || 0), 0),
       currency: prices.currency,
       anyMissing: items.some(x => x.fiat == null),
+      anyStale: items.some(x => x.stale),
     };
   },
 };
@@ -281,3 +307,9 @@ const CryptoStore = {
     if (error) throw new Error(error.message);
   },
 };
+
+/* Export for Node-based unit tests. Harmless in the browser, where there is
+   no `module` and these stay globals. */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { CryptoBalances, CHAINS, CryptoStore };
+}

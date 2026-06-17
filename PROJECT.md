@@ -1,7 +1,7 @@
 # Personal Finance Tracker — Project Journal
 
 > Living document. Update this file as decisions are made, phases complete, and plans change.
-> Last updated: 2026-06-14
+> Last updated: 2026-06-16
 
 ---
 
@@ -16,9 +16,9 @@ A self-hosted, responsive web app accessible from any browser (desktop + phone) 
 | Item | Value |
 |---|---|
 | Phase | 3 — complete. App is feature-complete; full "Flow" visual redesign shipped (June 2026) |
-| Active step | Closing out the redesign — pages verified in-browser, currency-symbol bug fixed |
+| Active step | Post-redesign hardening — logic/UX nit fixes, crypto reliability, test layer expanded |
 | Blockers | None |
-| Next action | Add a test layer (start with `SummaryEngine` pure functions); anything beyond is new scope |
+| Next action | Extend tests toward page-level/DOM logic (currently SummaryEngine + crypto covered); anything beyond is new scope |
 
 ---
 
@@ -279,14 +279,20 @@ personal finance/
 
 > Things noticed during build that aren't part of the current step.
 
-- **No automated tests** — the app is feature-complete with zero test coverage. `SummaryEngine` is pure
-  functions and the obvious first target.
-- Subscriptions "Monthly subscription spend" chart shows a default $1 Y-axis when no subscription charges
-  have posted yet (all "Next" dates are future) — an empty-state polish item, not a bug.
+- **Test coverage is partial** — `SummaryEngine` (incl. `pickChangeWindows`) and the crypto address
+  validators + `_fetch` retry helper are unit-tested (`tests/`, Node's built-in runner, `npm test`).
+  Page-level/DOM logic is still untested — the next target if the test layer grows.
 - Single-theme by design — "Flow" is true-black only; no light mode (intentional, not a gap).
+- Long transaction names still truncate on very narrow phones — now wrap to two lines first (≤768px),
+  so far fewer names get cut; full names always visible on the edit screen.
 
-> Resolved since last update: tags UI, currency selector, custom categories, recurring rules,
-> subscriptions, and CSV import/export are all shipped. The unused `api.js` stub was deleted.
+> Resolved since last update (2026-06-16): dashboard 90d/1y cells now adapt to account age (distinct
+> windows instead of identical values on young accounts); budget summary reads "Unbudgeted" instead of
+> "Over budget" when no budgets are set; subscriptions trend chart shows an empty state instead of a
+> flat $1 Y-axis; crypto balance lookups auto-retry and fall back to a cached last-known value (fixing
+> the first-load "lookup failed" that needed a refresh, esp. mobile); F_ favicon added as the tab icon.
+> Earlier: tags UI, currency selector, custom categories, recurring rules, subscriptions, and CSV
+> import/export shipped; the unused `api.js` stub was deleted.
 
 ---
 

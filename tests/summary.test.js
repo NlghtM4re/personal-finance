@@ -44,6 +44,54 @@ test('finalizeTotals computes net = income - expense', () => {
   assert.equal(SummaryEngine.finalizeTotals(acc).net, 120);
 });
 
+test('pickChangeWindows', async (t) => {
+  await t.test('mature account (>=1y): 1 year vs 90 days', () => {
+    const { shortW, longW } = SummaryEngine.pickChangeWindows(800);
+    assert.deepEqual(longW,  { days: 365, label: '1 year' });
+    assert.deepEqual(shortW, { days: 90,  label: '90 days' });
+  });
+
+  await t.test('exactly one year of history still pairs 1 year with 90 days', () => {
+    const { shortW, longW } = SummaryEngine.pickChangeWindows(365);
+    assert.equal(longW.label, '1 year');
+    assert.equal(shortW.days, 90);
+  });
+
+  await t.test('mid-life account: All time vs the largest fitting preset', () => {
+    let w = SummaryEngine.pickChangeWindows(120);
+    assert.deepEqual(w.longW,  { days: 120, label: 'All time' });
+    assert.deepEqual(w.shortW, { days: 90,  label: '90 days' });
+
+    w = SummaryEngine.pickChangeWindows(60);
+    assert.deepEqual(w.shortW, { days: 30, label: '30 days' });
+
+    w = SummaryEngine.pickChangeWindows(20);
+    assert.deepEqual(w.shortW, { days: 7, label: '7 days' });
+  });
+
+  await t.test('young account (< smallest preset): short window is half the span', () => {
+    const { shortW, longW } = SummaryEngine.pickChangeWindows(5);
+    assert.deepEqual(longW,  { days: 5, label: 'All time' });
+    assert.deepEqual(shortW, { days: 2, label: '2 days' });
+  });
+
+  await t.test('one day / zero / missing span never produces an invalid window', () => {
+    for (const span of [1, 0, undefined]) {
+      const { shortW, longW } = SummaryEngine.pickChangeWindows(span);
+      assert.ok(shortW.days >= 1, `short days >= 1 for span=${span}`);
+      assert.ok(longW.days  >= 1, `long days >= 1 for span=${span}`);
+      assert.equal(longW.label, 'All time');
+    }
+  });
+
+  await t.test('the two windows are always distinct once there is >1 day of history', () => {
+    for (const span of [2, 3, 7, 8, 30, 31, 90, 91, 200, 365, 1000]) {
+      const { shortW, longW } = SummaryEngine.pickChangeWindows(span);
+      assert.ok(shortW.days < longW.days, `short (${shortW.days}) < long (${longW.days}) for span=${span}`);
+    }
+  });
+});
+
 test('computeAccountBalances', async (t) => {
   const accounts = [
     { id: 'a', initialBalance: 100 },
