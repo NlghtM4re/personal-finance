@@ -1,12 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="apple-touch-icon" href="/icons/icon-180.png" />
-  <title>Sign In — Flow</title>
+  <title>Sign In â€” Flow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -249,7 +250,7 @@
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
           <input class="form-control" type="password" id="password"
-            placeholder="••••••••" autocomplete="current-password" required />
+            placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password" required />
         </div>
         <button class="btn" type="submit" id="submitBtn">
           <span id="btnText">Sign in</span>
@@ -274,7 +275,7 @@
         Click the link in the email, then come back to sign in.
       </div>
       <div class="divider"></div>
-      <button class="toggle-link" id="backToLogin" style="font-size:.875rem;">← Back to sign in</button>
+      <button class="toggle-link" id="backToLogin" style="font-size:.875rem;">â† Back to sign in</button>
     </div>
   </div>
 
@@ -315,7 +316,7 @@
       const btn     = document.getElementById('submitBtn');
       btn.disabled  = loading;
       if (loading) {
-        btn.innerHTML = `<span class="btn-spinner"></span><span>${isSignUp ? 'Creating account…' : 'Signing in…'}</span>`;
+        btn.innerHTML = `<span class="btn-spinner"></span><span>${isSignUp ? 'Creating accountâ€¦' : 'Signing inâ€¦'}</span>`;
       } else {
         btn.innerHTML = `<span id="btnText">${isSignUp ? 'Create account' : 'Sign in'}</span>`;
       }
@@ -359,7 +360,7 @@
         } else {
           const { error } = await sb.auth.signInWithPassword({ email, password });
           if (error) throw error;
-          showInfo('Signing in…');
+          showInfo('Signing inâ€¦');
           window.location.replace('index.html');
         }
       } catch (err) {

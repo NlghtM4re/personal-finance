@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="apple-touch-icon" href="/icons/icon-180.png" />
   <title>Dashboard — Flow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -36,12 +37,12 @@
             <span class="flow-pill flow-pill--flat" id="balanceChangePill" hidden>—</span>
           </div>
         </div>
-        <div class="statbar__cell" title="Net change over the past 90 days">
-          <div class="term-label">90 days</div>
+        <div class="statbar__cell" title="Net change over the shorter window">
+          <div class="term-label" id="shortChangeLabel">90 days</div>
           <div class="rail-mini__value" id="ninetyDayChange">—</div>
         </div>
-        <div class="statbar__cell" title="Net change over the past 12 months">
-          <div class="term-label">1 year</div>
+        <div class="statbar__cell" title="Net change over the longer window">
+          <div class="term-label" id="longChangeLabel">1 year</div>
           <div class="rail-mini__value" id="yearChange">—</div>
         </div>
         <a href="pages/add-transaction.html" class="statbar__add">

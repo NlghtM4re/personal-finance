@@ -1,12 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="apple-touch-icon" href="/icons/icon-180.png" />
-  <title>Accounts — Flow</title>
+  <title>Accounts â€” Flow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -45,8 +46,8 @@
           <div class="card card--static acc-summary-card">
             <div class="acc-nw-headline">
               <div class="acc-nw-label">Net Worth</div>
-              <div class="acc-nw-value" id="accNetWorth">—</div>
-              <div class="acc-nw-count"><span id="accCount">—</span> accounts</div>
+              <div class="acc-nw-value" id="accNetWorth">â€”</div>
+              <div class="acc-nw-count"><span id="accCount">â€”</span> accounts</div>
               <div class="acc-nw-crypto" id="accNwCrypto" style="display:none;font-family:var(--font-display);font-size:.68rem;color:var(--color-text-muted);margin-top:3px;"></div>
             </div>
             <div class="acc-nw-bar-track">
@@ -57,14 +58,14 @@
                 <div class="acc-stat-dot acc-stat-dot--income"></div>
                 <div>
                   <div class="acc-stat-label">Assets</div>
-                  <div class="acc-stat-value acc-stat-value--income" id="accTotalAssets">—</div>
+                  <div class="acc-stat-value acc-stat-value--income" id="accTotalAssets">â€”</div>
                 </div>
               </div>
               <div class="acc-stat-item">
                 <div class="acc-stat-dot acc-stat-dot--expense"></div>
                 <div>
                   <div class="acc-stat-label">Debts</div>
-                  <div class="acc-stat-value acc-stat-value--expense" id="accTotalDebts">—</div>
+                  <div class="acc-stat-value acc-stat-value--expense" id="accTotalDebts">â€”</div>
                 </div>
               </div>
             </div>
@@ -78,10 +79,10 @@
           <!-- Stats + Filters merged -->
           <div class="card card--static">
             <div class="transactions-stats">
-              <span class="stat-chip" id="statCount">—</span>
-              <span class="stat-chip stat-chip--income" id="statIncome">↑ —</span>
-              <span class="stat-chip stat-chip--expense" id="statExpense">↓ —</span>
-              <span class="stat-chip" id="statNet">— net</span>
+              <span class="stat-chip" id="statCount">â€”</span>
+              <span class="stat-chip stat-chip--income" id="statIncome">â†‘ â€”</span>
+              <span class="stat-chip stat-chip--expense" id="statExpense">â†“ â€”</span>
+              <span class="stat-chip" id="statNet">â€” net</span>
             </div>
             <div class="tx-divider"></div>
             <div class="filter-bar">
@@ -89,7 +90,7 @@
                 <span class="search-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </span>
-                <input type="text" id="searchInput" class="form-control" placeholder="Search…" />
+                <input type="text" id="searchInput" class="form-control" placeholder="Searchâ€¦" />
               </div>
               <select id="filterType" class="select--sm">
                 <option value="">All Types</option>

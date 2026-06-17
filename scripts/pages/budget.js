@@ -67,18 +67,21 @@ async function renderBudgetPage() {
   /* Summary */
   const totalBudget = expCats.reduce((s, c) => s + (budgets[c.id] || 0), 0);
   const totalSpent  = Object.values(spending).reduce((s, v) => s + v, 0);
+  const noBudgets   = totalBudget === 0;
   const remaining   = totalBudget - totalSpent;
-  const overBudget  = remaining < 0;
+  const overBudget  = !noBudgets && remaining < 0;
 
   setText('summaryBudget',  formatCurrency(totalBudget));
   setText('summarySpent',   formatCurrency(totalSpent));
   const remEl = document.getElementById('summaryRemaining');
   if (remEl) {
-    remEl.textContent = formatCurrency(Math.abs(remaining));
-    remEl.style.color = overBudget ? 'var(--color-expense)' : remaining === 0 ? 'var(--color-text-muted)' : 'var(--color-income)';
+    /* with no budgets set, this isn't "over budget" — it's just unbudgeted */
+    remEl.textContent = noBudgets ? formatCurrency(totalSpent) : formatCurrency(Math.abs(remaining));
+    remEl.style.color = noBudgets ? 'var(--color-text-muted)'
+      : (overBudget ? 'var(--color-expense)' : remaining === 0 ? 'var(--color-text-muted)' : 'var(--color-income)');
   }
   const remLabel = document.getElementById('summaryRemainingLabel');
-  if (remLabel) remLabel.textContent = overBudget ? 'Over budget' : 'Remaining';
+  if (remLabel) remLabel.textContent = noBudgets ? 'Unbudgeted' : (overBudget ? 'Over budget' : 'Remaining');
 
   /* Category rows */
   const listEl = document.getElementById('budgetCategoryList');

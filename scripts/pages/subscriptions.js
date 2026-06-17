@@ -364,9 +364,16 @@ async function renderAnalytics(subs) {
   const trendData = months.map(m => monthTotals[m]);
 
   document.getElementById('trendSkeleton').style.display = 'none';
-  const trendCtx = document.getElementById('trendCanvas').getContext('2d');
-  if (_trendChart) _trendChart.destroy();
-  _trendChart = new Chart(trendCtx, {
+
+  /* No matched subscription charges yet → show an empty state instead of a
+     flat chart with a misleading default ($1) axis. */
+  const trendCanvas = document.getElementById('trendCanvas');
+  const trendEmpty  = document.getElementById('trendEmpty');
+  const hasTrend    = trendData.some(v => v > 0);
+  if (trendEmpty) trendEmpty.hidden = hasTrend;
+  if (trendCanvas) trendCanvas.style.display = hasTrend ? '' : 'none';
+  if (_trendChart) { _trendChart.destroy(); _trendChart = null; }
+  if (hasTrend) _trendChart = new Chart(trendCanvas.getContext('2d'), {
     type: 'bar',
     data: {
       labels: trendLabels,

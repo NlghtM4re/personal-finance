@@ -24,6 +24,32 @@ const CHAINS = {
 
 const CryptoBalances = {
 
+  /* ---- network helper: fetch with a timeout + a couple of retries.
+     Mobile cold-starts frequently drop the very first request to an
+     external host, which surfaced as a one-off "lookup failed" that a
+     manual page refresh (i.e. a manual retry) would clear. This auto-
+     retries transient failures (network error, abort/timeout, 429, 5xx)
+     so the first load behaves like the refresh did. ---- */
+  async _fetch(url, opts = {}, { tries = 3, timeout = 8000 } = {}) {
+    let lastErr;
+    for (let attempt = 1; attempt <= tries; attempt++) {
+      try {
+        const ctrl  = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), timeout);
+        let r;
+        try { r = await fetch(url, { ...opts, signal: ctrl.signal }); }
+        finally { clearTimeout(timer); }
+        /* success, or a non-retryable client error → hand back to caller */
+        if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 429)) return r;
+        lastErr = new Error('HTTP ' + r.status);
+      } catch (e) {
+        lastErr = e;
+      }
+      if (attempt < tries) await new Promise(res => setTimeout(res, 500 * attempt));
+    }
+    throw lastErr;
+  },
+
   /* ---- secret detection: returns a human label if the input looks
      like a key/seed, else null. Used to refuse dangerous input. ---- */
   looksSecret(input) {
@@ -58,7 +84,7 @@ const CryptoBalances = {
 
   /* ---- balance per address (in whole coins) ---- */
   async fetchBtcAddress(addr) {
-    const r = await fetch(`https://blockstream.info/api/address/${encodeURIComponent(addr)}`);
+    const r = await this._fetch(`https://blockstream.info/api/address/${encodeURIComponent(addr)}`);
     if (!r.ok) throw new Error('Bitcoin lookup failed');
     const j = await r.json();
     const c = j.chain_stats, m = j.mempool_stats;
@@ -67,7 +93,7 @@ const CryptoBalances = {
   },
 
   async fetchSolAddress(addr) {
-    const r = await fetch('https://solana-rpc.publicnode.com', {
+    const r = await this._fetch('https://solana-rpc.publicnode.com', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getBalance', params: [addr] }),
@@ -96,7 +122,7 @@ const CryptoBalances = {
     let cur = (localStorage.getItem('pf_currency') || 'CAD').toLowerCase();
     const ids = Object.values(CHAINS).map(c => c.coingecko).join(',');
     const fetchFor = async (vs) => {
-      const r = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${ids}&sparkline=true&price_change_percentage=24h`);
+      const r = await this._fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${ids}&sparkline=true&price_change_percentage=24h`);
       if (!r.ok) throw new Error('Price lookup failed');
       return r.json();
     };

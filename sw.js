@@ -10,7 +10,7 @@
    Bump CACHE_VERSION when shipping changes to force a refresh.
    ============================================================ */
 
-const CACHE_VERSION = 'pf-v24';
+const CACHE_VERSION = 'pf-v25';
 
 const PRECACHE = [
   '/index.html',
@@ -45,6 +45,7 @@ const PRECACHE = [
   '/scripts/pages/spending.js',
   '/scripts/pages/subscriptions.js',
   '/scripts/pages/crypto.js',
+  '/icons/favicon.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];
@@ -73,6 +74,12 @@ self.addEventListener('fetch', event => {
 
   /* live data + auth go straight to the network, always */
   if (url.hostname.endsWith('.supabase.co')) return;
+
+  /* live crypto balances/prices: never cache — always hit the network so
+     the SW can't serve a stale balance or sit in the failure path */
+  if (url.hostname === 'blockstream.info' ||
+      url.hostname === 'api.coingecko.com' ||
+      url.hostname.endsWith('.publicnode.com')) return;
 
   /* page navigations: fresh when online, cached shell when offline */
   if (req.mode === 'navigate') {

@@ -102,18 +102,38 @@ async function initDashboard() {
   }
 
   /* Year & 90-day change */
-  const yearAgoStr   = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
-  const ninetyAgoStr = new Date(Date.now() -  90 * 86400000).toISOString().slice(0, 10);
-  const yearNet   = SummaryEngine.getTotals(allTx.filter(t => t.date >= yearAgoStr));
-  const ninetyNet = SummaryEngine.getTotals(allTx.filter(t => t.date >= ninetyAgoStr));
-  const yNet = yearNet.income   - yearNet.expense;
-  const nNet = ninetyNet.income - ninetyNet.expense;
-  setText('yearChange',      (yNet >= 0 ? '+' : '') + formatCurrency(yNet));
-  setText('ninetyDayChange', (nNet >= 0 ? '+' : '') + formatCurrency(nNet));
+  /* Net-change windows that adapt to the account's age, so the two cells
+     always show distinct, meaningful periods (a fixed 90d + 1y both equal
+     "all data" — and look identical — on a young account). */
+  const DAY_MS = 86400000;
+  const firstDate = allTx.length ? allTx.map(t => t.date).sort()[0] : null;
+  const spanDays = firstDate
+    ? Math.max(1, Math.ceil((Date.now() - new Date(firstDate + 'T00:00:00').getTime()) / DAY_MS))
+    : 0;
+  const periodLabel = d => d >= 365 ? '1 year' : (d <= 1 ? '1 day' : `${d} days`);
+  const longW = spanDays >= 365
+    ? { days: 365, label: '1 year' }
+    : { days: Math.max(spanDays, 1), label: 'All time' };
+  let shortDays = [90, 30, 7].find(d => d < longW.days);
+  if (!shortDays) shortDays = Math.max(1, Math.floor(longW.days / 2));
+  const shortW = { days: shortDays, label: periodLabel(shortDays) };
+
+  const netOver = days => {
+    const cutoff = new Date(Date.now() - days * DAY_MS).toISOString().slice(0, 10);
+    const t = SummaryEngine.getTotals(allTx.filter(x => x.date >= cutoff));
+    return t.income - t.expense;
+  };
+  const shortNet = allTx.length ? netOver(shortW.days) : 0;
+  const longNet  = allTx.length ? netOver(longW.days)  : 0;
+
+  setText('shortChangeLabel', shortW.label);
+  setText('longChangeLabel',  longW.label);
+  setText('ninetyDayChange', (shortNet >= 0 ? '+' : '') + formatCurrency(shortNet));
+  setText('yearChange',      (longNet  >= 0 ? '+' : '') + formatCurrency(longNet));
   const ycEl  = document.getElementById('yearChange');
   const ndcEl = document.getElementById('ninetyDayChange');
-  if (ycEl)  ycEl.style.color  = yNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
-  if (ndcEl) ndcEl.style.color = nNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+  if (ycEl)  ycEl.style.color  = longNet  >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+  if (ndcEl) ndcEl.style.color = shortNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
 
   /* Balance over time chart */
   const rangeVal = document.getElementById('balanceChartRange')?.value || 'all';

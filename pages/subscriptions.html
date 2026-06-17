@@ -1,12 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#000000" />
   <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="apple-touch-icon" href="/icons/icon-180.png" />
-  <title>Subscriptions — Flow</title>
+  <title>Subscriptions â€” Flow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -30,19 +31,19 @@
         <div class="budget-summary-strip" style="grid-template-columns:repeat(4,1fr);">
           <div class="card budget-summary-card">
             <div class="budget-summary-card__label">Monthly Cost</div>
-            <div class="budget-summary-card__value" id="statMonthly">—</div>
+            <div class="budget-summary-card__value" id="statMonthly">â€”</div>
           </div>
           <div class="card budget-summary-card">
             <div class="budget-summary-card__label">Yearly Cost</div>
-            <div class="budget-summary-card__value" id="statYearly">—</div>
+            <div class="budget-summary-card__value" id="statYearly">â€”</div>
           </div>
           <div class="card budget-summary-card">
             <div class="budget-summary-card__label">Active</div>
-            <div class="budget-summary-card__value" id="statActive">—</div>
+            <div class="budget-summary-card__value" id="statActive">â€”</div>
           </div>
           <div class="card budget-summary-card">
             <div class="budget-summary-card__label">Due This Month</div>
-            <div class="budget-summary-card__value" id="statDue">—</div>
+            <div class="budget-summary-card__value" id="statDue">â€”</div>
           </div>
         </div>
 
@@ -95,7 +96,7 @@
               </div>
               <div class="subs-form-field">
                 <label class="form-label">Name</label>
-                <input type="text" class="form-control" id="fName" placeholder="Netflix, Spotify…" required />
+                <input type="text" class="form-control" id="fName" placeholder="Netflix, Spotifyâ€¦" required />
               </div>
               <div class="subs-form-row">
                 <div class="subs-form-field">
@@ -115,7 +116,7 @@
                 <label class="subs-autolog-toggle">
                   <input type="checkbox" id="fTax" />
                   <span class="subs-autolog-toggle__track"></span>
-                  <span class="subs-autolog-toggle__label">Add QC taxes (GST + QST · 14.975%)</span>
+                  <span class="subs-autolog-toggle__label">Add QC taxes (GST + QST Â· 14.975%)</span>
                 </label>
                 <div class="subs-tax-hint" id="taxHint" style="display:none;"></div>
               </div>
@@ -126,13 +127,13 @@
               <div class="subs-form-field">
                 <label class="form-label">Account</label>
                 <select class="form-control" id="fAccount">
-                  <option value="">— none —</option>
+                  <option value="">â€” none â€”</option>
                 </select>
               </div>
               <div class="subs-form-field">
                 <label class="form-label">Category</label>
                 <select class="form-control" id="fCategory">
-                  <option value="">— none —</option>
+                  <option value="">â€” none â€”</option>
                 </select>
               </div>
               <div class="subs-form-field">
@@ -169,6 +170,12 @@
               </div>
               <div style="position:relative;height:180px;">
                 <canvas id="trendCanvas" role="img" aria-label="Monthly subscription spend bar chart"></canvas>
+                <div class="chart-empty" id="trendEmpty" hidden>
+                  <div class="chart-empty__inner">
+                    <p style="margin-bottom:4px">No subscription charges logged yet</p>
+                    <p style="font-size:.75rem;color:var(--color-text-muted)">Tag a transaction <strong>subscription</strong> or name it to match one above.</p>
+                  </div>
+                </div>
                 <div class="chart-skeleton" id="trendSkeleton">
                   <div class="chart-skeleton__bar" style="height:60%"></div>
                   <div class="chart-skeleton__bar" style="height:75%"></div>
