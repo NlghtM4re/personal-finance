@@ -150,6 +150,27 @@
             </div>
           </div>
 
+          <div class="term" id="forecastCard" hidden>
+            <div class="term__head">
+              <span class="term__title">Cash-flow forecast</span>
+              <span class="forecast-horizon" id="forecastHorizon">Next 30 days</span>
+            </div>
+            <div class="term__body">
+              <div class="forecast-head">
+                <div class="forecast-stat">
+                  <div class="forecast-stat__label">Projected balance</div>
+                  <div class="forecast-stat__value font-display" id="forecastEnd">—</div>
+                  <div class="forecast-stat__sub" id="forecastNet">—</div>
+                </div>
+                <div class="forecast-warning" id="forecastWarning" hidden></div>
+              </div>
+              <div class="chart-container chart-container--sm" id="forecastChart">
+                <canvas id="forecastCanvas" role="img" aria-label="Projected balance forecast chart"></canvas>
+              </div>
+              <div class="forecast-basis" id="forecastBasis"></div>
+            </div>
+          </div>
+
         </div>
 
         <!-- RIGHT: transactions feed + monthly overview -->
@@ -214,6 +235,7 @@
   <script src="scripts/components/icons.js"></script>
   <script src="scripts/data/crypto.js"></script>
   <script src="scripts/engine/summary.js"></script>
+  <script src="scripts/engine/insights.js"></script>
   <script src="scripts/components/charts.js"></script>
   <script src="scripts/components/nav.js"></script>
   <script src="scripts/components/ui.js"></script>

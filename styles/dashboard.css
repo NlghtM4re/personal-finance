@@ -639,3 +639,22 @@
   .summary-card { padding: 14px 16px; }
   .summary-card__amount { font-size: 1.2rem; }
 }
+
+/* ── Cash-flow forecast card (dashboard, Phase 1) ───────────── */
+.forecast-horizon { font-size: 0.75rem; color: var(--color-text-muted); }
+.forecast-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.forecast-stat__label { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 2px; }
+.forecast-stat__value { font-size: 1.5rem; font-weight: 600; color: var(--color-text); line-height: 1.1; }
+.forecast-stat__sub { font-size: 0.8125rem; font-weight: 500; margin-top: 2px; }
+.forecast-warning {
+  font-size: 0.8125rem; line-height: 1.45; max-width: 320px;
+  padding: 8px 11px; border: 1px solid var(--color-border);
+  border-left-width: 3px; color: var(--color-text-muted);
+}
+.forecast-warning strong { color: var(--color-text); }
+.forecast-warning--danger  { border-left-color: var(--color-expense);  color: var(--color-text); }
+.forecast-warning--caution { border-left-color: var(--color-transfer); }
+.forecast-basis { font-size: 0.6875rem; color: var(--color-text-light); margin-top: 10px; }

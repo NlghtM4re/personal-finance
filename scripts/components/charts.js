@@ -71,12 +71,16 @@ const Charts = {
     catch { return `$${Math.abs(val).toFixed(2)}`; }
   },
 
-  /* ── LINE CHART ──────────────────────────────────────────── */
-  drawLineChart(canvasId, points, _redraw) {
+  /* ── LINE CHART ──────────────────────────────────────────────
+     Optional `projection`: an array of forecast points appended after the
+     historical series, drawn as a dashed line with a shaded ±band and a
+     "now" divider. Each may carry { balance, lower, upper, label }. Passing
+     no projection renders exactly as before (fully backward-compatible). */
+  drawLineChart(canvasId, points, _redraw, projection) {
     if (!_redraw) {
       const r = this._setup(canvasId);
       if (!r) return;
-      this._state[canvasId] = { type: 'line', data: points, hoverIdx: -1,
+      this._state[canvasId] = { type: 'line', data: points, proj: projection || [], hoverIdx: -1,
         _ctx: r.ctx, _w: r.w, _h: r.h, _canvas: r.canvas };
     }
     const s = this._state[canvasId];
@@ -86,19 +90,24 @@ const Charts = {
 
     if (!points.length) return;
 
+    const proj     = s.proj || [];
+    const all      = proj.length ? points.concat(proj) : points;
+    const splitIdx = points.length;          /* first projected index */
+
     const pad = { top: 28, right: 20, bottom: 44, left: 68 };
     const cw  = w - pad.left - pad.right;
     const ch  = h - pad.top  - pad.bottom;
 
-    const values  = points.map(p => p.balance);
-    const minVal  = Math.min(...values);
-    const maxVal  = Math.max(...values);
+    const values   = all.map(p => p.balance);
+    const bandVals = proj.flatMap(p => [p.lower ?? p.balance, p.upper ?? p.balance]);
+    const minVal   = Math.min(...values, ...bandVals);
+    const maxVal   = Math.max(...values, ...bandVals);
     const rawRange = maxVal - minVal || Math.abs(maxVal) || 1;
     const lo    = minVal - rawRange * 0.12;
     const hiVal = maxVal + rawRange * 0.12;
     const range = hiVal - lo;
 
-    const toX = i => pad.left + (i / Math.max(points.length - 1, 1)) * cw;
+    const toX = i => pad.left + (i / Math.max(all.length - 1, 1)) * cw;
     const toY = v => pad.top + ch - ((v - lo) / range) * ch;
 
     /* Grid + Y labels */
@@ -117,12 +126,12 @@ const Charts = {
 
     /* X labels — step based on available width so they never overlap */
     const maxLabels = Math.max(2, Math.floor(cw / 42));
-    const labelStep = Math.max(1, Math.ceil(points.length / maxLabels));
+    const labelStep = Math.max(1, Math.ceil(all.length / maxLabels));
     ctx.fillStyle = this._textColor();
     ctx.font = '11px "Inter", sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    points.forEach((p, i) => {
-      if (i % labelStep !== 0 && i !== points.length - 1) return;
+    all.forEach((p, i) => {
+      if (i % labelStep !== 0 && i !== all.length - 1) return;
       ctx.fillText(p.label, toX(i), pad.top + ch + 10);
     });
 
@@ -135,30 +144,60 @@ const Charts = {
       ctx.clip();
     }
 
-    /* Gradient fill — white fading up from the baseline */
+    /* Gradient fill — white fading up from the baseline (historical only) */
+    const lastHist = splitIdx - 1;
     const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
     grad.addColorStop(0, 'rgba(255,255,255,0.13)');
     grad.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.beginPath();
     ctx.moveTo(toX(0), toY(values[0]));
-    for (let i = 1; i < points.length; i++) ctx.lineTo(toX(i), toY(values[i]));
-    ctx.lineTo(toX(points.length - 1), pad.top + ch);
+    for (let i = 1; i <= lastHist; i++) ctx.lineTo(toX(i), toY(values[i]));
+    ctx.lineTo(toX(lastHist), pad.top + ch);
     ctx.lineTo(toX(0), pad.top + ch);
     ctx.closePath();
     ctx.fillStyle = grad; ctx.fill();
 
-    /* Line */
+    /* Historical line (solid) */
     ctx.beginPath();
     ctx.strokeStyle = this._lineColor(); ctx.lineWidth = 2;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     ctx.moveTo(toX(0), toY(values[0]));
-    for (let i = 1; i < points.length; i++) ctx.lineTo(toX(i), toY(values[i]));
+    for (let i = 1; i <= lastHist; i++) ctx.lineTo(toX(i), toY(values[i]));
     ctx.stroke();
+
+    /* Projection: shaded band + dashed line + "now" divider */
+    if (proj.length) {
+      /* band (connects from the last historical point for continuity) */
+      ctx.beginPath();
+      ctx.moveTo(toX(lastHist), toY(values[lastHist]));
+      for (let i = splitIdx; i < all.length; i++) ctx.lineTo(toX(i), toY(all[i].upper ?? all[i].balance));
+      for (let i = all.length - 1; i >= splitIdx; i--) ctx.lineTo(toX(i), toY(all[i].lower ?? all[i].balance));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fill();
+
+      /* dashed projection line */
+      ctx.save();
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2;
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.moveTo(toX(lastHist), toY(values[lastHist]));
+      for (let i = splitIdx; i < all.length; i++) ctx.lineTo(toX(i), toY(values[i]));
+      ctx.stroke();
+      ctx.restore();
+
+      /* "now" divider */
+      ctx.save();
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(toX(lastHist), pad.top); ctx.lineTo(toX(lastHist), pad.top + ch); ctx.stroke();
+      ctx.restore();
+    }
     ctx.restore();
 
     /* Hover */
     const hi = animT < 1 ? -1 : s.hoverIdx;
-    if (hi >= 0 && hi < points.length) {
+    if (hi >= 0 && hi < all.length) {
       const hx = toX(hi), hy = toY(values[hi]);
 
       ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1;
@@ -170,7 +209,8 @@ const Charts = {
       ctx.fillStyle = this._lineColor(); ctx.fill();
       ctx.strokeStyle = this._surface(); ctx.lineWidth = 2; ctx.stroke();
 
-      const t1 = points[hi].label;
+      const projected = hi >= splitIdx;
+      const t1 = all[hi].label + (projected ? ' · projected' : '');
       const t2 = this._fmtFull(values[hi]);
       ctx.font = 'bold 13px "Inter", sans-serif';
       const bw = Math.max(ctx.measureText(t1).width, ctx.measureText(t2).width) + 24;
@@ -192,7 +232,7 @@ const Charts = {
       ctx.font = 'bold 13px "Inter", sans-serif';
       ctx.fillText(t2, bx + 12, by + 26);
     } else if (animT >= 1) {
-      const lx = toX(points.length - 1), ly = toY(values[values.length - 1]);
+      const lx = toX(all.length - 1), ly = toY(values[values.length - 1]);
       ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2);
       ctx.fillStyle = this._lineColor(); ctx.fill();
       ctx.strokeStyle = this._surface(); ctx.lineWidth = 2; ctx.stroke();
@@ -200,7 +240,7 @@ const Charts = {
 
     if (!_redraw) {
       /* Draw-in animation on first render */
-      if (!this._reducedMotion() && points.length > 1 && !document.hidden) {
+      if (!this._reducedMotion() && all.length > 1 && !document.hidden) {
         s.animT = 0;
         const dur = 900, t0 = performance.now();
         const easeOut = t => 1 - Math.pow(1 - t, 3);
@@ -219,7 +259,7 @@ const Charts = {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         let closest = 0, minDist = Infinity;
-        points.forEach((_, i) => {
+        all.forEach((_, i) => {
           const d = Math.abs(toX(i) - mx);
           if (d < minDist) { minDist = d; closest = i; }
         });

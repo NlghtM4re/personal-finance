@@ -153,6 +153,12 @@ async function initDashboard() {
     balanceEmpty?.removeAttribute('hidden');
   }
 
+  /* Cash-flow forecast (Phase 1) — non-blocking; a subscriptions hiccup
+     must never break the rest of the dashboard */
+  SubscriptionStore.getAll()
+    .then(subs => renderForecast(allTx, accounts, subs))
+    .catch(() => renderForecast(allTx, accounts, []));
+
   /* Monthly overview — daily bars for current month view */
   updateMonthNav();
   await renderMonthlyChart(allTx);
@@ -231,6 +237,57 @@ function cryptoDeltaHTML(change24h) {
   if (change24h == null) return `<span class="delta delta--flat">· 24h</span>`;
   const cls = change24h >= 0 ? 'up' : 'down';
   return `<span class="delta delta--${cls}">${change24h >= 0 ? '▲ +' : '▼ −'}${Math.abs(change24h).toFixed(1)}% · 24h</span>`;
+}
+
+/* Cash-flow forecast card (Phase 1) — projects total balance forward and
+   flags a low-balance risk. Pure math lives in InsightsEngine. */
+function renderForecast(allTx, accounts, subs) {
+  const card = document.getElementById('forecastCard');
+  if (!card || typeof InsightsEngine === 'undefined') return;
+  /* need some history + an account to project a meaningful trend */
+  if (!allTx.length || !accounts.length) { card.hidden = true; return; }
+
+  const recurring = (subs || [])
+    .filter(s => s && s.active !== false && s.nextDue && s.amount > 0)
+    .map(s => ({ amount: s.amount, frequency: s.frequency, nextDue: s.nextDue, name: s.name }));
+
+  const fc = InsightsEngine.forecastBalance(allTx, accounts, { horizonDays: 30, recurring });
+  card.hidden = false;
+
+  setText('forecastHorizon', `Next ${fc.horizonDays} days`);
+  setText('forecastEnd', formatCurrency(fc.endBalance));
+
+  const netEl = document.getElementById('forecastNet');
+  if (netEl) {
+    const n = fc.projectedNet;
+    netEl.textContent = `${n >= 0 ? '▲ +' : '▼ −'}${formatCurrency(Math.abs(n))} projected`;
+    netEl.style.color = n >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+  }
+
+  const warn = document.getElementById('forecastWarning');
+  if (warn) {
+    if (fc.belowZero) {
+      warn.hidden = false;
+      warn.className = 'forecast-warning forecast-warning--danger';
+      warn.innerHTML = `Projected to dip below ${formatCurrency(0)} around <strong>${formatDateShort(fc.belowZeroDate)}</strong>.`;
+    } else if (fc.riskBelowZero) {
+      warn.hidden = false;
+      warn.className = 'forecast-warning forecast-warning--caution';
+      warn.innerHTML = `At the low end of the range, your balance could run close to ${formatCurrency(0)} this month.`;
+    } else {
+      warn.hidden = true;
+    }
+  }
+
+  const bills = fc.scheduled.length;
+  setText('forecastBasis', fc.basis.sampleCount
+    ? `Based on your ${fc.basis.lookbackDays}-day trend${bills ? ` + ${bills} scheduled bill${bills === 1 ? '' : 's'}` : ''}. An estimate, not a guarantee.`
+    : 'Not enough history yet for a confident projection.');
+
+  /* chart: 30 days of history + the projection (skip day 0 — it duplicates today) */
+  const hist = SummaryEngine.getBalanceOverTime(allTx, accounts, 30);
+  const projection = fc.points.slice(1).map(p => ({ label: p.label, balance: p.balance, lower: p.lower, upper: p.upper }));
+  Charts.drawLineChart('forecastCanvas', hist, false, projection);
 }
 
 function updateMonthNav() {
