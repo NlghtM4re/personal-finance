@@ -620,7 +620,9 @@
 .monthly-summary-item--income .monthly-summary-value { color: var(--color-income); }
 .monthly-summary-item--expense .monthly-summary-value { color: var(--color-expense); }
 
-.chart-container--sm { position: relative; flex: 1; height: auto; min-height: 180px; max-height: 260px; width: 100%; }
+/* Definite height so the canvas's height:100% resolves — with only flex/auto
+   the canvas falls back to its 2:1 intrinsic ratio and overflows the card. */
+.chart-container--sm { position: relative; height: 220px; width: 100%; }
 .chart-container--sm canvas { display: block; width: 100%; height: 100%; }
 
 .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

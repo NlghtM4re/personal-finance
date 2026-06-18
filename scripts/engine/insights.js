@@ -102,7 +102,9 @@ const InsightsEngine = {
     const schedByDate = {};
     scheduled.forEach(s => { schedByDate[s.date] = (schedByDate[s.date] || 0) + s.amount; });
 
-    /* day-by-day projection */
+    /* day-by-day projection. The band is capped so a volatile history can't
+       balloon it into a meaningless cone that dwarfs the actual balance. */
+    const maxSpread = Math.abs(current) * 0.25 + 50;
     const points = [];
     let low = { balance: current, date: todayStr };
     let cumSched = 0;
@@ -110,7 +112,7 @@ const InsightsEngine = {
       const date = iso(new Date(today.getTime() + d * DAY));
       cumSched += (schedByDate[date] || 0);
       const balance = current + runRate * d - cumSched;
-      const spread  = band * vol * Math.sqrt(d);
+      const spread  = Math.min(band * vol * Math.sqrt(d), maxSpread);
       points.push({
         date,
         label:   new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),

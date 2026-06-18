@@ -51,9 +51,10 @@ function getMonthTransactions(allTx, year, month) {
 
 async function initDashboard() {
   if (!_dashboardReady) showSkeletons();
-  const [allTx, accounts] = await Promise.all([
+  const [allTx, accounts, subs] = await Promise.all([
     TransactionStore.getAll(),
     AccountStore.getAll(),
+    SubscriptionStore.getAll().catch(() => []),
   ]);
 
   const now = new Date();
@@ -148,16 +149,14 @@ async function initDashboard() {
   balanceSkeleton?.setAttribute('hidden', '');
   if (allTx.length > 0) {
     balanceEmpty?.setAttribute('hidden', '');
-    Charts.drawLineChart('balanceCanvas', balancePoints);
+    /* Forecast extends this same chart with a dashed 30-day projection + band
+       and fills the forecast header; returns the projection points to draw. */
+    const projection = renderForecast(allTx, accounts, subs);
+    Charts.drawLineChart('balanceCanvas', balancePoints, false, projection);
   } else {
     balanceEmpty?.removeAttribute('hidden');
+    renderForecast(allTx, accounts, subs); /* hides the forecast header */
   }
-
-  /* Cash-flow forecast (Phase 1) — non-blocking; a subscriptions hiccup
-     must never break the rest of the dashboard */
-  SubscriptionStore.getAll()
-    .then(subs => renderForecast(allTx, accounts, subs))
-    .catch(() => renderForecast(allTx, accounts, []));
 
   /* Monthly overview — daily bars for current month view */
   updateMonthNav();
@@ -239,28 +238,30 @@ function cryptoDeltaHTML(change24h) {
   return `<span class="delta delta--${cls}">${change24h >= 0 ? '▲ +' : '▼ −'}${Math.abs(change24h).toFixed(1)}% · 24h</span>`;
 }
 
-/* Cash-flow forecast card (Phase 1) — projects total balance forward and
-   flags a low-balance risk. Pure math lives in InsightsEngine. */
+/* Cash-flow forecast (Phase 1) — folded into the balance-over-time card.
+   Fills the forecast header + low-balance warning and RETURNS the projection
+   points (or null) for drawLineChart to append to the balance chart. Pure
+   math lives in InsightsEngine. */
 function renderForecast(allTx, accounts, subs) {
-  const card = document.getElementById('forecastCard');
-  if (!card || typeof InsightsEngine === 'undefined') return;
+  const head = document.getElementById('forecastHead');
+  const hideHead = () => { if (head) head.hidden = true; setText('forecastBasis', ''); };
+  if (typeof InsightsEngine === 'undefined') { hideHead(); return null; }
   /* need some history + an account to project a meaningful trend */
-  if (!allTx.length || !accounts.length) { card.hidden = true; return; }
+  if (!allTx.length || !accounts.length) { hideHead(); return null; }
 
   const recurring = (subs || [])
     .filter(s => s && s.active !== false && s.nextDue && s.amount > 0)
     .map(s => ({ amount: s.amount, frequency: s.frequency, nextDue: s.nextDue, name: s.name }));
 
   const fc = InsightsEngine.forecastBalance(allTx, accounts, { horizonDays: 30, recurring });
-  card.hidden = false;
+  if (head) head.hidden = false;
 
-  setText('forecastHorizon', `Next ${fc.horizonDays} days`);
   setText('forecastEnd', formatCurrency(fc.endBalance));
 
   const netEl = document.getElementById('forecastNet');
   if (netEl) {
     const n = fc.projectedNet;
-    netEl.textContent = `${n >= 0 ? '▲ +' : '▼ −'}${formatCurrency(Math.abs(n))} projected`;
+    netEl.textContent = `${n >= 0 ? '▲ +' : '▼ −'}${formatCurrency(Math.abs(n))} in 30 days`;
     netEl.style.color = n >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
   }
 
@@ -281,13 +282,11 @@ function renderForecast(allTx, accounts, subs) {
 
   const bills = fc.scheduled.length;
   setText('forecastBasis', fc.basis.sampleCount
-    ? `Based on your ${fc.basis.lookbackDays}-day trend${bills ? ` + ${bills} scheduled bill${bills === 1 ? '' : 's'}` : ''}. An estimate, not a guarantee.`
+    ? `Forecast from your ${fc.basis.lookbackDays}-day trend${bills ? ` + ${bills} scheduled bill${bills === 1 ? '' : 's'}` : ''}. An estimate, not a guarantee.`
     : 'Not enough history yet for a confident projection.');
 
-  /* chart: 30 days of history + the projection (skip day 0 — it duplicates today) */
-  const hist = SummaryEngine.getBalanceOverTime(allTx, accounts, 30);
-  const projection = fc.points.slice(1).map(p => ({ label: p.label, balance: p.balance, lower: p.lower, upper: p.upper }));
-  Charts.drawLineChart('forecastCanvas', hist, false, projection);
+  /* projection for the balance chart (skip day 0 — it duplicates today) */
+  return fc.points.slice(1).map(p => ({ label: p.label, balance: p.balance, lower: p.lower, upper: p.upper }));
 }
 
 function updateMonthNav() {

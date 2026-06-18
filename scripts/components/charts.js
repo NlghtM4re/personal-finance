@@ -124,16 +124,22 @@ const Charts = {
       ctx.fillText(this._fmt(v), pad.left - 8, y);
     }
 
-    /* X labels — step based on available width so they never overlap */
-    const maxLabels = Math.max(2, Math.floor(cw / 42));
+    /* X labels — evenly spaced; always include the last, but if it lands too
+       close to the previous tick, replace it rather than overprint (avoids the
+       collision seen at the right edge). */
+    const maxLabels = Math.max(2, Math.floor(cw / 46));
     const labelStep = Math.max(1, Math.ceil(all.length / maxLabels));
+    const labelIdx  = [];
+    for (let i = 0; i < all.length; i += labelStep) labelIdx.push(i);
+    const lastI = all.length - 1;
+    if (labelIdx[labelIdx.length - 1] !== lastI) {
+      if (lastI - labelIdx[labelIdx.length - 1] < labelStep * 0.6) labelIdx[labelIdx.length - 1] = lastI;
+      else labelIdx.push(lastI);
+    }
     ctx.fillStyle = this._textColor();
     ctx.font = '11px "Inter", sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    all.forEach((p, i) => {
-      if (i % labelStep !== 0 && i !== all.length - 1) return;
-      ctx.fillText(p.label, toX(i), pad.top + ch + 10);
-    });
+    labelIdx.forEach(i => ctx.fillText(all[i].label, toX(i), pad.top + ch + 10));
 
     /* Draw-in: clip fill + line to animated progress (1 = fully drawn) */
     const animT = s.animT === undefined ? 1 : s.animT;

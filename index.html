@@ -118,7 +118,7 @@
 
           <div class="term">
             <div class="term__head">
-              <span class="term__title">Balance over time</span>
+              <span class="term__title">Balance &amp; forecast</span>
               <select class="select--sm" id="balanceChartRange">
                 <option value="all" selected>All time</option>
                 <option value="365">1 Year</option>
@@ -129,8 +129,16 @@
               </select>
             </div>
             <div class="term__body">
+              <div class="forecast-head" id="forecastHead" hidden>
+                <div class="forecast-stat">
+                  <div class="forecast-stat__label">Projected · next 30 days</div>
+                  <div class="forecast-stat__value font-display" id="forecastEnd">—</div>
+                  <div class="forecast-stat__sub" id="forecastNet">—</div>
+                </div>
+                <div class="forecast-warning" id="forecastWarning" hidden></div>
+              </div>
               <div class="chart-container chart-container--hero" id="balanceChart">
-                <canvas id="balanceCanvas" role="img" aria-label="Balance over time line chart"></canvas>
+                <canvas id="balanceCanvas" role="img" aria-label="Balance over time with 30-day forecast"></canvas>
                 <div class="chart-skeleton" id="balanceChartSkeleton">
                   <div class="chart-skeleton__bar" style="height:45%"></div>
                   <div class="chart-skeleton__bar" style="height:70%"></div>
@@ -146,26 +154,6 @@
                     <a href="pages/add-transaction.html" style="font-size:0.75rem;color:var(--color-text)">Add a transaction to get started →</a>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="term" id="forecastCard" hidden>
-            <div class="term__head">
-              <span class="term__title">Cash-flow forecast</span>
-              <span class="forecast-horizon" id="forecastHorizon">Next 30 days</span>
-            </div>
-            <div class="term__body">
-              <div class="forecast-head">
-                <div class="forecast-stat">
-                  <div class="forecast-stat__label">Projected balance</div>
-                  <div class="forecast-stat__value font-display" id="forecastEnd">—</div>
-                  <div class="forecast-stat__sub" id="forecastNet">—</div>
-                </div>
-                <div class="forecast-warning" id="forecastWarning" hidden></div>
-              </div>
-              <div class="chart-container chart-container--sm" id="forecastChart">
-                <canvas id="forecastCanvas" role="img" aria-label="Projected balance forecast chart"></canvas>
               </div>
               <div class="forecast-basis" id="forecastBasis"></div>
             </div>

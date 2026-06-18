@@ -71,6 +71,12 @@
 /* --- Reset --- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* The `hidden` attribute must always win — several components set an explicit
+   `display` on classes (e.g. `.dash-crypto { display:flex }`) which would
+   otherwise override the UA `[hidden] { display:none }` and leave toggled-off
+   sections (crypto, forecast, empty states) visible. */
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; }
 
 body {
