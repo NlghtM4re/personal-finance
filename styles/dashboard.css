@@ -124,7 +124,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 332px;
   gap: 10px;
-  align-items: start;
+  /* stretch so both columns share the taller height and their bottoms align
+     (the transactions feed grows to fill — see .dash-feed below) */
+  align-items: stretch;
 }
 .dash-main,
 .dash-right {
@@ -371,11 +373,22 @@
    ============================================================ */
 .chart-container--hero { height: 250px; }
 
+/* Transactions feed grows to fill the right column so the Monthly overview
+   below it lines up with the bottom of the left column's last card. */
+.dash-feed { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.dash-feed .term__body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .dash-feed .transaction-list {
-  max-height: 392px;
+  flex: 1;
+  min-height: 200px;
+  max-height: none;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
+}
+@media (max-width: 768px) {
+  /* single column: don't force the feed to grow */
+  .dash-feed { flex: 0 1 auto; }
+  .dash-feed .transaction-list { max-height: 392px; }
 }
 .dash-feed .transaction-list::-webkit-scrollbar { width: 4px; }
 .dash-feed .transaction-list::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 0; }

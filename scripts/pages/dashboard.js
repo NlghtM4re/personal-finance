@@ -310,9 +310,13 @@ async function renderMonthlyChart(allTx) {
     monthlyEmpty?.setAttribute('hidden', '');
     Charts.drawBarChart('monthlyCanvas', weekly);
   } else {
+    /* Clear any bars left from a previous month, otherwise switching to a
+       month with no data shows the old chart behind the empty state. */
+    const cv = document.getElementById('monthlyCanvas');
+    if (cv) { const ctx = cv.getContext('2d'); ctx && ctx.clearRect(0, 0, cv.width, cv.height); }
+    delete Charts._state['monthlyCanvas'];
     monthlyEmpty?.removeAttribute('hidden');
   }
-
 }
 
 /* Per-account daily balance history (last `days` days, oldest first).

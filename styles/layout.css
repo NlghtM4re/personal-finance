@@ -251,9 +251,13 @@ body.page-exit .main-wrapper {
   background: rgba(0,0,0,.92);
   border-top: 1px solid var(--color-border);
   z-index: 100;
-  padding: 0 8px;
+  padding: 0 4px;
   align-items: center;
-  justify-content: space-around;
+  /* 5 equal columns so the centre [+] is always dead-centre regardless of
+     label widths (space-around drifted it right because the left labels are
+     wider than the right ones). */
+  grid-template-columns: repeat(5, 1fr);
+  justify-items: center;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
@@ -310,11 +314,15 @@ body.page-exit .main-wrapper {
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
-    transition: transform 0.22s cubic-bezier(.4,0,.2,1);
+    /* fully hidden when closed: kills the 1px border peeking at the left edge
+       and keeps the off-screen nav links out of the tab order */
+    visibility: hidden;
+    transition: transform 0.22s cubic-bezier(.4,0,.2,1), visibility 0.22s;
     box-shadow: none;
   }
   .sidebar.open {
     transform: translateX(0);
+    visibility: visible;
     box-shadow: 4px 0 32px rgba(0,0,0,.6);
   }
 
@@ -322,13 +330,16 @@ body.page-exit .main-wrapper {
   .menu-btn { display: flex; }
   .main-wrapper { margin-left: 0; }
 
+  /* hamburger + settings sit at the edges (was 24px in from the base padding) */
+  .topbar { padding: 0 8px; }
+
+  .bottom-nav { display: grid; }
+
   .main-content {
     padding: 14px;
     padding-bottom: calc(14px + var(--bottom-nav-height));
     gap: 12px;
   }
-
-  .bottom-nav { display: flex; }
 
   /* Touch targets */
   .btn:not(#submitBtn):not(.btn--sm), .nav-item, .bottom-nav__item, .type-btn,
