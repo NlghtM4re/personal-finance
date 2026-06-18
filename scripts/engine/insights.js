@@ -184,6 +184,91 @@ const InsightsEngine = {
       .filter(r => r.amount > 0)
       .sort((a, b) => b.amount - a.amount);
   },
+  /* App-wide spending insights (Phase 3). Pure and structured — each insight
+     is data only (a `kind` + numbers); the UI formats the copy. Detectors:
+       spendTrend         — total spend this month vs last month
+       categorySpike      — a category well above its trailing-3-month average
+       savingsRate        — savings rate (income−expense)/income vs last month
+       untrackedRecurring — a roughly-monthly, stable charge not tracked as a
+                            subscription
+     Returns the most notable first (by severity), capped at `max`.
+     opts: { asOf=new Date(), subscriptions=[], max=6 } */
+  generateInsights(transactions, opts = {}) {
+    const { asOf = new Date(), subscriptions = [], max = 6 } = opts;
+
+    const ref = new Date(asOf); ref.setDate(1); ref.setHours(0, 0, 0, 0);
+    const ymOf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const monthsBack = n => ymOf(new Date(ref.getFullYear(), ref.getMonth() - n, 1));
+    const curKey   = ymOf(ref);
+    const lastKey  = monthsBack(1);
+    const trailing = [monthsBack(1), monthsBack(2), monthsBack(3)];
+
+    const exp = transactions.filter(t => t.type === 'expense' && t.amount > 0);
+    const inc = transactions.filter(t => t.type === 'income'  && t.amount > 0);
+    const inMonth = (t, k) => t.date.slice(0, 7) === k;
+    const sumIn = (arr, k) => arr.filter(t => inMonth(t, k)).reduce((s, t) => s + t.amount, 0);
+
+    const out = [];
+
+    /* 1) overall spending vs last month */
+    const curExp = sumIn(exp, curKey), lastExp = sumIn(exp, lastKey);
+    if (lastExp > 0 && curExp > 0) {
+      const diff = curExp - lastExp, pct = Math.round(Math.abs(diff) / lastExp * 100);
+      if (Math.abs(diff) >= 50 && pct >= 15) {
+        out.push({ id: 'spend-trend', kind: 'spendTrend', tone: diff > 0 ? 'down' : 'up',
+          severity: 0.5 + Math.min(0.49, pct / 200), current: curExp, previous: lastExp, diff, pct });
+      }
+    }
+
+    /* 2) per-category spike vs trailing-3-month average */
+    [...new Set(exp.map(t => t.categoryId).filter(Boolean))].forEach(catId => {
+      const cur = exp.filter(t => t.categoryId === catId && inMonth(t, curKey)).reduce((s, t) => s + t.amount, 0);
+      const avg = trailing.reduce((s, k) =>
+        s + exp.filter(t => t.categoryId === catId && inMonth(t, k)).reduce((a, t) => a + t.amount, 0), 0) / 3;
+      if (avg >= 20 && cur >= avg * 1.4 && (cur - avg) >= 30) {
+        const pct = Math.round((cur / avg - 1) * 100);
+        out.push({ id: 'spike:' + catId, kind: 'categorySpike', tone: 'down', categoryId: catId,
+          severity: Math.min(0.95, 0.4 + pct / 200), current: cur, avg, pct });
+      }
+    });
+
+    /* 3) savings rate vs last month */
+    const rateFor = k => { const i = sumIn(inc, k); return i > 0 ? (i - sumIn(exp, k)) / i : null; };
+    const curSR = rateFor(curKey), lastSR = rateFor(lastKey);
+    if (curSR != null && lastSR != null && Math.abs(curSR - lastSR) >= 0.12) {
+      const delta = curSR - lastSR;
+      out.push({ id: 'savings', kind: 'savingsRate', tone: delta >= 0 ? 'up' : 'down',
+        severity: 0.45 + Math.min(0.4, Math.abs(delta)), rate: curSR, prevRate: lastSR, delta });
+    }
+
+    /* 4) untracked recurring charges — roughly monthly, stable amount, not a
+          tagged/known subscription */
+    const known = new Set(subscriptions.map(s => (s.name || '').toLowerCase().trim()).filter(Boolean));
+    const groups = {};
+    exp.forEach(t => {
+      const note = (t.note || '').toLowerCase().trim();
+      if (!note || (t.tags || []).includes('subscription') || known.has(note)) return;
+      (groups[note] = groups[note] || []).push(t);
+    });
+    Object.values(groups).forEach(txs => {
+      if (txs.length < 3) return;
+      const dates = txs.map(t => t.date).sort();
+      if (new Set(dates.map(d => d.slice(0, 7))).size < 3) return;
+      const gaps = [];
+      for (let i = 1; i < dates.length; i++) gaps.push((new Date(dates[i]) - new Date(dates[i - 1])) / 86400000);
+      gaps.sort((a, b) => a - b);
+      const medGap = gaps[Math.floor(gaps.length / 2)];
+      if (medGap < 24 || medGap > 38) return;
+      const amts = txs.map(t => t.amount);
+      const mean = amts.reduce((s, a) => s + a, 0) / amts.length;
+      const sd   = Math.sqrt(amts.reduce((s, a) => s + (a - mean) ** 2, 0) / amts.length);
+      if (mean <= 0 || sd / mean > 0.2) return;
+      out.push({ id: 'recurring:' + (txs[0].note || '').toLowerCase().trim(), kind: 'untrackedRecurring', tone: 'info',
+        severity: 0.6, name: txs[txs.length - 1].note, amount: mean, count: txs.length, cadenceDays: Math.round(medGap) });
+    });
+
+    return out.sort((a, b) => b.severity - a.severity).slice(0, max);
+  },
 };
 
 /* Export for Node-based unit tests. Harmless in the browser, where there is

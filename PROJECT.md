@@ -16,9 +16,9 @@ A self-hosted, responsive web app accessible from any browser (desktop + phone) 
 | Item | Value |
 |---|---|
 | Phase | 3 — complete. App is feature-complete; full "Flow" visual redesign shipped (June 2026) |
-| Active step | Phase 4 (Intelligence) — Phase 1 cash-flow forecast + Phase 2 budget recommendations shipped |
+| Active step | Intelligence layer Phases 1–3 shipped (forecast, budget recommendations, Insights page) |
 | Blockers | None |
-| Next action | Intelligence Phase 3 (app-wide insight engine — spikes, drift, new recurring charges) |
+| Next action | Optional Phase 4 (AI: natural-language summaries + smart categorisation via Vercel AI Gateway) — otherwise the core intelligence layer is complete |
 
 ---
 

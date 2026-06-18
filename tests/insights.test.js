@@ -128,6 +128,72 @@ test('recommendBudgets', async (t) => {
   });
 });
 
+test('generateInsights', async (t) => {
+  // ASOF = 2026-06-16 → current month 2026-06, last 2026-05, trailing 05/04/03
+  const ex = (mo, day, amount, categoryId, note, tags) =>
+    ({ type: 'expense', amount, categoryId, note, tags, date: `2026-${String(mo).padStart(2,'0')}-${String(day).padStart(2,'0')}` });
+  const income = (mo, day, amount) => ({ type: 'income', amount, date: `2026-${String(mo).padStart(2,'0')}-${String(day).padStart(2,'0')}` });
+
+  await t.test('flags overall spending up vs last month', () => {
+    const txns = [ ex(6,10,600,'food','x'), ex(5,10,400,'food','x') ];
+    const ins = InsightsEngine.generateInsights(txns, { asOf: ASOF });
+    const trend = ins.find(i => i.kind === 'spendTrend');
+    assert.ok(trend, 'has spendTrend');
+    assert.equal(trend.tone, 'down');         // spending up = bad
+    assert.equal(trend.pct, 50);
+    assert.equal(trend.diff, 200);
+  });
+
+  await t.test('flags a category spike vs its trailing average', () => {
+    const txns = [
+      ex(6,8,200,'food','groceries'),  // current
+      ex(5,8,50,'food','groceries'), ex(4,8,50,'food','groceries'), ex(3,8,50,'food','groceries'), // avg 50
+    ];
+    const spike = InsightsEngine.generateInsights(txns, { asOf: ASOF }).find(i => i.kind === 'categorySpike');
+    assert.ok(spike, 'has categorySpike');
+    assert.equal(spike.categoryId, 'food');
+    assert.equal(spike.pct, 300);             // 200 vs avg 50 = +300%
+  });
+
+  await t.test('flags a change in savings rate', () => {
+    const txns = [
+      income(6,1,1000), ex(6,2,200,'food','x'),   // rate 0.8
+      income(5,1,1000), ex(5,2,600,'food','x'),   // rate 0.4
+    ];
+    const sr = InsightsEngine.generateInsights(txns, { asOf: ASOF }).find(i => i.kind === 'savingsRate');
+    assert.ok(sr, 'has savingsRate');
+    assert.equal(sr.tone, 'up');              // saving more = good
+    assert.ok(Math.abs(sr.delta - 0.4) < 1e-9);
+  });
+
+  await t.test('detects an untracked, roughly-monthly recurring charge', () => {
+    const txns = [
+      ex(3,5,40,'fun','Gym'), ex(4,5,40,'fun','Gym'), ex(5,5,40,'fun','Gym'),
+    ];
+    const rec = InsightsEngine.generateInsights(txns, { asOf: ASOF }).find(i => i.kind === 'untrackedRecurring');
+    assert.ok(rec, 'has untrackedRecurring');
+    assert.equal(rec.name, 'Gym');
+    assert.equal(rec.count, 3);
+    assert.ok(rec.cadenceDays >= 28 && rec.cadenceDays <= 32);
+  });
+
+  await t.test('does NOT flag charges already tracked as subscriptions', () => {
+    const txns = [
+      ex(3,5,18,'fun','Netflix'), ex(4,5,18,'fun','Netflix'), ex(5,5,18,'fun','Netflix'),
+    ];
+    const subs = [{ name: 'Netflix' }];
+    const rec = InsightsEngine.generateInsights(txns, { asOf: ASOF, subscriptions: subs }).find(i => i.kind === 'untrackedRecurring');
+    assert.equal(rec, undefined);
+    // tagged 'subscription' is likewise excluded
+    const tagged = [ ex(3,5,18,'fun','HBO',['subscription']), ex(4,5,18,'fun','HBO',['subscription']), ex(5,5,18,'fun','HBO',['subscription']) ];
+    assert.equal(InsightsEngine.generateInsights(tagged, { asOf: ASOF }).find(i => i.kind === 'untrackedRecurring'), undefined);
+  });
+
+  await t.test('quiet history yields no insights, capped at max', () => {
+    assert.deepEqual(InsightsEngine.generateInsights([], { asOf: ASOF }), []);
+  });
+});
+
 test('forecastBalance — variance band & transfers', async (t) => {
   await t.test('the confidence band widens further into the future', () => {
     // alternating swings create volatility
