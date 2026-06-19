@@ -10,7 +10,7 @@
    Bump CACHE_VERSION when shipping changes to force a refresh.
    ============================================================ */
 
-const CACHE_VERSION = 'pf-v35';
+const CACHE_VERSION = 'pf-v36';
 
 const PRECACHE = [
   '/index.html',

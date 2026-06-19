@@ -157,6 +157,50 @@ const CryptoBalances = {
     return { currency: cur.toUpperCase(), map };
   },
 
+  /* ---- dashboard mini-chart timeframes ---- */
+  RANGES: [
+    { key: '24h', label: '24H', days: 1 },
+    { key: '1w',  label: '1W',  days: 7 },
+    { key: '1m',  label: '1M',  days: 30 },
+    { key: '1y',  label: '1Y',  days: 365 },
+    { key: '5y',  label: '5Y',  days: 1825 },
+  ],
+
+  /* ---- price history per chain over a range (for the sparkline). One
+     CoinGecko market_chart call per chain, downsampled. Returns
+     { [chainId]: { spark: number[], changePct: number|null } }. ---- */
+  _chartCache: {},
+  async chartFor(rangeKey) {
+    const range = this.RANGES.find(r => r.key === rangeKey) || this.RANGES[0];
+    let cur = (localStorage.getItem('pf_currency') || 'CAD').toLowerCase();
+    /* short cache so flipping between ranges is instant and gentle on the
+       CoinGecko rate limit */
+    const cacheKey = range.key + ':' + cur;
+    const hit = this._chartCache[cacheKey];
+    if (hit && Date.now() - hit.ts < 120000) return hit.data;
+    const downsample = (arr, n = 48) => {
+      if (arr.length <= n) return arr;
+      const step = (arr.length - 1) / (n - 1);
+      return Array.from({ length: n }, (_, i) => arr[Math.round(i * step)]);
+    };
+    const out = {};
+    await Promise.all(Object.values(CHAINS).map(async (c) => {
+      const fetchChart = async (vs) => {
+        const r = await this._fetch(`https://api.coingecko.com/api/v3/coins/${c.coingecko}/market_chart?vs_currency=${vs}&days=${range.days}`);
+        if (!r.ok) throw new Error('chart lookup failed');
+        return r.json();
+      };
+      try {
+        const j = await fetchChart(cur).catch(() => { cur = 'usd'; return fetchChart('usd'); });
+        const prices = (j.prices || []).map(p => p[1]).filter(Number.isFinite);
+        const changePct = prices.length > 1 ? ((prices[prices.length - 1] - prices[0]) / prices[0]) * 100 : null;
+        out[c.id] = { spark: downsample(prices), changePct };
+      } catch { out[c.id] = { spark: [], changePct: null }; }
+    }));
+    this._chartCache[cacheKey] = { ts: Date.now(), data: out };
+    return out;
+  },
+
   /* ---- one-shot holdings snapshot: per-wallet amount + fiat + total.
      Shared by the Crypto page, the dashboard, and the accounts net
      worth. Pass `wallets` to skip the store round-trip. ---- */

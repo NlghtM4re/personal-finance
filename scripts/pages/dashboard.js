@@ -170,7 +170,12 @@ async function initDashboard() {
   await renderRecentTransactions(allTx.slice(0, 8));
 }
 
-/* Crypto holdings — one panel per wallet; total counts toward net worth */
+/* Crypto holdings — one panel per wallet; total counts toward net worth.
+   A timeframe toggle (24H · 1W · 1M · 1Y · 5Y) re-fetches just the
+   sparkline + change for the chosen range; balances are not re-fetched. */
+let _cryptoSnap = null;
+let _cryptoRangeIdx = 0;
+
 async function renderCrypto(bankBalance) {
   const section = document.getElementById('cryptoSection');
   const tilesEl = document.getElementById('cryptoTiles');
@@ -184,9 +189,9 @@ async function renderCrypto(bankBalance) {
 
   if (!snap.wallets.length) { section.hidden = true; return; }
   section.hidden = false;
+  _cryptoSnap = snap;
 
   totalEl.textContent = formatCurrency(snap.total) + (snap.anyMissing ? ' +' : '');
-  tilesEl.innerHTML = snap.items.map(cryptoTileHTML).join('');
 
   if (nwEl) {
     const netWorth = bankBalance + snap.total;
@@ -194,12 +199,36 @@ async function renderCrypto(bankBalance) {
       `<span class="dash-crypto__nw-label">Net worth · cash + crypto</span>` +
       `<span class="dash-crypto__nw-val">${formatCurrency(netWorth)}</span>`;
   }
+
+  const btn = document.getElementById('cryptoRangeBtn');
+  if (btn && !btn.dataset.wired) {
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => {
+      _cryptoRangeIdx = (_cryptoRangeIdx + 1) % CryptoBalances.RANGES.length;
+      loadCryptoChart();
+    });
+  }
+  await loadCryptoChart();
+}
+
+/* Fetch the sparkline/change for the current range and (re)render the tiles. */
+async function loadCryptoChart() {
+  if (!_cryptoSnap || typeof CryptoBalances === 'undefined') return;
+  const tilesEl = document.getElementById('cryptoTiles');
+  const btn = document.getElementById('cryptoRangeBtn');
+  const range = CryptoBalances.RANGES[_cryptoRangeIdx];
+  if (btn) { btn.textContent = range.label; btn.disabled = true; }
+  let chart = {};
+  try { chart = await CryptoBalances.chartFor(range.key); } catch (_) {}
+  if (btn) btn.disabled = false;
+  if (tilesEl) tilesEl.innerHTML = _cryptoSnap.items
+    .map(it => cryptoTileHTML(it, chart[it.wallet.chain], range.label)).join('');
 }
 
 /* Crypto wallet tile — mirrors the account tile design (avatar + name +
    type, big value, sparkline + change foot), with a chain-colored coin
    badge. Shows the wallet's current fiat value and its coin amount. */
-function cryptoTileHTML(r) {
+function cryptoTileHTML(r, chart, rangeLabel) {
   const w = r.wallet;
   const chain = CHAINS[w.chain] || { symbol: '?', label: w.chain, color: 'var(--color-text)' };
   const ok   = !r.error;
@@ -209,7 +238,11 @@ function cryptoTileHTML(r) {
   const sub  = ok
     ? (r.stale ? `${amt} <span title="Live lookup failed — showing the last fetched balance.">· last known</span>` : amt)
     : `<span style="color:var(--color-expense)">lookup failed</span>`;
-  const spark = (ok && r.sparkline && r.sparkline.length > 1) ? sparklineSVG(r.sparkline) : '';
+  /* sparkline + change track the selected timeframe when available, else
+     fall back to the 7-day snapshot data */
+  const sparkData = (chart && chart.spark && chart.spark.length > 1) ? chart.spark : r.sparkline;
+  const change    = (chart && chart.changePct != null) ? chart.changePct : r.change24h;
+  const spark = (ok && sparkData && sparkData.length > 1) ? sparklineSVG(sparkData) : '';
   return `
     <div class="acct-tile crypto-acct-tile" style="--chain:${chain.color};">
       <div class="acct-tile__row1">
@@ -227,15 +260,16 @@ function cryptoTileHTML(r) {
           <div class="acct-tile__bal font-display">${fiat}</div>
           <div class="acct-tile__sub">${sub}</div>
         </div>
-        ${ok ? cryptoDeltaHTML(r.change24h) : ''}
+        ${ok ? cryptoDeltaHTML(change, rangeLabel || '24H') : ''}
       </div>
     </div>`;
 }
 
-function cryptoDeltaHTML(change24h) {
-  if (change24h == null) return `<span class="delta delta--flat">· 24h</span>`;
-  const cls = change24h >= 0 ? 'up' : 'down';
-  return `<span class="delta delta--${cls}">${change24h >= 0 ? '▲ +' : '▼ −'}${Math.abs(change24h).toFixed(1)}% · 24h</span>`;
+function cryptoDeltaHTML(change, label = '24H') {
+  const lbl = String(label).toLowerCase();
+  if (change == null) return `<span class="delta delta--flat">· ${lbl}</span>`;
+  const cls = change >= 0 ? 'up' : 'down';
+  return `<span class="delta delta--${cls}">${change >= 0 ? '▲ +' : '▼ −'}${Math.abs(change).toFixed(1)}% · ${lbl}</span>`;
 }
 
 /* Cash-flow forecast (Phase 1) — folded into the balance-over-time card.
