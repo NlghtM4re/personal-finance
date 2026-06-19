@@ -6,6 +6,7 @@ let selectedType     = 'expense';
 let selectedCategory = '';
 let editId           = null;
 let selectedTags     = [];
+let _allTx           = [];   /* history, for category suggestions */
 
 async function initForm() {
   const params = new URLSearchParams(window.location.search);
@@ -13,6 +14,7 @@ async function initForm() {
 
   await populateAccountSelects();
   await renderCategoryPicker();
+  TransactionStore.getAll().then(txs => { _allTx = txs; }).catch(() => {});
 
   if (editId) {
     const tx = await TransactionStore.getById(editId);
@@ -61,6 +63,32 @@ async function renderCategoryPicker() {
     btn.addEventListener('click', () => { selectedCategory = btn.dataset.cat; renderCategoryPicker(); });
   });
   document.getElementById('newCatBtn')?.addEventListener('click', openNewCatModal);
+  updateCategorySuggestion();
+}
+
+/* Suggest a category from the user's own history as they type the note
+   (no AI, no network). Shown only when nothing is picked yet. */
+async function updateCategorySuggestion() {
+  const el = document.getElementById('catSuggestion');
+  if (!el || typeof InsightsEngine === 'undefined') return;
+  const note = document.getElementById('txNote')?.value || '';
+  if (selectedType === 'transfer' || selectedCategory || !note.trim()) {
+    el.hidden = true; el.innerHTML = ''; return;
+  }
+  const s = InsightsEngine.suggestCategory(note, _allTx, { type: selectedType });
+  if (!s) { el.hidden = true; el.innerHTML = ''; return; }
+  const cat = await CategoryStore.getById(s.categoryId);
+  if (!cat) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  el.innerHTML = `
+    <span class="cat-suggestion__label">From your history</span>
+    <button type="button" class="cat-suggestion__chip" data-cat="${s.categoryId}">
+      <span class="cat-icon">${categoryIconHTML(cat, 15)}</span>${escapeHTML(cat.name)}
+    </button>`;
+  el.querySelector('.cat-suggestion__chip')?.addEventListener('click', () => {
+    selectedCategory = s.categoryId;
+    renderCategoryPicker();
+  });
 }
 
 /* ---- quick custom category from the picker ---- */
@@ -242,6 +270,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.querySelectorAll('.type-btn').forEach(btn => {
     btn.addEventListener('click', () => setType(btn.dataset.type));
+  });
+
+  /* suggest a category from history as the note is typed */
+  let _suggestTimer;
+  document.getElementById('txNote')?.addEventListener('input', () => {
+    clearTimeout(_suggestTimer);
+    _suggestTimer = setTimeout(updateCategorySuggestion, 220);
   });
 
   /* quick new-category modal */

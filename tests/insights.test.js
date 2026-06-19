@@ -194,6 +194,52 @@ test('generateInsights', async (t) => {
   });
 });
 
+test('suggestCategory', async (t) => {
+  const tx = (note, categoryId, type = 'expense', date = '2026-05-01') => ({ note, categoryId, type, date });
+  const history = [
+    tx('Loblaws', 'groceries', 'expense', '2026-04-01'),
+    tx('Loblaws #4821', 'groceries', 'expense', '2026-05-01'),
+    tx('Starbucks Coffee', 'coffee', 'expense', '2026-05-02'),
+    tx('Payroll deposit', 'salary', 'income', '2026-05-03'),
+  ];
+
+  await t.test('exact normalized match (ignores digits/punctuation)', () => {
+    const r = InsightsEngine.suggestCategory('loblaws #99', history, { type: 'expense' });
+    assert.equal(r.categoryId, 'groceries');
+    assert.equal(r.confidence, 'exact');
+    assert.equal(r.count, 2);
+  });
+
+  await t.test('token-overlap fallback when no exact match', () => {
+    const r = InsightsEngine.suggestCategory('Starbucks downtown', history, { type: 'expense' });
+    assert.equal(r.categoryId, 'coffee');
+    assert.equal(r.confidence, 'similar');
+  });
+
+  await t.test('respects type — an income note does not borrow expense categories', () => {
+    const r = InsightsEngine.suggestCategory('Payroll', history, { type: 'income' });
+    assert.equal(r.categoryId, 'salary');
+    // and an expense lookup never returns the income category
+    const e = InsightsEngine.suggestCategory('Payroll', history, { type: 'expense' });
+    assert.equal(e, null);
+  });
+
+  await t.test('most-used category wins among matches', () => {
+    const h = [
+      tx('Uber', 'transport', 'expense', '2026-04-01'),
+      tx('Uber', 'transport', 'expense', '2026-04-15'),
+      tx('Uber', 'fun', 'expense', '2026-05-01'),
+    ];
+    assert.equal(InsightsEngine.suggestCategory('uber', h, { type: 'expense' }).categoryId, 'transport');
+  });
+
+  await t.test('no history, empty note, or no match → null', () => {
+    assert.equal(InsightsEngine.suggestCategory('Loblaws', [], { type: 'expense' }), null);
+    assert.equal(InsightsEngine.suggestCategory('', history, { type: 'expense' }), null);
+    assert.equal(InsightsEngine.suggestCategory('xyzzy zzz', history, { type: 'expense' }), null);
+  });
+});
+
 test('forecastBalance — variance band & transfers', async (t) => {
   await t.test('the confidence band widens further into the future', () => {
     // alternating swings create volatility

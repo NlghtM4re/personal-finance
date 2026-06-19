@@ -269,6 +269,43 @@ const InsightsEngine = {
 
     return out.sort((a, b) => b.severity - a.severity).slice(0, max);
   },
+
+  /* Suggest a category for a new transaction from the user's OWN history — no
+     AI, no network. First an exact normalized-note match, then a token-overlap
+     fallback; among the matches the most-used category wins (ties broken by
+     recency). Filtered by `type` so an expense never suggests an income
+     category. Returns { categoryId, confidence: 'exact'|'similar', count } or
+     null.  opts: { type } */
+  suggestCategory(note, transactions, opts = {}) {
+    const { type } = opts;
+    const norm = s => String(s || '').toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ').replace(/\d+/g, ' ').replace(/\s+/g, ' ').trim();
+    const target = norm(note);
+    if (!target) return null;
+
+    const pool = transactions.filter(t => t.categoryId && t.note && (!type || t.type === type));
+    if (!pool.length) return null;
+
+    const pickBest = (rows) => {
+      const count = {}, latest = {};
+      rows.forEach(t => {
+        count[t.categoryId] = (count[t.categoryId] || 0) + 1;
+        if (!latest[t.categoryId] || t.date > latest[t.categoryId]) latest[t.categoryId] = t.date;
+      });
+      const best = Object.keys(count).sort((a, b) =>
+        count[b] - count[a] || (latest[b] > latest[a] ? 1 : -1))[0];
+      return best ? { categoryId: best, count: count[best] } : null;
+    };
+
+    const exact = pool.filter(t => norm(t.note) === target);
+    if (exact.length) return { ...pickBest(exact), confidence: 'exact' };
+
+    const tokens = new Set(target.split(' ').filter(w => w.length >= 3));
+    if (!tokens.size) return null;
+    const similar = pool.filter(t => norm(t.note).split(' ').some(w => w.length >= 3 && tokens.has(w)));
+    if (!similar.length) return null;
+    return { ...pickBest(similar), confidence: 'similar' };
+  },
 };
 
 /* Export for Node-based unit tests. Harmless in the browser, where there is

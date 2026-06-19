@@ -980,3 +980,16 @@
 }
 .insights-empty__title { font-weight: 600; color: var(--color-text); margin-bottom: 6px; font-size: 0.9375rem; }
 .insights-empty__text { font-size: 0.8125rem; line-height: 1.6; max-width: 420px; margin: 0 auto; }
+
+/* ── Category suggestion from history (Phase 4, no AI) ───────── */
+.cat-suggestion { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.cat-suggestion__label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); font-weight: 600; }
+.cat-suggestion__chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; font-size: 0.8125rem; font-weight: 500;
+  color: var(--color-text); background: var(--color-surface-2);
+  border: 1px solid var(--color-border); cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+.cat-suggestion__chip:hover { border-color: var(--color-text-muted); background: var(--color-primary-light); }
+.cat-suggestion__chip .cat-icon { line-height: 0; color: var(--color-text-muted); }
