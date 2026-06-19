@@ -107,6 +107,9 @@ create table if not exists shifts (
   end_time    text not null default '',
   break_min   integer not null default 0,
   rate        numeric not null default 0,
+  pay_mode    text not null default 'hourly' check (pay_mode in ('hourly','fixed')),
+  fixed_pay   numeric not null default 0,
+  tips        numeric not null default 0,
   employer    text not null default '',
   account_id  uuid references accounts(id) on delete set null,
   category_id text,
@@ -114,6 +117,10 @@ create table if not exists shifts (
   note        text not null default '',
   created_at  timestamptz not null default now()
 );
+-- Run these if the shifts table already exists (safe to re-run):
+alter table shifts add column if not exists pay_mode  text    not null default 'hourly';
+alter table shifts add column if not exists fixed_pay numeric not null default 0;
+alter table shifts add column if not exists tips      numeric not null default 0;
 create index if not exists idx_shifts_user on shifts(user_id, date desc);
 alter table shifts enable row level security;
 create policy "own shifts" on shifts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

@@ -18,23 +18,32 @@ const ShiftEngine = {
     return Math.max(0, mins) / 60;
   },
 
-  /* Gross pay for a shift = hours × hourly rate, rounded to cents. */
+  /* Base pay before tips. payMode 'fixed' → a flat amount you were paid;
+     otherwise hours × hourly rate. Rounded to cents. */
+  basePay(shift) {
+    const v = (shift && shift.payMode === 'fixed')
+      ? (Number(shift.fixedPay) || 0)
+      : this.hours(shift) * (Number(shift && shift.rate) || 0);
+    return Math.round(v * 100) / 100;
+  },
+
+  /* Total earnings for a shift = base pay + tips. */
   pay(shift) {
-    return Math.round(this.hours(shift) * (Number(shift.rate) || 0) * 100) / 100;
+    return Math.round((this.basePay(shift) + (Number(shift && shift.tips) || 0)) * 100) / 100;
   },
 
   /* Totals across shifts, optionally limited to a [from, to] date window
-     (inclusive, YYYY-MM-DD). Returns { count, hours, pay }. */
+     (inclusive, YYYY-MM-DD). Returns { count, hours, pay, tips }. */
   summarize(shifts, opts = {}) {
     const { from, to } = opts;
     const list = (shifts || []).filter(s =>
       (!from || s.date >= from) && (!to || s.date <= to));
-    const hours = list.reduce((sum, s) => sum + this.hours(s), 0);
-    const pay   = list.reduce((sum, s) => sum + this.pay(s),   0);
+    const sum = fn => Math.round(list.reduce((acc, s) => acc + fn(s), 0) * 100) / 100;
     return {
       count: list.length,
-      hours: Math.round(hours * 100) / 100,
-      pay:   Math.round(pay   * 100) / 100,
+      hours: sum(s => this.hours(s)),
+      pay:   sum(s => this.pay(s)),
+      tips:  sum(s => Number(s.tips) || 0),
     };
   },
 };

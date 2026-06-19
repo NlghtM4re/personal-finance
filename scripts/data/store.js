@@ -516,6 +516,9 @@ function shiftToRow(s) {
   if (s.breakMin   !== undefined) row.break_min   = Number(s.breakMin) || 0;
   if (s.rate       !== undefined) row.rate        = Number(s.rate) || 0;
   if (s.employer   !== undefined) row.employer    = s.employer || '';
+  if (s.payMode    !== undefined) row.pay_mode    = s.payMode === 'fixed' ? 'fixed' : 'hourly';
+  if (s.fixedPay   !== undefined) row.fixed_pay   = Number(s.fixedPay) || 0;
+  if (s.tips       !== undefined) row.tips        = Number(s.tips) || 0;
   if (s.accountId  !== undefined) row.account_id  = s.accountId  || null;
   if (s.categoryId !== undefined) row.category_id = s.categoryId || null;
   if (s.txId       !== undefined) row.tx_id       = s.txId       || null;
@@ -526,6 +529,8 @@ function shiftToCamel(r) {
   return {
     id: r.id, date: r.date, start: r.start_time || '', end: r.end_time || '',
     breakMin: r.break_min || 0, rate: Number(r.rate) || 0, employer: r.employer || '',
+    payMode: r.pay_mode === 'fixed' ? 'fixed' : 'hourly',
+    fixedPay: Number(r.fixed_pay) || 0, tips: Number(r.tips) || 0,
     accountId: r.account_id || null, categoryId: r.category_id || null,
     txId: r.tx_id || null, note: r.note || '',
   };
@@ -541,6 +546,30 @@ const ShiftStore = {
   /* default hourly rate — local convenience, pre-fills the form */
   getDefaultRate() { return Number(localStorage.getItem('pf_shift_rate')) || 0; },
   setDefaultRate(r) { localStorage.setItem('pf_shift_rate', String(Number(r) || 0)); },
+
+  /* shift presets (saved templates) — local convenience for fast logging.
+     Preset: { id, name, employer, start, end, breakMin, payMode, rate,
+               fixedPay, accountId, categoryId } */
+  _presetKey: 'pf_shift_presets',
+  getPresets() {
+    try { return JSON.parse(localStorage.getItem(this._presetKey) || '[]'); }
+    catch { return []; }
+  },
+  savePreset(preset) {
+    const list = this.getPresets();
+    if (preset.id) {
+      const i = list.findIndex(p => p.id === preset.id);
+      if (i >= 0) list[i] = preset; else list.push(preset);
+    } else {
+      preset.id = 'ps_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      list.push(preset);
+    }
+    localStorage.setItem(this._presetKey, JSON.stringify(list));
+    return preset;
+  },
+  removePreset(id) {
+    localStorage.setItem(this._presetKey, JSON.stringify(this.getPresets().filter(p => p.id !== id)));
+  },
 
   async _detect() {
     if (this._mode) return this._mode;

@@ -1035,3 +1035,46 @@
   .shift-form-grid { grid-template-columns: 1fr 1fr; }
   .shift-row__badge { display: none; }
 }
+
+/* ── Hours Tracker: quick-log presets ───────────────────────── */
+.hours-quicklog { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hours-quicklog__label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); font-weight: 600; }
+.hours-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.hours-preset { display: inline-flex; align-items: stretch; border: 1px solid var(--color-border); background: var(--color-surface); }
+.hours-preset__use { background: none; border: none; color: var(--color-text); font-size: 0.8125rem; font-weight: 500; padding: 5px 10px; cursor: pointer; }
+.hours-preset__use:hover { background: var(--color-surface-2); }
+.hours-preset__del { background: none; border: none; border-left: 1px solid var(--color-border); color: var(--color-text-muted); padding: 0 8px; cursor: pointer; font-size: 0.75rem; }
+.hours-preset__del:hover { color: var(--color-expense); }
+
+/* ── Hours Tracker: day-of-week chips ───────────────────────── */
+.day-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.day-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  min-width: 52px; padding: 6px 8px; cursor: pointer;
+  background: var(--color-surface-2); border: 1px solid var(--color-border); color: var(--color-text-muted);
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+.day-chip:hover { color: var(--color-text); border-color: var(--color-text-muted); }
+.day-chip.selected { color: #fff; border-color: var(--color-primary); background: var(--color-primary-light); }
+.day-chip__dow { font-size: 0.75rem; font-weight: 600; }
+.day-chip__date { font-size: 0.625rem; }
+.day-fallback { margin-top: 8px; max-width: 200px; }
+
+/* ── Hours Tracker: pay-mode toggle ─────────────────────────── */
+.paymode-toggle { display: inline-flex; border: 1px solid var(--color-border); }
+.paymode-btn {
+  background: var(--color-surface-2); border: none; color: var(--color-text-muted);
+  font-size: 0.8125rem; font-weight: 600; padding: 8px 16px; cursor: pointer;
+  transition: color var(--transition), background var(--transition);
+}
+.paymode-btn + .paymode-btn { border-left: 1px solid var(--color-border); }
+.paymode-btn.active { color: #fff; background: var(--color-primary-light); }
+
+/* ── Hours Tracker: weekly groups ───────────────────────────── */
+.week-group { padding: 0; overflow: hidden; margin-bottom: 10px; }
+.week-group__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 16px; border-bottom: 1px solid var(--color-border); background: var(--color-surface-2);
+}
+.week-group__title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted); }
+.week-group__sub { font-family: var(--font-display); font-size: 0.8125rem; font-weight: 600; color: var(--color-text); }

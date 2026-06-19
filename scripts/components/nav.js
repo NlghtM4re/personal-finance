@@ -38,7 +38,7 @@
     { id: 'dashboard',     label: 'Dashboard',       icon: 'dashboard',     href: 'index.html',                sidebar: true, bottom: true },
     { id: 'transactions',  label: 'Transactions',    icon: 'transactions',  href: 'pages/accounts.html',       sidebar: true, bottom: true },
     { id: 'insights',      label: 'Insights',        icon: 'insights',      href: 'pages/insights.html',       sidebar: true, sheet: true },
-    { id: 'shifts',        label: 'Shifts',          icon: 'shifts',        href: 'pages/shifts.html',         sidebar: true, sheet: true },
+    { id: 'shifts',        label: 'Hours Tracker',   icon: 'shifts',        href: 'pages/shifts.html',         sidebar: true, sheet: true },
     { id: 'spending',      label: 'Cash Flow',       icon: 'spending',      href: 'pages/spending.html',       sidebar: true, money: true, sheet: true },
     { id: 'budget',        label: 'Budget',          icon: 'budget',        href: 'pages/budget.html',         sidebar: true, money: true, sheet: true },
     { id: 'subscriptions', label: 'Subscriptions',   icon: 'subscriptions', href: 'pages/subscriptions.html',  sidebar: true, money: true, sheet: true },
