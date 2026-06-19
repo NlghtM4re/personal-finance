@@ -501,6 +501,117 @@ const SubscriptionStore = {
 };
 
 /* ============================================================
+   SHIFT STORE — Supabase table `shifts` (work hours + pay).
+   Table-first with a localStorage fallback + lazy migration once
+   the table exists (mirrors CryptoStore). A logged shift may link
+   to an income transaction via `txId`.
+   Shift (camel): { id, date, start, end, breakMin, rate, employer,
+                    accountId, categoryId, txId, note }
+   ============================================================ */
+function shiftToRow(s) {
+  const row = {};
+  if (s.date       !== undefined) row.date        = s.date;
+  if (s.start      !== undefined) row.start_time  = s.start || '';
+  if (s.end        !== undefined) row.end_time    = s.end   || '';
+  if (s.breakMin   !== undefined) row.break_min   = Number(s.breakMin) || 0;
+  if (s.rate       !== undefined) row.rate        = Number(s.rate) || 0;
+  if (s.employer   !== undefined) row.employer    = s.employer || '';
+  if (s.accountId  !== undefined) row.account_id  = s.accountId  || null;
+  if (s.categoryId !== undefined) row.category_id = s.categoryId || null;
+  if (s.txId       !== undefined) row.tx_id       = s.txId       || null;
+  if (s.note       !== undefined) row.note        = s.note || '';
+  return row;
+}
+function shiftToCamel(r) {
+  return {
+    id: r.id, date: r.date, start: r.start_time || '', end: r.end_time || '',
+    breakMin: r.break_min || 0, rate: Number(r.rate) || 0, employer: r.employer || '',
+    accountId: r.account_id || null, categoryId: r.category_id || null,
+    txId: r.tx_id || null, note: r.note || '',
+  };
+}
+
+const ShiftStore = {
+  _key: 'pf_shifts',
+  _mode: null,
+
+  _local() { try { return JSON.parse(localStorage.getItem(this._key) || '[]'); } catch { return []; } },
+  _persistLocal(list) { localStorage.setItem(this._key, JSON.stringify(list)); },
+
+  /* default hourly rate — local convenience, pre-fills the form */
+  getDefaultRate() { return Number(localStorage.getItem('pf_shift_rate')) || 0; },
+  setDefaultRate(r) { localStorage.setItem('pf_shift_rate', String(Number(r) || 0)); },
+
+  async _detect() {
+    if (this._mode) return this._mode;
+    const { error } = await sb.from('shifts').select('id').limit(1);
+    this._mode = error ? 'local' : 'table';
+    if (this._mode === 'table') await this._migrate();
+    return this._mode;
+  },
+
+  async _migrate() {
+    try {
+      const legacy = this._local();
+      if (!legacy.length) return;
+      const uid = await userId();
+      if (!uid) return;
+      const rows = legacy.map(s => ({ id: IS_UUID(s.id) ? s.id : newUUID(), user_id: uid, ...shiftToRow(s) }));
+      const { error } = await sb.from('shifts').insert(rows);
+      if (!error) this._persistLocal([]);
+    } catch (_) { /* local data stays until the next successful load */ }
+  },
+
+  async getAll() {
+    if (await this._detect() === 'local') {
+      return this._local().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    }
+    const { data, error } = await sb.from('shifts').select('*').order('date', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data || []).map(shiftToCamel);
+  },
+
+  async getById(id) { return (await this.getAll()).find(s => s.id === id) || null; },
+
+  async add(shift) {
+    if (await this._detect() === 'local') {
+      const list = this._local();
+      shift.id = newUUID();
+      list.push(shift);
+      this._persistLocal(list);
+      return shift;
+    }
+    const uid = await userId();
+    const { data, error } = await sb.from('shifts').insert({ user_id: uid, ...shiftToRow(shift) }).select().single();
+    if (error) throw new Error(error.message);
+    return shiftToCamel(data);
+  },
+
+  async update(id, patch) {
+    if (await this._detect() === 'local') {
+      const list = this._local();
+      const idx  = list.findIndex(s => s.id === id);
+      if (idx === -1) return;
+      list[idx] = { ...list[idx], ...patch };
+      this._persistLocal(list);
+      return list[idx];
+    }
+    const { data, error } = await sb.from('shifts').update(shiftToRow(patch)).eq('id', id).select().single();
+    if (error) throw new Error(error.message);
+    return shiftToCamel(data);
+  },
+
+  async remove(id) {
+    if (await this._detect() === 'local') {
+      this._persistLocal(this._local().filter(s => s.id !== id));
+      return;
+    }
+    const { error } = await sb.from('shifts').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+};
+
+/* ============================================================
    FORMAT HELPERS
    ============================================================ */
 const CURRENCY_LOCALES = {

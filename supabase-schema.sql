@@ -92,3 +92,28 @@ create table if not exists crypto_wallets (
 create index if not exists idx_crypto_user on crypto_wallets(user_id, created_at);
 alter table crypto_wallets enable row level security;
 create policy "own crypto wallets" on crypto_wallets for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ============================================================
+-- v4 (June 2026): work shifts — hours + pay tracker. The app falls
+-- back to localStorage until this table exists, then migrates local
+-- shifts into it on first load. A logged shift can create an income
+-- transaction (tx_id links to it). Safe to re-run.
+-- ============================================================
+create table if not exists shifts (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references auth.users(id) on delete cascade not null,
+  date        date not null,
+  start_time  text not null default '',
+  end_time    text not null default '',
+  break_min   integer not null default 0,
+  rate        numeric not null default 0,
+  employer    text not null default '',
+  account_id  uuid references accounts(id) on delete set null,
+  category_id text,
+  tx_id       uuid references transactions(id) on delete set null,
+  note        text not null default '',
+  created_at  timestamptz not null default now()
+);
+create index if not exists idx_shifts_user on shifts(user_id, date desc);
+alter table shifts enable row level security;
+create policy "own shifts" on shifts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

@@ -16,9 +16,9 @@ A self-hosted, responsive web app accessible from any browser (desktop + phone) 
 | Item | Value |
 |---|---|
 | Phase | 3 — complete. App is feature-complete; full "Flow" visual redesign shipped (June 2026) |
-| Active step | Intelligence layer Phases 1–4a shipped (forecast, budget recommendations, Insights page, history-based category suggestion) |
-| Blockers | None |
-| Next action | Optional AI layer (natural-language month summary via a Vercel Function + AI Gateway) — would add the first backend dependency; otherwise the intelligence layer is complete |
+| Active step | Shifts (work hours + pay) tracker shipped; intelligence layer Phases 1–4a complete |
+| Blockers | None — run the v4 `shifts` table SQL in Supabase for cross-device sync (works on localStorage until then) |
+| Next action | Optional AI layer (natural-language month summary via a Vercel Function + AI Gateway) — would add the first backend dependency |
 
 ---
 
