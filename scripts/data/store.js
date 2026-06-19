@@ -88,7 +88,11 @@ const TransactionStore = {
     if (data.toAccountId !== undefined) patch.to_account_id = data.toAccountId;
     if (data.note        !== undefined) patch.note          = data.note;
     if (data.tags        !== undefined) patch.tags          = data.tags;
-    patch.updated_at = new Date().toISOString();
+    /* NB: don't write `updated_at` — it's unused by the app and absent from
+       older DBs (the schema uses `create table if not exists`, so the column
+       was never added to tables created before it). Setting it made every
+       edit fail with "column updated_at does not exist" while creates (which
+       never set it) worked. */
 
     const { data: row, error } = await sb.from('transactions').update(patch).eq('id', id).select().single();
     if (error) throw new Error(error.message);
