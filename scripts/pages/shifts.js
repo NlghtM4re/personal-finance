@@ -6,6 +6,12 @@
    linked income transaction (tags:['shift']).
    ============================================================ */
 
+/* Wrapped in an IIFE: store.js (loaded first) already declares globals like
+   `todayISO`, and top-level `const`/`let` in a plain script share global
+   scope — a name clash there is a SyntaxError that aborts the whole file. */
+(function () {
+'use strict';
+
 let _shifts = [];
 let _accounts = [];
 let _incomeCats = [];
@@ -369,3 +375,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   ['sStart', 'sEnd', 'sBreak', 'sRate', 'sFixed', 'sTips'].forEach(id =>
     document.getElementById(id)?.addEventListener('input', payPreview));
 });
+
+})();
