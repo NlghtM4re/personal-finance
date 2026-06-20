@@ -39,9 +39,12 @@
     { id: 'transactions',  label: 'Transactions',    icon: 'transactions',  href: 'pages/accounts.html',       sidebar: true, bottom: true },
     { id: 'insights',      label: 'Insights',        icon: 'insights',      href: 'pages/insights.html' /* topbar icon only — see renderTopbar */ },
     { id: 'shifts',        label: 'Hours Tracker',   icon: 'shifts',        href: 'pages/shifts.html',         sidebar: true, sheet: true },
-    { id: 'spending',      label: 'Cash Flow',       icon: 'spending',      href: 'pages/spending.html',       sidebar: true, money: true, sheet: true },
-    { id: 'budget',        label: 'Budget',          icon: 'budget',        href: 'pages/budget.html',         sidebar: true, money: true, sheet: true },
-    { id: 'subscriptions', label: 'Subscriptions',   icon: 'subscriptions', href: 'pages/subscriptions.html',  sidebar: true, money: true, sheet: true },
+    /* "Money" is a hub: one sidebar/sheet entry that opens the money pages,
+       which switch via the pill tabs at the top (Cash Flow · Budget · Subscriptions). */
+    { id: 'money',         label: 'Money',           icon: 'money',         href: 'pages/spending.html',       sidebar: true, sheet: true, hub: true },
+    { id: 'spending',      label: 'Cash Flow',       icon: 'spending',      href: 'pages/spending.html',       money: true },
+    { id: 'budget',        label: 'Budget',          icon: 'budget',        href: 'pages/budget.html',         money: true },
+    { id: 'subscriptions', label: 'Subscriptions',   icon: 'subscriptions', href: 'pages/subscriptions.html',  money: true },
     { id: 'crypto',        label: 'Crypto',          icon: 'crypto',        href: 'pages/crypto.html',         sidebar: true, sheet: true },
     { id: 'settings',      label: 'Settings',        icon: 'settings',      href: 'pages/settings.html',       sidebar: true, sheet: true },
     { id: 'add',           label: 'Add Transaction', icon: 'add',           href: 'pages/add-transaction.html', sidebar: true, accent: true },
@@ -74,7 +77,7 @@
       </div>
       <nav class="sidebar-nav">
         ${NAV_ITEMS.filter(n => n.sidebar).map(n => `
-          <a href="${resolve(n.href)}" class="nav-item${n.accent ? ' nav-item--accent' : ''}${isActive(n) ? ' active' : ''}">
+          <a href="${resolve(n.href)}" class="nav-item${n.accent ? ' nav-item--accent' : ''}${(n.hub ? onMoneyPage : isActive(n)) ? ' active' : ''}">
             <span class="nav-icon">${I(ICONS[n.icon], 18)}</span>
             <span class="nav-label">${n.label}</span>
           </a>`).join('')}
@@ -155,7 +158,7 @@
       <div class="more-sheet__handle"></div>
       <div class="more-sheet__grid">
         ${sheetItems.map(n => `
-          <a href="${resolve(n.href)}" class="more-sheet__item${isActive(n) ? ' active' : ''}">
+          <a href="${resolve(n.href)}" class="more-sheet__item${(n.hub ? onMoneyPage : isActive(n)) ? ' active' : ''}">
             <span class="more-sheet__icon">${I(ICONS[n.icon], 20)}</span>
             <span>${n.label}</span>
           </a>`).join('')}

@@ -278,6 +278,21 @@
    CRYPTO — holdings section (per-wallet tiles + net worth)
    ============================================================ */
 .dash-crypto { display: flex; flex-direction: column; gap: 8px; }
+/* indeterminate loading bar shown while a new timeframe is fetched */
+.crypto-loadbar { height: 2px; background: var(--color-border); overflow: hidden; }
+.crypto-loadbar[hidden] { display: none; }
+.crypto-loadbar span {
+  display: block; height: 100%; width: 40%;
+  background: var(--color-text);
+  animation: cryptoLoad 1s ease-in-out infinite;
+}
+@keyframes cryptoLoad {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .crypto-loadbar span { animation: none; width: 100%; opacity: 0.5; }
+}
 .dash-crypto__head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 2px 2px 0;

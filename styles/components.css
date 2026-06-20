@@ -128,6 +128,17 @@
 .form-control--error { border-color: var(--color-expense); }
 .form-control--error:focus { box-shadow: 0 0 0 3px rgba(255,92,122,.15); }
 
+/* Native date/time inputs (iOS/WebKit) keep an intrinsic content width that
+   can blow past a narrow grid/flex cell on mobile. Pin them to the cell. */
+input[type="date"], input[type="time"] {
+  -webkit-appearance: none; appearance: none;
+  min-width: 0; max-width: 100%;
+}
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value { margin: 0; text-align: left; }
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator { margin-left: 2px; }
+
 .form-error { font-size: 0.75rem; color: var(--color-expense); }
 .form-hint  { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px; }
 

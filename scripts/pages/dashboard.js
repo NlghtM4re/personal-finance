@@ -174,7 +174,8 @@ async function initDashboard() {
    A timeframe toggle (24H · 1W · 1M · 1Y · 5Y) re-fetches just the
    sparkline + change for the chosen range; balances are not re-fetched. */
 let _cryptoSnap = null;
-let _cryptoRangeIdx = 0;
+/* remembered per-device so the chosen timeframe sticks across reloads */
+let _cryptoRangeIdx = Math.max(0, parseInt(localStorage.getItem('pf_crypto_range'), 10) || 0);
 
 async function renderCrypto(bankBalance) {
   const section = document.getElementById('cryptoSection');
@@ -205,21 +206,28 @@ async function renderCrypto(bankBalance) {
     btn.dataset.wired = '1';
     btn.addEventListener('click', () => {
       _cryptoRangeIdx = (_cryptoRangeIdx + 1) % CryptoBalances.RANGES.length;
+      try { localStorage.setItem('pf_crypto_range', String(_cryptoRangeIdx)); } catch (_) {}
       loadCryptoChart();
     });
   }
   await loadCryptoChart();
 }
 
-/* Fetch the sparkline/change for the current range and (re)render the tiles. */
+/* Fetch the sparkline/change for the current range and (re)render the tiles.
+   A cache hit (chartFor) returns instantly; on a miss we show a thin loading
+   bar because the bigger ranges take a moment to come back from CoinGecko. */
 async function loadCryptoChart() {
   if (!_cryptoSnap || typeof CryptoBalances === 'undefined') return;
   const tilesEl = document.getElementById('cryptoTiles');
   const btn = document.getElementById('cryptoRangeBtn');
-  const range = CryptoBalances.RANGES[_cryptoRangeIdx];
+  const bar = document.getElementById('cryptoLoadbar');
+  const idx = _cryptoRangeIdx % CryptoBalances.RANGES.length;
+  const range = CryptoBalances.RANGES[idx];
   if (btn) { btn.textContent = range.label; btn.disabled = true; }
+  if (bar) bar.hidden = false;
   let chart = {};
   try { chart = await CryptoBalances.chartFor(range.key); } catch (_) {}
+  if (bar) bar.hidden = true;
   if (btn) btn.disabled = false;
   if (tilesEl) tilesEl.innerHTML = _cryptoSnap.items
     .map(it => cryptoTileHTML(it, chart[it.wallet.chain], range.label)).join('');

@@ -1096,7 +1096,8 @@
 }
 
 /* ── Shift form ──────────────────────────────────────────────── */
-.shift-form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 12px; }
+.shift-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.shift-form-grid > .form-group { min-width: 0; }
 .shift-pay-preview {
   font-family: var(--font-display); font-size: 1.125rem; font-weight: 600;
   color: var(--color-income); margin: 12px 0; letter-spacing: -0.02em;
@@ -1174,4 +1175,11 @@
 @media (max-width: 600px) {
   .hours-bars { height: 150px; gap: 5px; }
   .hbar__label { font-size: 0.5rem; }
+  /* day chips stay on one line (scroll) instead of wrapping */
+  .day-chips {
+    flex-wrap: nowrap; overflow-x: auto;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .day-chips::-webkit-scrollbar { display: none; }
+  .day-chip { flex: 0 0 auto; min-width: 46px; }
 }

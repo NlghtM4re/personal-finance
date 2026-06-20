@@ -169,15 +169,28 @@ const CryptoBalances = {
   /* ---- price history per chain over a range (for the sparkline). One
      CoinGecko market_chart call per chain, downsampled. Returns
      { [chainId]: { spark: number[], changePct: number|null } }. ---- */
-  _chartCache: {},
+  /* Chart cache, persisted to localStorage so flipping between ranges is
+     instant — even across reloads — and gentle on the CoinGecko rate limit.
+     A 10-minute TTL keeps the preview reasonably fresh. */
+  _chartCache: null,
+  _chartCacheKey: 'pf_crypto_chart',
+  _chartTTL: 600000,
+  _loadChartCache() {
+    if (this._chartCache) return this._chartCache;
+    try { this._chartCache = JSON.parse(localStorage.getItem(this._chartCacheKey) || '{}') || {}; }
+    catch { this._chartCache = {}; }
+    return this._chartCache;
+  },
+  _saveChartCache() {
+    try { localStorage.setItem(this._chartCacheKey, JSON.stringify(this._chartCache)); } catch (_) {}
+  },
   async chartFor(rangeKey) {
     const range = this.RANGES.find(r => r.key === rangeKey) || this.RANGES[0];
     let cur = (localStorage.getItem('pf_currency') || 'CAD').toLowerCase();
-    /* short cache so flipping between ranges is instant and gentle on the
-       CoinGecko rate limit */
     const cacheKey = range.key + ':' + cur;
-    const hit = this._chartCache[cacheKey];
-    if (hit && Date.now() - hit.ts < 120000) return hit.data;
+    const cache = this._loadChartCache();
+    const hit = cache[cacheKey];
+    if (hit && Date.now() - hit.ts < this._chartTTL) return hit.data;
     const downsample = (arr, n = 48) => {
       if (arr.length <= n) return arr;
       const step = (arr.length - 1) / (n - 1);
@@ -197,7 +210,8 @@ const CryptoBalances = {
         out[c.id] = { spark: downsample(prices), changePct };
       } catch { out[c.id] = { spark: [], changePct: null }; }
     }));
-    this._chartCache[cacheKey] = { ts: Date.now(), data: out };
+    cache[cacheKey] = { ts: Date.now(), data: out };
+    this._saveChartCache();
     return out;
   },
 
