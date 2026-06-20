@@ -161,6 +161,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  /* Default account + Job defaults (local convenience) */
+  try {
+    const accounts  = await AccountStore.getAll();
+    const accOpts   = (placeholder) => `<option value="">${placeholder}</option>` +
+      accounts.map(a => `<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('');
+
+    const defSel = document.getElementById('defaultAccountSelect');
+    if (defSel) {
+      defSel.innerHTML = accOpts('— None —');
+      defSel.value = AccountStore.getDefaultId();
+      defSel.addEventListener('change', () => {
+        AccountStore.setDefaultId(defSel.value);
+        showToast('Default account saved', 'success');
+      });
+    }
+
+    const job = ShiftStore.getJobDefaults();
+    const jobEmployer = document.getElementById('jobEmployer');
+    const jobRate     = document.getElementById('jobRate');
+    const jobAccSel   = document.getElementById('jobAccountSelect');
+    if (jobEmployer) {
+      jobEmployer.value = job.employer;
+      jobEmployer.addEventListener('change', () => {
+        ShiftStore.setJobDefaults({ employer: jobEmployer.value.trim() });
+        showToast('Job defaults saved', 'success');
+      });
+    }
+    if (jobRate) {
+      jobRate.value = job.rate || '';
+      jobRate.addEventListener('change', () => {
+        ShiftStore.setJobDefaults({ rate: parseFloat(jobRate.value) || 0 });
+        showToast('Job defaults saved', 'success');
+      });
+    }
+    if (jobAccSel) {
+      jobAccSel.innerHTML = accOpts('— None —');
+      jobAccSel.value = job.accountId;
+      jobAccSel.addEventListener('change', () => {
+        ShiftStore.setJobDefaults({ accountId: jobAccSel.value });
+        showToast('Job defaults saved', 'success');
+      });
+    }
+  } catch (_) {}
+
   /* CSV export */
   document.getElementById('exportCsvBtn')?.addEventListener('click', async () => {
     try {

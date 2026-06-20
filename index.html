@@ -172,18 +172,23 @@
               <a href="pages/shifts.html" class="link--sm">Open tracker →</a>
             </div>
             <div class="term__body">
-              <div class="quicklog__presets" id="quicklogPresets" hidden></div>
+              <div class="ql-days" id="qlDays"></div>
+              <div class="seg-toggle ql-mode" id="qlMode">
+                <button type="button" class="seg-btn active" data-mode="hours">Hours</button>
+                <button type="button" class="seg-btn" data-mode="times">Times</button>
+              </div>
               <form class="quicklog__form" id="quicklogForm">
-                <div class="quicklog__grid">
+                <div class="ql-input-row" id="qlHoursRow">
+                  <input type="number" id="qlHours" class="form-control" min="0" step="0.25" placeholder="Hours worked — e.g. 8" aria-label="Hours worked" />
+                </div>
+                <div class="ql-input-row" id="qlTimesRow" hidden>
                   <input type="time" id="qlStart" class="form-control" aria-label="Start time" />
+                  <span class="ql-sep">→</span>
                   <input type="time" id="qlEnd" class="form-control" aria-label="End time" />
-                  <input type="number" id="qlRate" class="form-control" min="0" step="0.01" placeholder="$/h" aria-label="Hourly rate" />
                 </div>
-                <div class="quicklog__actions">
-                  <select id="qlAccount" class="form-control" aria-label="Deposit to"></select>
-                  <button type="submit" class="btn btn--primary btn--sm" id="qlSubmit">Log today</button>
-                </div>
+                <button type="submit" class="btn btn--primary btn--sm btn--full" id="qlSubmit">Log hours</button>
               </form>
+              <div class="quicklog__rate" id="qlRateHint"></div>
               <div class="quicklog__stat" id="quicklogStat"></div>
             </div>
           </div>

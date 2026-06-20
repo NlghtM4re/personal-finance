@@ -129,6 +129,14 @@ const TransactionStore = {
    ============================================================ */
 const AccountStore = {
 
+  /* Default account for new transactions (local convenience — prefills the
+     Add Transaction form and the dashboard quick-log). '' = no preference. */
+  getDefaultId() { return localStorage.getItem('pf_default_account') || ''; },
+  setDefaultId(id) {
+    if (id) localStorage.setItem('pf_default_account', id);
+    else localStorage.removeItem('pf_default_account');
+  },
+
   async getAll() {
     const { data, error } = await sb.from('accounts').select('*').order('created_at');
     if (error) throw new Error(error.message);
@@ -546,6 +554,28 @@ const ShiftStore = {
   /* default hourly rate — local convenience, pre-fills the form */
   getDefaultRate() { return Number(localStorage.getItem('pf_shift_rate')) || 0; },
   setDefaultRate(r) { localStorage.setItem('pf_shift_rate', String(Number(r) || 0)); },
+
+  /* "Job defaults" — the default job/salary used by the dashboard quick-log.
+     { employer, rate, accountId }. rate shares the pf_shift_rate key above so
+     logging a shift on the tracker keeps it in sync. */
+  getJobDefaults() {
+    return {
+      employer:  localStorage.getItem('pf_job_employer') || '',
+      rate:      this.getDefaultRate(),
+      accountId: localStorage.getItem('pf_job_account') || '',
+    };
+  },
+  setJobDefaults({ employer, rate, accountId }) {
+    if (employer !== undefined) {
+      if (employer) localStorage.setItem('pf_job_employer', employer);
+      else localStorage.removeItem('pf_job_employer');
+    }
+    if (rate !== undefined) this.setDefaultRate(rate);
+    if (accountId !== undefined) {
+      if (accountId) localStorage.setItem('pf_job_account', accountId);
+      else localStorage.removeItem('pf_job_account');
+    }
+  },
 
   /* weekly goal — local convenience. { metric: 'pay'|'hours', target:number }.
      Drives the progress ring on the Hours Tracker. target 0 = no goal set. */

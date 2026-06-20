@@ -167,7 +167,7 @@ async function initDashboard() {
   /* crypto folds into net worth (not the cash balance); non-blocking so a
      wallet/network hiccup never breaks the rest of the dashboard */
   renderCrypto(totalBalance).catch(console.error);
-  await renderRecentTransactions(allTx.slice(0, 8));
+  await renderRecentTransactions(allTx.slice(0, 6));
 }
 
 /* Crypto holdings — one panel per wallet; total counts toward net worth.

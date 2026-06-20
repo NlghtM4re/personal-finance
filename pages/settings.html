@@ -101,6 +101,56 @@
                 <option value="MXN">MXN — Mexican Peso</option>
               </select>
             </div>
+            <div class="settings-divider"></div>
+            <div class="settings-row">
+              <span class="settings-row__icon settings-row__icon--muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+              </span>
+              <div class="settings-row__info">
+                <div class="settings-row__title">Default account</div>
+                <div class="settings-row__sub">Pre-selected when adding a transaction</div>
+              </div>
+              <select id="defaultAccountSelect" class="settings-select"></select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Job defaults (used by the dashboard quick-log) -->
+        <section class="settings-section">
+          <div class="settings-section__label">Job defaults</div>
+          <div class="settings-group">
+            <div class="settings-row">
+              <span class="settings-row__icon settings-row__icon--muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </span>
+              <div class="settings-row__info">
+                <div class="settings-row__title">Job name</div>
+                <div class="settings-row__sub">Labels logged hours (e.g. Café)</div>
+              </div>
+              <input type="text" id="jobEmployer" class="settings-select" placeholder="Optional" maxlength="40" />
+            </div>
+            <div class="settings-divider"></div>
+            <div class="settings-row">
+              <span class="settings-row__icon settings-row__icon--muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </span>
+              <div class="settings-row__info">
+                <div class="settings-row__title">Hourly rate</div>
+                <div class="settings-row__sub">Your default pay per hour</div>
+              </div>
+              <input type="number" id="jobRate" class="settings-select" placeholder="0.00" min="0" step="0.01" />
+            </div>
+            <div class="settings-divider"></div>
+            <div class="settings-row">
+              <span class="settings-row__icon settings-row__icon--muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+              </span>
+              <div class="settings-row__info">
+                <div class="settings-row__title">Deposit to</div>
+                <div class="settings-row__sub">Where logged hours land as income</div>
+              </div>
+              <select id="jobAccountSelect" class="settings-select"></select>
+            </div>
           </div>
         </section>
 

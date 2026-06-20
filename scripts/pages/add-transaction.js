@@ -38,6 +38,10 @@ async function populateAccountSelects() {
   if (sel)   sel.innerHTML   = opts;
   if (toSel) toSel.innerHTML = opts;
 
+  /* preselect the user's default account for a *new* transaction */
+  const defId = AccountStore.getDefaultId();
+  if (sel && !editId && defId && accounts.some(a => a.id === defId)) sel.value = defId;
+
   const tip = document.getElementById('noAccountTip');
   if (tip) tip.style.display = accounts.length ? 'none' : 'block';
 }
