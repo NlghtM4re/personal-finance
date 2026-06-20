@@ -110,7 +110,8 @@ async function renderTransactions() {
     el.innerHTML = orderedDates.map(date => {
       const txs = grouped[date];
       const dayNet = txs.reduce((s, t) => s + (t.type === 'income' ? t.amount : t.type === 'expense' ? -t.amount : 0), 0);
-      const netStr = Math.abs(dayNet) < 0.005 ? '' :
+      /* only worth a day-total when more than one transaction shares the day */
+      const netStr = (txs.length < 2 || Math.abs(dayNet) < 0.005) ? '' :
         `<span class="tx-date-group__net" style="color:${dayNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}">${dayNet >= 0 ? '+' : '−'}${formatCurrency(Math.abs(dayNet))}</span>`;
       return `<div class="tx-date-group"><span>${formatDate(date)}</span>${netStr}</div>
         ${txs.map(t => txItemFullHTML(t, _catMap[t.categoryId], _accMap[t.accountId])).join('')}`;
