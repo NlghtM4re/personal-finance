@@ -88,8 +88,10 @@ function renderHint() {
   if (job.rate > 0) {
     const acc = _accounts.find(a => a.id === job.accountId) || _accounts[0];
     el.innerHTML = `Paid <strong>${formatCurrency(job.rate)}/h</strong>${acc ? ` → ${escapeHTML(acc.name)}` : ''}`;
+    el.hidden = false;
   } else {
-    el.innerHTML = `<a href="pages/settings.html">Set your hourly rate in Settings →</a>`;
+    el.innerHTML = '';
+    el.hidden = true;
   }
 }
 

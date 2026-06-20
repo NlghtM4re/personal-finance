@@ -174,10 +174,6 @@
             </div>
             <div class="term__body">
               <div class="ql-days" id="qlDays"></div>
-              <div class="seg-toggle ql-mode" id="qlMode">
-                <button type="button" class="seg-btn active" data-mode="hours">Hours</button>
-                <button type="button" class="seg-btn" data-mode="times">Times</button>
-              </div>
               <form class="quicklog__form" id="quicklogForm">
                 <div class="ql-input-row" id="qlHoursRow">
                   <input type="number" id="qlHours" class="form-control" min="0" step="0.25" placeholder="Hours worked — e.g. 8" aria-label="Hours worked" />
@@ -187,7 +183,13 @@
                   <span class="ql-sep">→</span>
                   <input type="time" id="qlEnd" class="form-control" aria-label="End time" />
                 </div>
-                <button type="submit" class="btn btn--primary btn--sm btn--full" id="qlSubmit">Log hours</button>
+                <div class="ql-actions">
+                  <div class="seg-toggle ql-mode" id="qlMode">
+                    <button type="button" class="seg-btn active" data-mode="hours">Hours</button>
+                    <button type="button" class="seg-btn" data-mode="times">Times</button>
+                  </div>
+                  <button type="submit" class="btn btn--primary btn--sm" id="qlSubmit">Log hours</button>
+                </div>
               </form>
               <div class="quicklog__rate" id="qlRateHint"></div>
               <div class="quicklog__stat" id="quicklogStat"></div>

@@ -429,13 +429,15 @@
 .ql-day__dow { font-size: 0.5625rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .ql-day__num { font-family: var(--font-display); font-size: 0.8125rem; font-weight: 600; }
 
-/* hours/times toggle + inputs */
-.ql-mode { align-self: stretch; }
-.ql-mode .seg-btn { flex: 1; padding: 7px 0; }
+/* compact hours/times toggle, sharing the action row with the Log button */
 .quicklog__form { display: flex; flex-direction: column; gap: 7px; }
 .ql-input-row { display: flex; align-items: center; gap: 6px; }
 .ql-input-row .form-control { flex: 1; min-width: 0; padding: 8px 10px; font-size: 0.8125rem; }
 .ql-sep { color: var(--color-text-muted); flex-shrink: 0; }
+.ql-actions { display: flex; align-items: stretch; gap: 6px; }
+.ql-mode { flex: 0 0 auto; }
+.ql-mode .seg-btn { padding: 7px 12px; }
+.ql-actions .btn { flex: 1; justify-content: center; }
 
 .quicklog__rate { font-size: 0.75rem; color: var(--color-text-muted); }
 .quicklog__rate strong { color: var(--color-text); font-family: var(--font-display); font-weight: 600; }
