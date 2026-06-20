@@ -162,8 +162,31 @@
 
         </div>
 
-        <!-- RIGHT: transactions feed + monthly overview -->
+        <!-- RIGHT: quick-log, transactions feed + monthly overview -->
         <div class="dash-right">
+
+          <!-- Quick-log hours — fast shift logging without leaving the dashboard -->
+          <div class="term dash-quicklog" id="quickLog">
+            <div class="term__head">
+              <span class="term__title">Log hours</span>
+              <a href="pages/shifts.html" class="link--sm">Open tracker →</a>
+            </div>
+            <div class="term__body">
+              <div class="quicklog__presets" id="quicklogPresets" hidden></div>
+              <form class="quicklog__form" id="quicklogForm">
+                <div class="quicklog__grid">
+                  <input type="time" id="qlStart" class="form-control" aria-label="Start time" />
+                  <input type="time" id="qlEnd" class="form-control" aria-label="End time" />
+                  <input type="number" id="qlRate" class="form-control" min="0" step="0.01" placeholder="$/h" aria-label="Hourly rate" />
+                </div>
+                <div class="quicklog__actions">
+                  <select id="qlAccount" class="form-control" aria-label="Deposit to"></select>
+                  <button type="submit" class="btn btn--primary btn--sm" id="qlSubmit">Log today</button>
+                </div>
+              </form>
+              <div class="quicklog__stat" id="quicklogStat"></div>
+            </div>
+          </div>
 
           <div class="term dash-feed">
             <div class="term__head">
@@ -222,6 +245,8 @@
   <script src="scripts/data/supabase.js"></script>
   <script src="scripts/data/store.js"></script>
   <script src="scripts/components/icons.js"></script>
+  <script src="scripts/engine/shifts.js"></script>
+  <script src="scripts/components/quick-log.js"></script>
   <script src="scripts/data/crypto.js"></script>
   <script src="scripts/engine/summary.js"></script>
   <script src="scripts/engine/insights.js"></script>

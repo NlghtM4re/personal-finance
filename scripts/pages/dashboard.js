@@ -534,6 +534,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     ['totalBalance','monthIncome','monthExpense','monthNet'].forEach(id => setText(id, '—'));
   }
 
+  /* Quick-log hours widget — refresh the dashboard after a shift is logged. */
+  QuickLog?.init({ onLogged: () => initDashboard() }).catch(console.error);
+
   document.getElementById('balanceChartRange')?.addEventListener('change', () => initDashboard().catch(console.error));
 
   document.getElementById('monthNavPrev')?.addEventListener('click', async () => {

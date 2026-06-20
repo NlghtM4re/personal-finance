@@ -393,6 +393,29 @@
 .dash-feed .transaction-list::-webkit-scrollbar { width: 4px; }
 .dash-feed .transaction-list::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 0; }
 
+/* ============================================================
+   QUICK-LOG HOURS — fast shift logging in the right column
+   ============================================================ */
+.dash-quicklog { flex: 0 0 auto; }
+.dash-quicklog .term__body { display: flex; flex-direction: column; gap: 10px; }
+.quicklog__presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.quicklog-chip {
+  font-size: 0.8125rem; font-weight: 500; color: var(--color-text);
+  background: var(--color-surface-2); border: 1px solid var(--color-border);
+  padding: 6px 11px; cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.quicklog-chip:hover { background: var(--color-border); border-color: var(--color-text-muted); }
+.quicklog-chip:disabled { opacity: 0.5; cursor: default; }
+.quicklog__form { display: flex; flex-direction: column; gap: 6px; }
+.quicklog__grid { display: grid; grid-template-columns: 1fr 1fr 0.85fr; gap: 6px; }
+.quicklog__actions { display: flex; gap: 6px; }
+.quicklog__actions .form-control { flex: 1; min-width: 0; }
+.quicklog__actions .btn { flex-shrink: 0; white-space: nowrap; }
+.quicklog__form .form-control { padding: 8px 10px; font-size: 0.8125rem; }
+.quicklog__stat { font-size: 0.75rem; color: var(--color-text-muted); }
+.quicklog__stat strong { color: var(--color-text); font-family: var(--font-display); font-weight: 600; }
+
 @media (max-width: 768px) {
   .chart-container--hero { height: 190px; }
 }
