@@ -55,6 +55,9 @@ const SummaryEngine = {
         if (map[t.toAccountId] !== undefined) map[t.toAccountId] += t.amount;
       }
     });
+    /* round to cents — summing many floats otherwise drifts (e.g. a balance
+       that should read 0.00 showing 0.000000001) */
+    Object.keys(map).forEach(k => { map[k] = Math.round(map[k] * 100) / 100; });
     return map;
   },
 

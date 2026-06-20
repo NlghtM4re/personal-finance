@@ -56,10 +56,37 @@ function txToCamel(r) {
    ============================================================ */
 const TransactionStore = {
 
+  /* last-good cache so a transient network/Supabase blip degrades to stale
+     data instead of a blank page (Account/Transaction stores used to throw) */
+  _cacheKey: 'pf_tx_cache',
+  _readCache() { try { return JSON.parse(localStorage.getItem(this._cacheKey) || 'null'); } catch { return null; } },
+  _writeCache(list) { try { localStorage.setItem(this._cacheKey, JSON.stringify(list)); } catch (_) {} },
+
+  /* PostgREST/Supabase caps a response at 1000 rows; without paging, heavy
+     accounts silently lost transactions (wrong balances/charts). Page through
+     in 1000-row windows until a short page signals the end. */
   async getAll() {
-    const { data, error } = await sb.from('transactions').select('*').order('date', { ascending: false }).order('created_at', { ascending: false });
-    if (error) throw new Error(error.message);
-    return (data || []).map(txToCamel);
+    const PAGE = 1000;
+    try {
+      let all = [], offset = 0;
+      for (;;) {
+        const { data, error } = await sb.from('transactions').select('*')
+          .order('date', { ascending: false }).order('created_at', { ascending: false })
+          .range(offset, offset + PAGE - 1);
+        if (error) throw new Error(error.message);
+        const rows = data || [];
+        all = all.concat(rows);
+        if (rows.length < PAGE) break;
+        offset += PAGE;
+      }
+      const mapped = all.map(txToCamel);
+      if (mapped.length <= 3000) this._writeCache(mapped);   /* keep cache writes cheap */
+      return mapped;
+    } catch (err) {
+      const cached = this._readCache();
+      if (cached) return cached;
+      throw err;
+    }
   },
 
   async getById(id) {
@@ -112,17 +139,27 @@ const TransactionStore = {
   },
 
   async query({ from, to, categoryId, accountId, type, search } = {}) {
-    let q = sb.from('transactions').select('*');
-    if (from)       q = q.gte('date', from);
-    if (to)         q = q.lte('date', to);
-    if (categoryId) q = q.eq('category_id', categoryId);
-    if (accountId)  q = q.or(`account_id.eq.${accountId},to_account_id.eq.${accountId}`);
-    if (type)       q = q.eq('type', type);
-    if (search)     q = q.ilike('note', `%${search}%`);
-    q = q.order('date', { ascending: false }).order('created_at', { ascending: false });
-    const { data, error } = await q;
-    if (error) throw new Error(error.message);
-    return (data || []).map(txToCamel);
+    const PAGE = 1000;
+    const build = () => {
+      let q = sb.from('transactions').select('*');
+      if (from)       q = q.gte('date', from);
+      if (to)         q = q.lte('date', to);
+      if (categoryId) q = q.eq('category_id', categoryId);
+      if (accountId)  q = q.or(`account_id.eq.${accountId},to_account_id.eq.${accountId}`);
+      if (type)       q = q.eq('type', type);
+      if (search)     q = q.ilike('note', `%${search}%`);
+      return q.order('date', { ascending: false }).order('created_at', { ascending: false });
+    };
+    let all = [], offset = 0;
+    for (;;) {
+      const { data, error } = await build().range(offset, offset + PAGE - 1);
+      if (error) throw new Error(error.message);
+      const rows = data || [];
+      all = all.concat(rows);
+      if (rows.length < PAGE) break;
+      offset += PAGE;
+    }
+    return all.map(txToCamel);
   },
 
   async thisMonth() {
@@ -144,10 +181,19 @@ const AccountStore = {
     else localStorage.removeItem('pf_default_account');
   },
 
+  /* last-good cache → a transient error shows stale accounts, not a blank page */
+  _cacheKey: 'pf_acct_cache',
   async getAll() {
-    const { data, error } = await sb.from('accounts').select('*').order('created_at');
-    if (error) throw new Error(error.message);
-    return (data || []).map(accountToCamel);
+    try {
+      const { data, error } = await sb.from('accounts').select('*').order('created_at');
+      if (error) throw new Error(error.message);
+      const mapped = (data || []).map(accountToCamel);
+      try { localStorage.setItem(this._cacheKey, JSON.stringify(mapped)); } catch (_) {}
+      return mapped;
+    } catch (err) {
+      try { const c = JSON.parse(localStorage.getItem(this._cacheKey) || 'null'); if (c) return c; } catch (_) {}
+      throw err;
+    }
   },
 
   async getById(id) {
