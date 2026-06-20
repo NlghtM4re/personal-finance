@@ -209,12 +209,12 @@ function applyRange(range) {
 
   if (range === 'all') { currentFilters.from = ''; currentFilters.to = ''; return; }
   const today = new Date();
-  currentFilters.to = today.toISOString().slice(0, 10);
+  currentFilters.to = isoLocal(today);
   if (range === 'month') {
     currentFilters.from = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
   } else {
     const d = new Date(); d.setDate(d.getDate() - (parseInt(range) - 1));
-    currentFilters.from = d.toISOString().slice(0, 10);
+    currentFilters.from = isoLocal(d);
   }
 }
 

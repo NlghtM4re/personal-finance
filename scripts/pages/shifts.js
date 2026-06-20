@@ -22,7 +22,7 @@ let _goal = { metric: 'pay', target: 0 };
 let _chartMetric = 'pay';
 let _employerFilter = '';
 
-const iso = d => d.toISOString().slice(0, 10);
+const iso = d => isoLocal(d);
 const todayISO = () => iso(new Date());
 
 function startOfWeek(dateStr) {

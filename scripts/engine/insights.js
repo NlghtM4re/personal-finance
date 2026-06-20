@@ -37,7 +37,7 @@ const InsightsEngine = {
 
     const DAY = 86400000;
     const startOfDay = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
-    const iso = d => startOfDay(d).toISOString().slice(0, 10);
+    const iso = d => { const x = startOfDay(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`; };
 
     const balances = SE.computeAccountBalances(accounts, transactions);
     const current  = Object.values(balances).reduce((s, b) => s + b, 0);

@@ -3,7 +3,14 @@
    ============================================================ */
 
 /* ---- Helpers ---- */
-function todayISO() { return new Date().toISOString().slice(0, 10); }
+/* LOCAL calendar date as YYYY-MM-DD. Using toISOString() here was a bug:
+   it converts to UTC, so a user east/west of UTC could log a transaction
+   on the wrong day (and "this week/month" boundaries shifted). */
+function isoLocal(d) {
+  const t = d instanceof Date ? d : new Date(d);
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+function todayISO() { return isoLocal(new Date()); }
 
 function currentMonthRange() {
   const now  = new Date();
@@ -351,7 +358,7 @@ const BudgetStore = {
     const all  = this._all();
     const d    = new Date(monthKey + '-01T00:00:00');
     d.setMonth(d.getMonth() - 1);
-    const prev = d.toISOString().slice(0, 7);
+    const prev = isoLocal(d).slice(0, 7);
     all[monthKey] = { ...(all[prev] || {}) };
     await SettingsStore.setBudgets(all);
     return all[monthKey];
@@ -375,7 +382,7 @@ function advanceDate(iso, frequency) {
     case 'monthly': d.setMonth(d.getMonth() + 1); break;
     case 'yearly':  d.setFullYear(d.getFullYear() + 1); break;
   }
-  return d.toISOString().slice(0, 10);
+  return isoLocal(d);
 }
 
 /* ============================================================
@@ -486,7 +493,7 @@ const SubscriptionStore = {
   },
 
   async getDue() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayISO();
     const list  = await this.getAll();
     return list.filter(s => s.active !== false && s.nextDue <= today);
   },
@@ -779,7 +786,7 @@ const CSVService = {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = `transactions-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `transactions-${todayISO()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   },
@@ -816,7 +823,7 @@ const CSVService = {
         const tagsRaw  = cells[idx('tags')] || '';
 
         await TransactionStore.add({
-          date:        cells[idx('date')] || new Date().toISOString().slice(0,10),
+          date:        cells[idx("date")] || todayISO(),
           type,
           amount,
           note:        cells[idx('note')] || '',

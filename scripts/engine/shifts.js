@@ -3,6 +3,12 @@
    Hours worked and pay from a shift; period rollups.
    ============================================================ */
 
+/* LOCAL calendar date as YYYY-MM-DD (not toISOString, which is UTC and
+   shifts the day for users east/west of UTC — and across test machines). */
+function ymd(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 const ShiftEngine = {
 
   /* Decimal hours worked for a shift. Handles a break (minutes) and an
@@ -61,7 +67,7 @@ const ShiftEngine = {
     const d = new Date(dateStr + 'T00:00:00');
     const dow = (d.getDay() + 6) % 7;          /* 0 = Monday */
     d.setDate(d.getDate() - dow);
-    return d.toISOString().slice(0, 10);
+    return ymd(d);
   },
 
   /* Earnings/hours grouped by day of week, Monday→Sunday. Returns a length-7
@@ -110,15 +116,15 @@ const ShiftEngine = {
      containing `today` (default: now). Every week is present even with no
      shifts, so a bar chart shows real gaps. Returns
      [{ weekStart, hours, pay, count }] oldest→newest. */
-  weeklySeries(shifts, weeks = 10, today = new Date().toISOString().slice(0, 10)) {
+  weeklySeries(shifts, weeks = 10, today = ymd(new Date())) {
     const thisWeek = this.weekStart(today);
     const series = [];
     for (let i = weeks - 1; i >= 0; i--) {
       const d = new Date(thisWeek + 'T00:00:00');
       d.setDate(d.getDate() - i * 7);
-      const ws = d.toISOString().slice(0, 10);
+      const ws = ymd(d);
       const we = new Date(ws + 'T00:00:00'); we.setDate(we.getDate() + 6);
-      const sum = this.summarize(shifts, { from: ws, to: we.toISOString().slice(0, 10) });
+      const sum = this.summarize(shifts, { from: ws, to: ymd(we) });
       series.push({ weekStart: ws, hours: sum.hours, pay: sum.pay, count: sum.count });
     }
     return series;

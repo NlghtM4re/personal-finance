@@ -21,7 +21,7 @@ const FREQ_FACTOR = { monthly: 1, yearly: 1/12, weekly: 4.33 };
 const TAX_RATES = { qc: 0.14975 };
 
 /* ---- helpers ---- */
-function todayISO() { return new Date().toISOString().slice(0, 10); }
+function todayISO() { return isoLocal(new Date()); }
 
 function applyTax(amount, region = 'qc') {
   return Math.round(amount * (1 + (TAX_RATES[region] || 0)) * 100) / 100;
@@ -404,7 +404,7 @@ async function renderAnalytics(subs) {
   if (upcomingEl) {
     const today = todayISO();
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() + 30);
-    const cutoffISO = cutoff.toISOString().slice(0, 10);
+    const cutoffISO = isoLocal(cutoff);
     const upcoming = subs
       .filter(s => s.active !== false && s.nextDue >= today && s.nextDue <= cutoffISO)
       .sort((a, b) => a.nextDue.localeCompare(b.nextDue));

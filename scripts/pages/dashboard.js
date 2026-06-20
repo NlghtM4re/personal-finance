@@ -114,7 +114,7 @@ async function initDashboard() {
   const { shortW, longW } = SummaryEngine.pickChangeWindows(spanDays);
 
   const netOver = days => {
-    const cutoff = new Date(Date.now() - days * DAY_MS).toISOString().slice(0, 10);
+    const cutoff = isoLocal(new Date(Date.now() - days * DAY_MS));
     const t = SummaryEngine.getTotals(allTx.filter(x => x.date >= cutoff));
     return t.income - t.expense;
   };
@@ -370,7 +370,7 @@ async function renderMonthlyChart(allTx) {
    Walks backwards from the current balance using transaction effects. */
 function accountHistory(allTx, accountId, currentBal, days = 30) {
   const today = new Date(); today.setHours(12, 0, 0, 0);
-  const dateAt = i => new Date(today.getTime() - (days - 1 - i) * 86400000).toISOString().slice(0, 10);
+  const dateAt = i => isoLocal(new Date(today.getTime() - (days - 1 - i) * 86400000));
   const startStr = dateAt(0);
 
   const delta = {};

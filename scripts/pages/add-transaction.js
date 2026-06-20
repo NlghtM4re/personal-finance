@@ -205,7 +205,7 @@ function clearErrors() {
   document.querySelectorAll('.form-error').forEach(el => el.remove());
 }
 function setValue(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
-function todayISO() { return new Date().toISOString().slice(0, 10); }
+function todayISO() { return isoLocal(new Date()); }
 
 function showSaveSuccess() {
   const actions = document.getElementById('formActions');

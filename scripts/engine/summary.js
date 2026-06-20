@@ -2,6 +2,12 @@
    summary.js — Pure calculation functions (no side effects)
    ============================================================ */
 
+/* LOCAL calendar date as YYYY-MM-DD (toISOString is UTC and shifts the day
+   for users east/west of UTC, which mis-bucketed balances by a day). */
+function ymd(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 const SummaryEngine = {
 
   /* Total income, expense, net for a list of transactions */
@@ -94,7 +100,7 @@ const SummaryEngine = {
       const d          = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
       const cutoff     = endOfMonth > today ? today : endOfMonth;
-      const cutoffStr  = cutoff.toISOString().slice(0, 10);
+      const cutoffStr  = ymd(cutoff);
       const balance    = totalInitial + transactions
         .filter(t => t.date <= cutoffStr)
         .reduce((s, t) => {
@@ -145,7 +151,7 @@ const SummaryEngine = {
     for (let i = 0; i < days; i++) {
       const d = new Date(startDay);
       d.setDate(startDay.getDate() + i);
-      const key = d.toISOString().slice(0, 10);
+      const key = ymd(d);
       runningBalance += (deltaMap[key] || 0);
       points.push({
         date:    key,

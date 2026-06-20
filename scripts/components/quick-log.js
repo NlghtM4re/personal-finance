@@ -18,7 +18,7 @@ let _selected = null;            /* selected day, YYYY-MM-DD */
 let _mode = 'hours';             /* 'hours' | 'times' */
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const iso = d => d.toISOString().slice(0, 10);
+const iso = d => isoLocal(d);
 const todayISO = () => iso(new Date());
 function fmtHours(h) { return `${(Math.round(h * 100) / 100).toFixed(h % 1 === 0 ? 0 : 1)} h`; }
 
