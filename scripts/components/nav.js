@@ -37,7 +37,7 @@
   const NAV_ITEMS = [
     { id: 'dashboard',     label: 'Dashboard',       icon: 'dashboard',     href: 'index.html',                sidebar: true, bottom: true },
     { id: 'transactions',  label: 'Transactions',    icon: 'transactions',  href: 'pages/accounts.html',       sidebar: true, bottom: true },
-    { id: 'insights',      label: 'Insights',        icon: 'insights',      href: 'pages/insights.html',       sidebar: true, sheet: true },
+    { id: 'insights',      label: 'Insights',        icon: 'insights',      href: 'pages/insights.html' /* topbar icon only — see renderTopbar */ },
     { id: 'shifts',        label: 'Hours Tracker',   icon: 'shifts',        href: 'pages/shifts.html',         sidebar: true, sheet: true },
     { id: 'spending',      label: 'Cash Flow',       icon: 'spending',      href: 'pages/spending.html',       sidebar: true, money: true, sheet: true },
     { id: 'budget',        label: 'Budget',          icon: 'budget',        href: 'pages/budget.html',         sidebar: true, money: true, sheet: true },
@@ -87,12 +87,14 @@
     if (!el) return;
     const title   = document.body.dataset.title || document.title.split('—')[0].trim();
     const titleId = document.body.dataset.titleId ? ` id="${document.body.dataset.titleId}"` : '';
+    const insights = NAV_ITEMS.find(n => n.id === 'insights');
     el.innerHTML = `
       <button class="menu-btn" id="menuBtn" aria-label="Open menu">${I(ICONS.menu, 20)}</button>
       <a class="topbar-logo" href="${resolve('index.html')}">Flow</a>
       <div class="topbar-title"${titleId}>${title}</div>
       <div class="topbar-actions">
-        <a href="${resolve('pages/settings.html')}" class="topbar-icon-btn" aria-label="Settings">${I(ICONS.settings, 17)}</a>
+        <a href="${resolve(insights.href)}" class="topbar-icon-btn${isActive(insights) ? ' topbar-icon-btn--active' : ''}" aria-label="Insights" title="Insights">${I(ICONS.insights, 17)}</a>
+        <a href="${resolve('pages/settings.html')}" class="topbar-icon-btn${CURRENT === 'settings' ? ' topbar-icon-btn--active' : ''}" aria-label="Settings" title="Settings">${I(ICONS.settings, 17)}</a>
       </div>`;
   }
 
