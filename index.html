@@ -37,6 +37,14 @@
             <span class="flow-pill flow-pill--flat" id="balanceChangePill" hidden>—</span>
           </div>
         </div>
+        <div class="statbar__cell statbar__cell--nw" id="statbarNetWorth" hidden>
+          <div class="term-label">Net worth · cash + crypto</div>
+          <div class="rail-mini__value" id="statNetWorth">—</div>
+        </div>
+        <div class="statbar__cell statbar__cell--crypto" id="statbarCrypto" hidden>
+          <div class="term-label">Crypto</div>
+          <div class="rail-mini__value" id="statCryptoTotal">—</div>
+        </div>
         <div class="statbar__cell" title="Net change over the shorter window">
           <div class="term-label" id="shortChangeLabel">90 days</div>
           <div class="rail-mini__value" id="ninetyDayChange">—</div>
@@ -74,7 +82,6 @@
             </div>
             <div class="crypto-loadbar" id="cryptoLoadbar" hidden><span></span></div>
             <div class="term-cells dash-tiles" id="cryptoTiles"></div>
-            <div class="dash-crypto__nw" id="cryptoNetWorth"></div>
           </section>
 
           <div class="term-cells dash-duo">
@@ -183,10 +190,15 @@
                   <span class="ql-sep">→</span>
                   <input type="time" id="qlEnd" class="form-control" aria-label="End time" />
                 </div>
+                <div class="ql-input-row" id="qlPayRow" hidden>
+                  <span class="ql-prefix">$</span>
+                  <input type="number" id="qlPay" class="form-control" min="0" step="0.01" placeholder="Amount paid — e.g. 120" aria-label="Amount paid" />
+                </div>
                 <div class="ql-actions">
                   <div class="seg-toggle ql-mode" id="qlMode">
                     <button type="button" class="seg-btn active" data-mode="hours">Hours</button>
                     <button type="button" class="seg-btn" data-mode="times">Times</button>
+                    <button type="button" class="seg-btn" data-mode="pay">Pay</button>
                   </div>
                   <button type="submit" class="btn btn--primary btn--sm" id="qlSubmit">Log hours</button>
                 </div>

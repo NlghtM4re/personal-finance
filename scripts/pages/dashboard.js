@@ -181,24 +181,29 @@ async function renderCrypto(bankBalance) {
   const section = document.getElementById('cryptoSection');
   const tilesEl = document.getElementById('cryptoTiles');
   const totalEl = document.getElementById('cryptoSectionTotal');
-  const nwEl    = document.getElementById('cryptoNetWorth');
+  const nwCell  = document.getElementById('statbarNetWorth');
+  const cryCell = document.getElementById('statbarCrypto');
+  const hideStatCells = () => { if (nwCell) nwCell.hidden = true; if (cryCell) cryCell.hidden = true; };
   if (!section || !tilesEl || typeof CryptoBalances === 'undefined') return;
 
   let snap;
   try { snap = await CryptoBalances.snapshot(); }
-  catch { section.hidden = true; return; }
+  catch { section.hidden = true; hideStatCells(); return; }
 
-  if (!snap.wallets.length) { section.hidden = true; return; }
+  if (!snap.wallets.length) { section.hidden = true; hideStatCells(); return; }
   section.hidden = false;
   _cryptoSnap = snap;
 
   totalEl.textContent = formatCurrency(snap.total) + (snap.anyMissing ? ' +' : '');
 
-  if (nwEl) {
-    const netWorth = bankBalance + snap.total;
-    nwEl.innerHTML =
-      `<span class="dash-crypto__nw-label">Net worth · cash + crypto</span>` +
-      `<span class="dash-crypto__nw-val">${formatCurrency(netWorth)}</span>`;
+  /* surface net worth (cash + crypto) and the crypto total in the top stat bar */
+  if (nwCell) {
+    setText('statNetWorth', formatCurrency(bankBalance + snap.total));
+    nwCell.hidden = false;
+  }
+  if (cryCell) {
+    setText('statCryptoTotal', formatCurrency(snap.total) + (snap.anyMissing ? ' +' : ''));
+    cryCell.hidden = false;
   }
 
   const btn = document.getElementById('cryptoRangeBtn');

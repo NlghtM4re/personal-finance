@@ -85,8 +85,11 @@ function renderHint() {
   const el = document.getElementById('qlRateHint');
   if (!el) return;
   const job = ShiftStore.getJobDefaults();
-  if (job.rate > 0) {
-    const acc = _accounts.find(a => a.id === job.accountId) || _accounts[0];
+  const acc = _accounts.find(a => a.id === job.accountId) || _accounts[0];
+  if (_mode === 'pay') {
+    if (acc) { el.innerHTML = `Deposited → ${escapeHTML(acc.name)}`; el.hidden = false; }
+    else { el.innerHTML = ''; el.hidden = true; }
+  } else if (job.rate > 0) {
     el.innerHTML = `Paid <strong>${formatCurrency(job.rate)}/h</strong>${acc ? ` → ${escapeHTML(acc.name)}` : ''}`;
     el.hidden = false;
   } else {
@@ -96,41 +99,55 @@ function renderHint() {
 }
 
 function setMode(mode) {
-  _mode = mode === 'times' ? 'times' : 'hours';
+  _mode = (mode === 'times' || mode === 'pay') ? mode : 'hours';
   document.querySelectorAll('#qlMode .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === _mode));
   document.getElementById('qlHoursRow').hidden = _mode !== 'hours';
   document.getElementById('qlTimesRow').hidden = _mode !== 'times';
+  document.getElementById('qlPayRow').hidden   = _mode !== 'pay';
+  const btn = document.getElementById('qlSubmit');
+  if (btn) btn.textContent = _mode === 'pay' ? 'Log pay' : 'Log hours';
+  renderHint();
 }
 
 /* ---- submit ---- */
 async function submitForm(e) {
   e.preventDefault();
   const job = ShiftStore.getJobDefaults();
-  let start, end;
-  if (_mode === 'times') {
-    start = document.getElementById('qlStart').value;
-    end   = document.getElementById('qlEnd').value;
-    if (!start || !end) { showToast('Enter a start and end time', 'error'); return; }
+  const base = {
+    date: _selected || todayISO(), employer: job.employer || '', breakMin: 0, tips: 0,
+    accountId: job.accountId || _accounts[0]?.id || null,
+    categoryId: _incomeCats[0]?.id || null,
+  };
+
+  let data;
+  if (_mode === 'pay') {
+    const amt = parseFloat(document.getElementById('qlPay').value) || 0;
+    if (amt <= 0) { showToast('Enter the amount you were paid', 'error'); return; }
+    data = { ...base, start: '', end: '', payMode: 'fixed', rate: 0, fixedPay: amt };
   } else {
-    const hours = parseFloat(document.getElementById('qlHours').value) || 0;
-    if (hours <= 0) { showToast('Enter the number of hours', 'error'); return; }
-    start = '09:00'; end = addHours(start, hours);
+    let start, end;
+    if (_mode === 'times') {
+      start = document.getElementById('qlStart').value;
+      end   = document.getElementById('qlEnd').value;
+      if (!start || !end) { showToast('Enter a start and end time', 'error'); return; }
+    } else {
+      const hours = parseFloat(document.getElementById('qlHours').value) || 0;
+      if (hours <= 0) { showToast('Enter the number of hours', 'error'); return; }
+      start = '09:00'; end = addHours(start, hours);
+    }
+    data = { ...base, start, end, payMode: 'hourly', rate: job.rate || 0, fixedPay: 0 };
   }
 
   const btn = document.getElementById('qlSubmit');
   btn.disabled = true;
   try {
-    const pay = await logShift({
-      date: _selected || todayISO(), employer: job.employer || '', start, end, breakMin: 0,
-      payMode: 'hourly', rate: job.rate || 0, fixedPay: 0, tips: 0,
-      accountId: job.accountId || _accounts[0]?.id || null,
-      categoryId: _incomeCats[0]?.id || null,
-    });
-    const hrs = ShiftEngine.hours({ start, end });
-    showToast(pay > 0 ? `Logged ${fmtHours(hrs)} · +${formatCurrency(pay)}` : `Logged ${fmtHours(hrs)}`, 'success');
-    document.getElementById('qlHours').value = '';
-    document.getElementById('qlStart').value = '';
-    document.getElementById('qlEnd').value = '';
+    const pay = await logShift(data);
+    const hrs = ShiftEngine.hours(data);
+    const msg = _mode === 'pay'
+      ? `Logged +${formatCurrency(pay)}`
+      : (pay > 0 ? `Logged ${fmtHours(hrs)} · +${formatCurrency(pay)}` : `Logged ${fmtHours(hrs)}`);
+    showToast(msg, 'success');
+    ['qlHours', 'qlStart', 'qlEnd', 'qlPay'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     await afterLog();
   } catch (err) {
     showToast(err.message || 'Failed to log', 'error');
