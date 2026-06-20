@@ -50,6 +50,18 @@ const CryptoBalances = {
     throw lastErr;
   },
 
+  /* CoinGecko via our serverless proxy (/api/crypto) — dodges browser CORS
+     and centralises rate-limiting + edge caching, so the dozen-error 429
+     storm from calling CoinGecko directly in the browser goes away. Falls
+     back to a direct call when the proxy isn't there (e.g. local serve). */
+  async _gecko(proxyQuery, directUrl) {
+    try {
+      const r = await this._fetch('/api/crypto?' + proxyQuery, {}, { tries: 2, timeout: 9000 });
+      if (r.ok) return r;
+    } catch (_) { /* proxy missing/failed → fall through to direct */ }
+    return this._fetch(directUrl);
+  },
+
   /* ---- last-known balance cache (localStorage). Lets a failed live
      lookup fall back to the most recent good coin amount instead of
      showing nothing — the value is then flagged `stale` for the UI. ---- */
@@ -137,7 +149,9 @@ const CryptoBalances = {
     let cur = (localStorage.getItem('pf_currency') || 'CAD').toLowerCase();
     const ids = Object.values(CHAINS).map(c => c.coingecko).join(',');
     const fetchFor = async (vs) => {
-      const r = await this._fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${ids}&sparkline=true&price_change_percentage=24h`);
+      const r = await this._gecko(
+        `type=markets&vs=${vs}&ids=${ids}`,
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${ids}&sparkline=true&price_change_percentage=24h`);
       if (!r.ok) throw new Error('Price lookup failed');
       return r.json();
     };
@@ -199,7 +213,9 @@ const CryptoBalances = {
     const out = {};
     await Promise.all(Object.values(CHAINS).map(async (c) => {
       const fetchChart = async (vs) => {
-        const r = await this._fetch(`https://api.coingecko.com/api/v3/coins/${c.coingecko}/market_chart?vs_currency=${vs}&days=${range.days}`);
+        const r = await this._gecko(
+          `type=chart&coin=${c.coingecko}&vs=${vs}&days=${range.days}`,
+          `https://api.coingecko.com/api/v3/coins/${c.coingecko}/market_chart?vs_currency=${vs}&days=${range.days}`);
         if (!r.ok) throw new Error('chart lookup failed');
         return r.json();
       };

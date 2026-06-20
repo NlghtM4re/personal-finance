@@ -10,7 +10,7 @@
    Bump CACHE_VERSION when shipping changes to force a refresh.
    ============================================================ */
 
-const CACHE_VERSION = 'pf-v37';
+const CACHE_VERSION = 'pf-v38';
 
 const PRECACHE = [
   '/index.html',
@@ -86,6 +86,9 @@ self.addEventListener('fetch', event => {
   if (url.hostname === 'blockstream.info' ||
       url.hostname === 'api.coingecko.com' ||
       url.hostname.endsWith('.publicnode.com')) return;
+
+  /* our serverless API (e.g. /api/crypto) returns live data — never cache */
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return;
 
   /* page navigations: fresh when online, cached shell when offline */
   if (req.mode === 'navigate') {
