@@ -276,25 +276,48 @@
 
 /* --- Combined accounts + transactions layout --- */
 /* Stacked: accounts + net worth on top (side by side), transactions full-width below */
-.acctx-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* ════════════════════════════════════════════════════════════
+   TRANSACTIONS PAGE (served from accounts.html) — terminal grid
+   ════════════════════════════════════════════════════════════ */
+.tx-page { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tx-top { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 10px; align-items: stretch; }
+.tx-accounts, .tx-networth { display: flex; flex-direction: column; }
+.tx-accounts .accounts-grid { display: flex; flex-direction: column; padding: 4px 14px; }
+
+/* Filtered stat bar */
+.tx-statbar {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--color-border); border: 1px solid var(--color-border); gap: 1px;
 }
-.acctx-accounts {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 10px;
-  align-items: stretch;
-  min-width: 0;
+.tx-stat { background: var(--color-surface); padding: 12px 16px; min-width: 0; }
+.tx-stat__label {
+  font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.12em;
+  font-weight: 600; color: var(--color-text-muted); font-family: var(--font-display);
 }
-.acctx-accounts > .card { display: flex; flex-direction: column; }
-.acctx-accounts .accounts-grid { display: flex; flex-direction: column; }
-.acctx-transactions { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.acctx-transactions > .card:last-child { display: flex; flex-direction: column; }
-.acctx-transactions > .card:last-child .tx-list-full { max-height: max(420px, calc(100vh - 320px)); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
-.acctx-transactions > .card:last-child .tx-list-full::-webkit-scrollbar { width: 4px; }
-.acctx-transactions > .card:last-child .tx-list-full::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+.tx-stat__value {
+  font-family: var(--font-display); font-size: 1.25rem; font-weight: 600;
+  letter-spacing: -0.03em; color: var(--color-text); margin-top: 5px;
+}
+.tx-stat__value--income  { color: var(--color-income); }
+.tx-stat__value--expense { color: var(--color-expense); }
+
+/* Toolbar */
+.tx-toolbar .term__body { display: flex; flex-direction: column; gap: 10px; }
+.tx-toolbar__row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tx-toolbar__row .search-input { flex: 1 1 240px; }
+.tx-typetabs { flex-shrink: 0; }
+.tx-toolbar__spacer { flex: 1 1 auto; }
+.tx-custom-dates { display: flex; align-items: center; gap: 6px; }
+.tx-custom-dates__sep { color: var(--color-text-muted); font-size: 0.8125rem; }
+
+/* List panel — scrolls within the page */
+.tx-listpanel .tx-list-full {
+  max-height: max(420px, calc(100vh - 360px)); overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--color-border) transparent;
+  padding: 0 14px;
+}
+.tx-listpanel .tx-list-full::-webkit-scrollbar { width: 4px; }
+.tx-listpanel .tx-list-full::-webkit-scrollbar-thumb { background: var(--color-border); }
 
 /* --- Compact account rows --- */
 .acc-row {
@@ -345,34 +368,25 @@
 }
 .acc-row--add:hover .acc-row__add-icon { border-color: var(--color-primary); }
 
-/* --- Net worth summary card --- */
-.acc-summary-card { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; justify-content: space-between; }
-
-.acc-nw-headline { display: flex; flex-direction: column; gap: 1px; }
-.acc-nw-label {
-  font-size: 0.6875rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--color-text-muted);
-}
+/* --- Net worth summary (inside .tx-networth .term__body) --- */
+.tx-networth .term__body { display: flex; flex-direction: column; gap: 14px; justify-content: center; height: 100%; }
 .acc-nw-value {
   font-family: var(--font-display);
   font-feature-settings: 'tnum' 1;
-  font-size: 2.125rem; font-weight: 700;
-  letter-spacing: -0.03em;
+  font-size: 2rem; font-weight: 600;
+  letter-spacing: -0.04em;
   color: var(--color-income);
-  line-height: 1.05;
-  margin-top: 3px;
-  text-shadow: 0 0 36px rgba(0,209,143,.22);
+  line-height: 1;
 }
-.acc-nw-count { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px; }
+.acc-nw-crypto { font-family: var(--font-display); font-size: 0.68rem; color: var(--color-text-muted); }
 
 .acc-nw-bar-track {
-  height: 5px; border-radius: 999px;
+  height: 4px;
   background: var(--color-expense-light, rgba(255,92,122,0.12));
   overflow: hidden;
 }
 .acc-nw-bar-fill {
-  height: 100%; border-radius: 999px;
+  height: 100%;
   background: var(--color-income);
   width: 100%;
   transition: width 0.6s cubic-bezier(.4,0,.2,1);
@@ -395,32 +409,18 @@
 .acc-stat-value--income  { color: var(--color-income); }
 .acc-stat-value--expense { color: var(--color-expense); }
 
-@media (max-width: 640px) {
-  .acctx-accounts { grid-template-columns: 1fr; }
-}
-
-/* --- Transactions header --- */
-.transactions-header {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap;
-}
-.transactions-stats { display: flex; gap: 8px; flex-wrap: wrap; }
-.tx-divider { border: none; border-top: 1px solid var(--color-border-light); margin: 12px 0; }
-.stat-chip {
-  display: flex; align-items: center; gap: 5px;
-  padding: 5px 11px; border-radius: 999px;
-  font-size: 0.8125rem; font-weight: 500;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-}
-.stat-chip--income  { background: var(--color-income-light);  color: var(--color-income);  border-color: transparent; }
-.stat-chip--expense { background: var(--color-expense-light); color: var(--color-expense); border-color: transparent; }
-
 /* Transaction list */
 .tx-list-full { display: flex; flex-direction: column; }
-.tx-list-full .tx-item { padding: 11px 8px; cursor: pointer; }
+.tx-list-full .tx-item { padding: 11px 6px; cursor: pointer; }
 .tx-list-full .tx-item:hover .tx-name { color: var(--color-primary); }
+.tx-amount { font-family: var(--font-display); letter-spacing: -0.02em; }
+.tx-meta__arrow { color: var(--color-transfer); font-weight: 600; }
+.tx-tag {
+  display: inline-block; margin-left: 7px; vertical-align: middle;
+  font-size: 0.5625rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--color-text-muted); background: var(--color-surface-2);
+  border: 1px solid var(--color-border); padding: 1px 5px;
+}
 
 /* Entrance animation for loaded list items */
 .tx-date-group { animation: fadeIn 0.2s ease both; }
@@ -442,18 +442,21 @@
 .tx-action-btn--delete:hover { background: var(--color-expense-light); color: var(--color-expense); }
 
 .tx-date-group {
-  padding: 8px 0 5px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 2px 6px;
   font-size: 0.6875rem; font-weight: 600;
   color: var(--color-text-muted);
   text-transform: uppercase; letter-spacing: 0.08em;
   border-bottom: 1px solid var(--color-border-light);
   margin-top: 10px;
+  position: sticky; top: 0; background: var(--color-surface); z-index: 1;
 }
 .tx-date-group:first-child { margin-top: 0; }
+.tx-date-group__net { font-family: var(--font-display); letter-spacing: 0; }
 
 .pagination {
   display: flex; align-items: center; justify-content: center;
-  gap: 6px; padding-top: 16px;
+  gap: 6px; padding: 14px;
 }
 .page-btn {
   width: 34px; height: 34px;
@@ -698,27 +701,33 @@
   text-align: left; width: 100%; max-width: 360px; margin-top: 8px;
 }
 
+@media (max-width: 860px) {
+  .tx-top { grid-template-columns: 1fr; }
+  .tx-typetabs { width: 100%; }
+  .tx-typetabs .seg-btn { flex: 1; padding: 9px 8px; }
+}
+
 @media (max-width: 768px) {
-  .transactions-stats { width: 100%; flex-wrap: wrap; }
-  .transactions-stats .stat-chip { flex: 1 1 calc(50% - 4px); justify-content: center; }
+  .tx-statbar { grid-template-columns: 1fr 1fr; }
+  .tx-stat__value { font-size: 1.0625rem; }
   .tx-actions            { opacity: 1; }
   .account-card__actions { opacity: 1; }
   .acc-row__actions      { opacity: 1; }
 
-  /* Filter bar: horizontal scroll strip on mobile */
-  .filter-bar {
+  /* Filter rows: horizontal scroll strip on mobile */
+  .tx-toolbar__row--filters {
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 4px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    gap: 6px;
   }
-  .filter-bar::-webkit-scrollbar { display: none; }
-  .filter-bar .select--sm,
-  .filter-bar input[type="date"],
-  .filter-bar .btn { flex-shrink: 0; }
-  .search-input { min-width: 160px; flex: 1 0 160px; }
+  .tx-toolbar__row--filters::-webkit-scrollbar { display: none; }
+  .tx-toolbar__row--filters .select--sm,
+  .tx-toolbar__row--filters input[type="date"],
+  .tx-toolbar__row--filters .btn { flex-shrink: 0; }
+  .tx-toolbar__spacer { display: none; }
+  .search-input { min-width: 160px; }
 
   /* Spending period bar: stack on small screens */
   .spending-period-bar {

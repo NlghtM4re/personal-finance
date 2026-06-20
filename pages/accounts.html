@@ -7,7 +7,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
   <link rel="apple-touch-icon" href="/icons/icon-180.png" />
-  <title>Flow — Accounts</title>
+  <title>Flow — Transactions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -15,111 +15,143 @@
   <link rel="stylesheet" href="../styles/layout.css" />
   <link rel="stylesheet" href="../styles/components.css" />
   <link rel="stylesheet" href="../styles/pages.css" />
+  <link rel="stylesheet" href="../styles/dashboard.css" />
 </head>
-<body data-title="Accounts & Transactions">
+<body data-title="Transactions">
 
   <aside class="sidebar" id="sidebar"></aside>
-
   <div class="overlay" id="overlay"></div>
 
   <div class="main-wrapper">
     <header class="topbar" id="topbar"></header>
 
     <main class="main-content">
-      <div class="acctx-layout">
+      <div class="tx-page">
 
-        <!-- LEFT: Accounts -->
-        <section class="acctx-accounts">
-          <div class="card card--static">
-            <div class="card-header">
-              <h2 class="card-title">Accounts</h2>
-              <button class="btn btn--ghost btn--sm" id="newAccountBtn" aria-label="New account">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-              </button>
+        <!-- ── Accounts + Net worth ─────────────────────────────── -->
+        <div class="tx-top">
+          <section class="term tx-accounts">
+            <div class="term__head">
+              <span class="term__title">Accounts</span>
+              <button class="btn btn--ghost btn--sm" id="newAccountBtn">+ New account</button>
             </div>
-            <div class="accounts-grid" id="accountsGrid">
-              <div class="spinner"></div>
+            <div class="term__body term__body--flush">
+              <div class="accounts-grid" id="accountsGrid"><div class="spinner"></div></div>
             </div>
-          </div>
+          </section>
 
-          <!-- Account summary card -->
-          <div class="card card--static acc-summary-card">
-            <div class="acc-nw-headline">
-              <div class="acc-nw-label">Net Worth</div>
+          <section class="term tx-networth">
+            <div class="term__head">
+              <span class="term__title">Net worth</span>
+              <span class="term-label"><span id="accCount">—</span> accounts</span>
+            </div>
+            <div class="term__body">
               <div class="acc-nw-value" id="accNetWorth">—</div>
-              <div class="acc-nw-count"><span id="accCount">—</span> accounts</div>
-              <div class="acc-nw-crypto" id="accNwCrypto" style="display:none;font-family:var(--font-display);font-size:.68rem;color:var(--color-text-muted);margin-top:3px;"></div>
-            </div>
-            <div class="acc-nw-bar-track">
-              <div class="acc-nw-bar-fill" id="accNwBarFill"></div>
-            </div>
-            <div class="acc-stats-row">
-              <div class="acc-stat-item">
-                <div class="acc-stat-dot acc-stat-dot--income"></div>
-                <div>
-                  <div class="acc-stat-label">Assets</div>
-                  <div class="acc-stat-value acc-stat-value--income" id="accTotalAssets">—</div>
+              <div class="acc-nw-crypto" id="accNwCrypto" style="display:none"></div>
+              <div class="acc-nw-bar-track"><div class="acc-nw-bar-fill" id="accNwBarFill"></div></div>
+              <div class="acc-stats-row">
+                <div class="acc-stat-item">
+                  <div class="acc-stat-dot acc-stat-dot--income"></div>
+                  <div>
+                    <div class="acc-stat-label">Assets</div>
+                    <div class="acc-stat-value acc-stat-value--income" id="accTotalAssets">—</div>
+                  </div>
                 </div>
-              </div>
-              <div class="acc-stat-item">
-                <div class="acc-stat-dot acc-stat-dot--expense"></div>
-                <div>
-                  <div class="acc-stat-label">Debts</div>
-                  <div class="acc-stat-value acc-stat-value--expense" id="accTotalDebts">—</div>
+                <div class="acc-stat-item">
+                  <div class="acc-stat-dot acc-stat-dot--expense"></div>
+                  <div>
+                    <div class="acc-stat-label">Debts</div>
+                    <div class="acc-stat-value acc-stat-value--expense" id="accTotalDebts">—</div>
+                  </div>
                 </div>
               </div>
             </div>
+          </section>
+        </div>
+
+        <!-- ── Filtered stat bar ────────────────────────────────── -->
+        <div class="tx-statbar">
+          <div class="tx-stat">
+            <div class="tx-stat__label">Income</div>
+            <div class="tx-stat__value tx-stat__value--income" id="statIncome">—</div>
           </div>
+          <div class="tx-stat">
+            <div class="tx-stat__label">Expense</div>
+            <div class="tx-stat__value tx-stat__value--expense" id="statExpense">—</div>
+          </div>
+          <div class="tx-stat">
+            <div class="tx-stat__label">Net</div>
+            <div class="tx-stat__value" id="statNet">—</div>
+          </div>
+          <div class="tx-stat">
+            <div class="tx-stat__label">Shown</div>
+            <div class="tx-stat__value" id="statCount">—</div>
+          </div>
+        </div>
 
-        </section>
-
-        <!-- RIGHT: Transactions -->
-        <section class="acctx-transactions">
-
-          <!-- Stats + Filters merged -->
-          <div class="card card--static">
-            <div class="transactions-stats">
-              <span class="stat-chip" id="statCount">—</span>
-              <span class="stat-chip stat-chip--income" id="statIncome">↑ —</span>
-              <span class="stat-chip stat-chip--expense" id="statExpense">↓ —</span>
-              <span class="stat-chip" id="statNet">— net</span>
-            </div>
-            <div class="tx-divider"></div>
-            <div class="filter-bar">
+        <!-- ── Toolbar: search · type · filters · sort · export ──── -->
+        <section class="term tx-toolbar">
+          <div class="term__body">
+            <div class="tx-toolbar__row">
               <div class="search-input">
                 <span class="search-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </span>
-                <input type="text" id="searchInput" class="form-control" placeholder="Search…" />
+                <input type="text" id="searchInput" class="form-control" placeholder="Search notes, categories…" />
               </div>
-              <select id="filterType" class="select--sm">
-                <option value="">All Types</option>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-                <option value="transfer">Transfer</option>
-              </select>
+              <div class="seg-toggle tx-typetabs" id="txTypeTabs">
+                <button type="button" class="seg-btn active" data-type="">All</button>
+                <button type="button" class="seg-btn" data-type="income">Income</button>
+                <button type="button" class="seg-btn" data-type="expense">Expense</button>
+                <button type="button" class="seg-btn" data-type="transfer">Transfer</button>
+              </div>
+            </div>
+
+            <div class="tx-toolbar__row tx-toolbar__row--filters">
               <select id="filterCategory" class="select--sm"></select>
               <select id="filterAccount" class="select--sm"></select>
-              <input type="date" id="filterFrom" class="select--sm" title="From date" />
-              <input type="date" id="filterTo"   class="select--sm" title="To date" />
-              <button id="clearFilters" class="btn btn--ghost btn--sm">Clear</button>
+              <select id="txRange" class="select--sm" title="Date range">
+                <option value="all">All time</option>
+                <option value="month">This month</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last year</option>
+                <option value="custom">Custom…</option>
+              </select>
+              <div class="tx-custom-dates" id="txCustomDates" hidden>
+                <input type="date" id="filterFrom" class="select--sm" title="From date" />
+                <span class="tx-custom-dates__sep">→</span>
+                <input type="date" id="filterTo" class="select--sm" title="To date" />
+              </div>
+              <select id="txSort" class="select--sm" title="Sort">
+                <option value="date-desc">Newest first</option>
+                <option value="date-asc">Oldest first</option>
+                <option value="amount-desc">Largest amount</option>
+                <option value="amount-asc">Smallest amount</option>
+              </select>
+              <div class="tx-toolbar__spacer"></div>
+              <button id="exportCsv" class="btn btn--ghost btn--sm" title="Export the current view to CSV">Export</button>
+              <button id="clearFilters" class="btn btn--ghost btn--sm" hidden>Clear filters</button>
             </div>
           </div>
+        </section>
 
-          <!-- Transaction list -->
-          <div class="card card--static" style="overflow:hidden;">
-            <div class="tx-list-full" id="txListFull">
-              <div class="spinner"></div>
-            </div>
+        <!-- ── Transaction list ─────────────────────────────────── -->
+        <section class="term tx-listpanel">
+          <div class="term__head">
+            <span class="term__title">Activity</span>
+            <a href="add-transaction.html" class="btn btn--primary btn--sm">+ Add transaction</a>
+          </div>
+          <div class="term__body term__body--flush">
+            <div class="tx-list-full" id="txListFull"><div class="spinner"></div></div>
             <div class="pagination" id="pagination"></div>
           </div>
-
         </section>
+
       </div>
     </main>
   </div>
 
-  <!-- Bottom nav -->
   <nav class="bottom-nav" id="bottomNav" aria-label="Main navigation"></nav>
 
   <!-- Account modal -->

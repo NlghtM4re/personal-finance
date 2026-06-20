@@ -721,9 +721,11 @@ function showToast(message, type = '') {
 const CSVService = {
   HEADERS: ['date','type','amount','note','category','account','to_account','tags'],
 
-  async export() {
+  /* Export to CSV. Pass `subset` (e.g. the current filtered view) to export
+     just those; omit to export every transaction. */
+  async export(subset = null) {
     const [txs, accounts, cats] = await Promise.all([
-      TransactionStore.getAll(),
+      subset ? Promise.resolve(subset) : TransactionStore.getAll(),
       AccountStore.getAll(),
       CategoryStore.getAll(),
     ]);
