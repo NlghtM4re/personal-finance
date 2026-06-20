@@ -26,45 +26,132 @@
     <header class="topbar" id="topbar"></header>
 
     <main class="main-content">
-      <div class="shifts-page">
+      <div class="hours-page">
 
-        <!-- Stats -->
-        <div class="budget-summary-strip shifts-stats">
-          <div class="card budget-summary-card">
-            <div class="budget-summary-card__label">This week</div>
-            <div class="budget-summary-card__value" id="weekPay">—</div>
-            <div class="shift-stat__sub" id="weekHours">— h</div>
+        <!-- ── Stat bar ─────────────────────────────────────────── -->
+        <div class="hours-statbar" id="hoursStatbar">
+          <div class="hours-stat">
+            <div class="hours-stat__label">This week
+              <span class="flow-pill flow-pill--flat" id="weekDelta" hidden></span>
+            </div>
+            <div class="hours-stat__value" id="weekPay">—</div>
+            <div class="hours-stat__sub" id="weekHours">— h</div>
           </div>
-          <div class="card budget-summary-card">
-            <div class="budget-summary-card__label">This month</div>
-            <div class="budget-summary-card__value" id="monthPay">—</div>
-            <div class="shift-stat__sub" id="monthHours">— h</div>
+          <div class="hours-stat">
+            <div class="hours-stat__label">This month</div>
+            <div class="hours-stat__value" id="monthPay">—</div>
+            <div class="hours-stat__sub" id="monthHours">— h</div>
           </div>
-          <div class="card budget-summary-card">
-            <div class="budget-summary-card__label">All-time</div>
-            <div class="budget-summary-card__value" id="totalPay">—</div>
-            <div class="shift-stat__sub" id="totalShifts">— shifts</div>
+          <div class="hours-stat">
+            <div class="hours-stat__label">Effective rate</div>
+            <div class="hours-stat__value" id="effRate">—</div>
+            <div class="hours-stat__sub" id="effRateSub">per hour · 30d</div>
+          </div>
+          <div class="hours-stat">
+            <div class="hours-stat__label">All-time</div>
+            <div class="hours-stat__value" id="totalPay">—</div>
+            <div class="hours-stat__sub" id="totalShifts">— shifts</div>
           </div>
         </div>
 
-        <!-- Quick-log presets -->
-        <div class="hours-quicklog" id="hoursQuicklog" hidden>
-          <span class="hours-quicklog__label">Quick log</span>
-          <div class="hours-presets" id="hoursPresets"></div>
+        <!-- ── Goal + Quick log row ─────────────────────────────── -->
+        <div class="hours-row hours-row--two">
+
+          <!-- Weekly goal -->
+          <section class="term hours-goal" id="goalPanel">
+            <div class="term__head">
+              <span class="term__title">Weekly goal</span>
+              <button type="button" class="btn btn--ghost btn--sm" id="editGoalBtn">Edit</button>
+            </div>
+            <div class="term__body">
+              <div class="goal-display" id="goalDisplay">
+                <div class="goal-ring" id="goalRing"></div>
+                <div class="goal-info">
+                  <div class="goal-info__pct" id="goalPct">—</div>
+                  <div class="goal-info__detail" id="goalDetail">No goal set yet</div>
+                  <div class="goal-info__pace" id="goalPace"></div>
+                </div>
+              </div>
+              <form class="goal-edit" id="goalEdit" hidden>
+                <div class="seg-toggle goal-metric">
+                  <button type="button" class="seg-btn active" data-metric="pay">Earnings</button>
+                  <button type="button" class="seg-btn" data-metric="hours">Hours</button>
+                </div>
+                <div class="goal-edit__field">
+                  <span class="goal-edit__prefix" id="goalPrefix">$</span>
+                  <input type="number" id="goalTarget" class="form-control" min="0" step="1" placeholder="0" />
+                  <span class="goal-edit__suffix" id="goalSuffix">/ week</span>
+                </div>
+                <div class="goal-edit__actions">
+                  <button type="submit" class="btn btn--primary btn--sm">Save goal</button>
+                  <button type="button" class="btn btn--ghost btn--sm" id="clearGoalBtn">Clear</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- Quick log -->
+          <section class="term hours-quick" id="quickPanel">
+            <div class="term__head">
+              <span class="term__title">Quick log</span>
+              <button type="button" class="btn btn--primary btn--sm" id="addShiftBtn">+ Log shift</button>
+            </div>
+            <div class="term__body">
+              <div class="hours-presets" id="hoursPresets"></div>
+              <p class="hours-quick__hint" id="quickHint" hidden>
+                Save a shift as a preset to log repeat days in one tap.
+              </p>
+            </div>
+          </section>
         </div>
 
-        <!-- Toolbar -->
-        <div class="shifts-toolbar">
-          <h2 class="shifts-heading">Logged hours</h2>
-          <button type="button" class="btn btn--primary btn--sm" id="addShiftBtn">+ Log shift</button>
+        <!-- ── Earnings chart ───────────────────────────────────── -->
+        <section class="term hours-chart" id="chartPanel">
+          <div class="term__head">
+            <span class="term__title">Earnings · last <span id="chartWeeks">10</span> weeks</span>
+            <div class="seg-toggle" id="chartMetricToggle">
+              <button type="button" class="seg-btn active" data-metric="pay">Pay</button>
+              <button type="button" class="seg-btn" data-metric="hours">Hours</button>
+            </div>
+          </div>
+          <div class="term__body">
+            <div class="hours-bars" id="hoursBars"></div>
+          </div>
+        </section>
+
+        <!-- ── Breakdown duo ────────────────────────────────────── -->
+        <div class="hours-row hours-row--two">
+
+          <!-- By day of week -->
+          <section class="term" id="dowPanel">
+            <div class="term__head">
+              <span class="term__title">By day of week</span>
+              <span class="term-label" id="dowBest"></span>
+            </div>
+            <div class="term__body">
+              <div class="dow-grid" id="dowGrid"></div>
+            </div>
+          </section>
+
+          <!-- By job -->
+          <section class="term" id="jobPanel">
+            <div class="term__head">
+              <span class="term__title">By job</span>
+              <span class="term-label">all-time</span>
+            </div>
+            <div class="term__body term__body--flush">
+              <div id="jobList"></div>
+            </div>
+          </section>
         </div>
 
-        <!-- Form -->
-        <div class="card shift-form-card" id="shiftFormCard" hidden>
-          <div class="shift-form-card__head">
+        <!-- ── Log-shift form ───────────────────────────────────── -->
+        <section class="term shift-form-card" id="shiftFormCard" hidden>
+          <div class="term__head">
             <span class="term__title" id="shiftFormTitle">Log shift</span>
             <button type="button" class="btn btn--ghost btn--sm" id="closeShiftForm" aria-label="Close">✕</button>
           </div>
+          <div class="term__body">
           <form id="shiftForm">
             <input type="hidden" id="sEditId" />
 
@@ -76,7 +163,8 @@
 
             <div class="form-group">
               <label class="form-label" for="sEmployer">Employer / job</label>
-              <input type="text" id="sEmployer" class="form-control" placeholder="e.g. Café" maxlength="60" />
+              <input type="text" id="sEmployer" class="form-control" placeholder="e.g. Café" maxlength="60" list="employerList" />
+              <datalist id="employerList"></datalist>
             </div>
 
             <div class="shift-form-grid">
@@ -140,12 +228,21 @@
               <button type="button" class="btn btn--danger btn--sm" id="shiftDelete" hidden>Delete</button>
             </div>
           </form>
-        </div>
+          </div>
+        </section>
 
-        <!-- List (grouped by week) -->
-        <div id="shiftsList">
-          <div class="empty-state">Loading…</div>
-        </div>
+        <!-- ── Logged hours ─────────────────────────────────────── -->
+        <section class="term hours-log">
+          <div class="term__head">
+            <span class="term__title">Logged hours</span>
+            <select id="employerFilter" class="hours-filter" hidden></select>
+          </div>
+          <div class="term__body term__body--flush">
+            <div id="shiftsList">
+              <div class="empty-state">Loading…</div>
+            </div>
+          </div>
+        </section>
 
       </div>
     </main>

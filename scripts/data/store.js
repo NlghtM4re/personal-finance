@@ -547,6 +547,21 @@ const ShiftStore = {
   getDefaultRate() { return Number(localStorage.getItem('pf_shift_rate')) || 0; },
   setDefaultRate(r) { localStorage.setItem('pf_shift_rate', String(Number(r) || 0)); },
 
+  /* weekly goal — local convenience. { metric: 'pay'|'hours', target:number }.
+     Drives the progress ring on the Hours Tracker. target 0 = no goal set. */
+  _goalKey: 'pf_shift_goal',
+  getGoal() {
+    try {
+      const g = JSON.parse(localStorage.getItem(this._goalKey) || '{}');
+      return { metric: g.metric === 'hours' ? 'hours' : 'pay', target: Number(g.target) || 0 };
+    } catch { return { metric: 'pay', target: 0 }; }
+  },
+  setGoal(goal) {
+    const g = { metric: goal.metric === 'hours' ? 'hours' : 'pay', target: Math.max(0, Number(goal.target) || 0) };
+    localStorage.setItem(this._goalKey, JSON.stringify(g));
+    return g;
+  },
+
   /* shift presets (saved templates) — local convenience for fast logging.
      Preset: { id, name, employer, start, end, breakMin, payMode, rate,
                fixedPay, accountId, categoryId } */

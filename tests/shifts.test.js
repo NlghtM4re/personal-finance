@@ -65,3 +65,77 @@ test('summarize', async (t) => {
     assert.deepEqual(ShiftEngine.summarize([]), { count: 0, hours: 0, pay: 0, tips: 0 });
   });
 });
+
+test('effectiveRate', async (t) => {
+  await t.test('total pay / total hours (tips included)', () => {
+    const shifts = [
+      { start: '09:00', end: '17:00', rate: 20 },         // 8h, $160
+      { start: '10:00', end: '14:00', rate: 25, tips: 8 }, // 4h, $108
+    ];
+    // 268 / 12 = 22.333… → 22.33
+    assert.equal(ShiftEngine.effectiveRate(shifts), 22.33);
+  });
+  await t.test('no hours (only flat-pay) → 0', () => {
+    assert.equal(ShiftEngine.effectiveRate([{ payMode: 'fixed', fixedPay: 100 }]), 0);
+    assert.equal(ShiftEngine.effectiveRate([]), 0);
+  });
+});
+
+test('weekStart (Monday-based)', async (t) => {
+  await t.test('snaps any weekday back to its Monday', () => {
+    assert.equal(ShiftEngine.weekStart('2026-06-17'), '2026-06-15'); // Wed → Mon
+    assert.equal(ShiftEngine.weekStart('2026-06-15'), '2026-06-15'); // Mon → itself
+    assert.equal(ShiftEngine.weekStart('2026-06-21'), '2026-06-15'); // Sun → Mon
+  });
+});
+
+test('byDayOfWeek', async (t) => {
+  const shifts = [
+    { date: '2026-06-15', start: '09:00', end: '17:00', rate: 20 }, // Mon, 8h $160
+    { date: '2026-06-22', start: '09:00', end: '13:00', rate: 20 }, // Mon, 4h $80
+    { date: '2026-06-20', start: '10:00', end: '14:00', rate: 30 }, // Sat, 4h $120
+  ];
+  await t.test('buckets Mon→Sun and accumulates', () => {
+    const rows = ShiftEngine.byDayOfWeek(shifts);
+    assert.equal(rows.length, 7);
+    assert.deepEqual(rows[0], { dow: 0, hours: 12, pay: 240, count: 2 }); // Monday
+    assert.deepEqual(rows[5], { dow: 5, hours: 4, pay: 120, count: 1 });  // Saturday
+    assert.deepEqual(rows[2], { dow: 2, hours: 0, pay: 0, count: 0 });    // empty Wednesday
+  });
+});
+
+test('byEmployer', async (t) => {
+  const shifts = [
+    { date: '2026-06-15', employer: 'Café', start: '09:00', end: '17:00', rate: 20 }, // 8h $160
+    { date: '2026-06-16', employer: 'Café', start: '09:00', end: '13:00', rate: 20 }, // 4h $80
+    { date: '2026-06-17', employer: 'Bar',  start: '18:00', end: '22:00', rate: 25 }, // 4h $100
+    { date: '2026-06-18', start: '10:00', end: '12:00', rate: 15 },                   // 2h $30, no employer
+  ];
+  await t.test('groups, sorts by pay desc, folds blanks into Unspecified, derives rate', () => {
+    const rows = ShiftEngine.byEmployer(shifts);
+    assert.equal(rows[0].employer, 'Café');
+    assert.deepEqual(
+      { employer: rows[0].employer, hours: rows[0].hours, pay: rows[0].pay, count: rows[0].count, rate: rows[0].rate },
+      { employer: 'Café', hours: 12, pay: 240, count: 2, rate: 20 },
+    );
+    assert.equal(rows[1].employer, 'Bar');
+    assert.equal(rows[2].employer, 'Unspecified');
+    assert.equal(rows[2].rate, 15);
+  });
+});
+
+test('weeklySeries', async (t) => {
+  const shifts = [
+    { date: '2026-06-15', start: '09:00', end: '17:00', rate: 20 }, // this week (Mon 6/15)
+    { date: '2026-06-08', start: '09:00', end: '13:00', rate: 20 }, // prior week
+  ];
+  await t.test('returns N continuous weeks ending with today\'s week, oldest→newest', () => {
+    const series = ShiftEngine.weeklySeries(shifts, 4, '2026-06-17');
+    assert.equal(series.length, 4);
+    assert.equal(series[3].weekStart, '2026-06-15'); // newest = current week
+    assert.equal(series[3].pay, 160);
+    assert.equal(series[2].weekStart, '2026-06-08');
+    assert.equal(series[2].pay, 80);
+    assert.equal(series[0].pay, 0);                  // gap week present with zeros
+  });
+});
