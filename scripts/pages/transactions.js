@@ -155,12 +155,12 @@ function txItemFullHTML(t, cat, acc, showDate = false) {
 function renderLoadMore(total) {
   const el = document.getElementById('pagination');
   if (!el) return;
-  if (displayedCount >= total) { el.innerHTML = ''; return; }
-  const remaining = total - displayedCount;
+  const shown = Math.min(displayedCount, total);
+  if (shown >= total) { el.innerHTML = ''; return; }
   el.innerHTML = `
     <button class="btn btn--ghost load-more-btn" id="loadMoreBtn">
-      Load ${Math.min(PAGE_SIZE, remaining)} more
-      <span class="load-more-count">${remaining} remaining</span>
+      Load more
+      <span class="load-more-count">${shown} of ${total} shown</span>
     </button>`;
   document.getElementById('loadMoreBtn')?.addEventListener('click', async () => {
     displayedCount += PAGE_SIZE;
