@@ -130,33 +130,11 @@ async function initDashboard() {
   if (ycEl)  ycEl.style.color  = longNet  >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
   if (ndcEl) ndcEl.style.color = shortNet >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
 
-  /* Balance over time chart */
-  const rangeVal = document.getElementById('balanceChartRange')?.value || 'all';
-  let chartDays;
-  if (rangeVal === 'all') {
-    if (allTx.length > 0) {
-      const firstDate = allTx.map(t => t.date).sort()[0];
-      chartDays = Math.max(1, Math.ceil((Date.now() - new Date(firstDate).getTime()) / 86400000) + 1);
-    } else {
-      chartDays = 30;
-    }
-  } else {
-    chartDays = parseInt(rangeVal);
-  }
-  const balancePoints = SummaryEngine.getBalanceOverTime(allTx, accounts, chartDays);
-  const balanceEmpty    = document.getElementById('balanceChartEmpty');
-  const balanceSkeleton = document.getElementById('balanceChartSkeleton');
-  balanceSkeleton?.setAttribute('hidden', '');
-  if (allTx.length > 0) {
-    balanceEmpty?.setAttribute('hidden', '');
-    /* Forecast extends this same chart with a dashed 30-day projection + band
-       and fills the forecast header; returns the projection points to draw. */
-    const projection = renderForecast(allTx, accounts, subs);
-    Charts.drawLineChart('balanceCanvas', balancePoints, false, projection);
-  } else {
-    balanceEmpty?.removeAttribute('hidden');
-    renderForecast(allTx, accounts, subs); /* hides the forecast header */
-  }
+  /* Balance / net-worth chart — drawn by renderBalanceChart, which can be
+     re-run on its own when the Cash/Net-worth toggle or range changes (or once
+     the crypto snapshot arrives). It reads the latest data from here. */
+  _lastDashData = { allTx, accounts, subs };
+  await renderBalanceChart();
 
   /* Monthly overview — daily bars for current month view */
   updateMonthNav();
@@ -168,6 +146,151 @@ async function initDashboard() {
      wallet/network hiccup never breaks the rest of the dashboard */
   renderCrypto(totalBalance).catch(console.error);
   await renderRecentTransactions(allTx.slice(0, 6));
+}
+
+/* ---- Balance vs. Net-worth chart -------------------------------------------
+   "Cash" draws the running cash balance + the dashed cash-flow forecast (as
+   before). "Net worth" adds crypto value to each historical point: current
+   holdings × the coin's interpolated historical price. Holdings are assumed
+   constant — read-only wallets only expose today's balance — which the on-card
+   note discloses. The crypto toggle only appears once a wallet exists. */
+let _lastDashData = null;
+let _balanceMode  = localStorage.getItem('pf_balance_mode') === 'networth' ? 'networth' : 'cash';
+
+function chartDaysForRange(allTx) {
+  const rangeVal = document.getElementById('balanceChartRange')?.value || 'all';
+  if (rangeVal !== 'all') return parseInt(rangeVal);
+  if (allTx.length) {
+    const firstDate = allTx.map(t => t.date).sort()[0];
+    return Math.max(1, Math.ceil((Date.now() - new Date(firstDate).getTime()) / 86400000) + 1);
+  }
+  return 30;
+}
+
+/* current coin amount per chain, summed across wallets (skips failed lookups) */
+function holdingsByChain(snap) {
+  const h = {};
+  (snap?.items || []).forEach(it => {
+    if (it.amount != null) h[it.wallet.chain] = (h[it.wallet.chain] || 0) + it.amount;
+  });
+  return h;
+}
+/* smallest CoinGecko range that covers the chart span (falls back to the widest) */
+function pickCryptoRangeKey(days) {
+  const r = CryptoBalances.RANGES.find(x => x.days >= days);
+  return (r || CryptoBalances.RANGES[CryptoBalances.RANGES.length - 1]).key;
+}
+/* crypto fiat value on a past date: map the date onto the price sparkline by
+   its position in the window, then value current holdings at that price. */
+function cryptoValueOnDate(dateStr, holdings, charts, rangeDays) {
+  const ageDays = (Date.now() - new Date(dateStr + 'T12:00:00').getTime()) / 86400000;
+  const frac = Math.max(0, Math.min(1, 1 - ageDays / rangeDays));
+  let val = 0;
+  for (const chain in holdings) {
+    const spark = charts[chain]?.spark;
+    if (!spark || !spark.length) continue;
+    const price = spark[Math.round(frac * (spark.length - 1))];
+    if (Number.isFinite(price)) val += holdings[chain] * price;
+  }
+  return val;
+}
+
+async function renderBalanceChart() {
+  if (!_lastDashData) return;
+  const { allTx, accounts, subs } = _lastDashData;
+  const note = document.getElementById('balanceModeNote');
+  document.getElementById('balanceChartSkeleton')?.setAttribute('hidden', '');
+  const empty = document.getElementById('balanceChartEmpty');
+
+  if (!allTx.length) {
+    empty?.removeAttribute('hidden');
+    renderForecast(allTx, accounts, subs);   /* hides the forecast header */
+    if (note) note.hidden = true;
+    return;
+  }
+  empty?.setAttribute('hidden', '');
+
+  const chartDays  = chartDaysForRange(allTx);
+  const cashPoints = SummaryEngine.getBalanceOverTime(allTx, accounts, chartDays);
+
+  const netWorthMode = _balanceMode === 'networth'
+    && typeof CryptoBalances !== 'undefined'
+    && _cryptoSnap && _cryptoSnap.wallets.length;
+
+  if (!netWorthMode) {
+    if (note) note.hidden = true;
+    /* Forecast extends this same chart with a dashed 30-day projection + band
+       and fills the forecast header; returns the projection points to draw. */
+    const projection = renderForecast(allTx, accounts, subs);
+    Charts.drawLineChart('balanceCanvas', cashPoints, false, projection);
+    return;
+  }
+
+  /* Net-worth view: cash history + crypto value history. The forecast is a
+     cash-flow concept, so its header + projection are hidden here. */
+  const fh = document.getElementById('forecastHead');
+  if (fh) fh.hidden = true;
+  setText('forecastBasis', '');
+
+  const rangeKey  = pickCryptoRangeKey(chartDays);
+  const rangeDays = CryptoBalances.RANGES.find(r => r.key === rangeKey).days;
+  let charts = {};
+  try { charts = await CryptoBalances.chartFor(rangeKey); } catch (_) {}
+  const holdings = holdingsByChain(_cryptoSnap);
+  const points = cashPoints.map(p => ({
+    ...p, balance: p.balance + cryptoValueOnDate(p.date, holdings, charts, rangeDays),
+  }));
+
+  if (note) note.hidden = false;
+  Charts.drawLineChart('balanceCanvas', points, false, null);
+}
+
+/* ---- Net-worth milestones --------------------------------------------------
+   A one-shot flourish when net worth first crosses a "nice" round number. The
+   highest celebrated milestone is remembered so it never re-fires; the first
+   ever load only sets the baseline (we don't celebrate pre-existing wealth). */
+const NW_MILESTONES = [1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000];
+
+function highestMilestoneAtOrBelow(v) {
+  let m = 0;
+  for (const x of NW_MILESTONES) if (v >= x) m = x;
+  return m;
+}
+
+function checkNetWorthMilestone(netWorth) {
+  if (!Number.isFinite(netWorth)) return;
+  const KEY = 'pf_nw_milestone';
+  const reached = highestMilestoneAtOrBelow(netWorth);
+  const prev = parseFloat(localStorage.getItem(KEY));
+  if (!Number.isFinite(prev)) {            /* first run — baseline only, no celebration */
+    try { localStorage.setItem(KEY, String(reached)); } catch (_) {}
+    return;
+  }
+  if (reached === prev) return;
+  try { localStorage.setItem(KEY, String(reached)); } catch (_) {}
+  if (reached > prev) celebrateMilestone(reached);   /* dropping just lowers the bar */
+}
+
+function formatMoneyWhole(v) {
+  const currency = localStorage.getItem('pf_currency') || 'CAD';
+  const locale = (typeof CURRENCY_LOCALES !== 'undefined' && CURRENCY_LOCALES[currency]) || 'en-CA';
+  try { return new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(v); }
+  catch { return formatCurrency(v); }
+}
+
+function celebrateMilestone(amount) {
+  const el = document.createElement('div');
+  el.className = 'milestone-pop';
+  el.setAttribute('role', 'status');
+  el.innerHTML = `
+    <div class="milestone-pop__label">Net worth milestone</div>
+    <div class="milestone-pop__value font-display">${formatMoneyWhole(amount)}</div>
+    <div class="milestone-pop__sub">▲ crossed just now</div>`;
+  document.body.appendChild(el);
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) { setTimeout(() => el.remove(), 3000); return; }
+  el.addEventListener('animationend', e => { if (e.animationName === 'milestoneOut') el.remove(); });
+  setTimeout(() => el.classList.add('milestone-pop--out'), 2600);
 }
 
 /* Crypto holdings — one panel per wallet; total counts toward net worth.
@@ -183,16 +306,32 @@ async function renderCrypto(bankBalance) {
   const totalEl = document.getElementById('cryptoSectionTotal');
   const nwCell  = document.getElementById('statbarNetWorth');
   const cryCell = document.getElementById('statbarCrypto');
-  const hideStatCells = () => { if (nwCell) nwCell.hidden = true; if (cryCell) cryCell.hidden = true; };
-  if (!section || !tilesEl || typeof CryptoBalances === 'undefined') return;
+  const modeToggle = document.getElementById('balanceModeToggle');
+  const hideStatCells = () => {
+    if (nwCell) nwCell.hidden = true;
+    if (cryCell) cryCell.hidden = true;
+    if (modeToggle) modeToggle.hidden = true;   /* no crypto → net worth == cash */
+  };
+  if (!section || !tilesEl) return;
+  if (typeof CryptoBalances === 'undefined') { checkNetWorthMilestone(bankBalance); return; }
 
   let snap;
   try { snap = await CryptoBalances.snapshot(); }
-  catch { section.hidden = true; hideStatCells(); return; }
+  catch { section.hidden = true; hideStatCells(); checkNetWorthMilestone(bankBalance); return; }
 
-  if (!snap.wallets.length) { section.hidden = true; hideStatCells(); return; }
+  if (!snap.wallets.length) { section.hidden = true; hideStatCells(); checkNetWorthMilestone(bankBalance); return; }
   section.hidden = false;
   _cryptoSnap = snap;
+
+  /* Reveal the Cash / Net-worth toggle now that holdings exist, and — if the
+     user left it on Net worth — upgrade the chart (it first drew as cash,
+     before this async snapshot was ready). */
+  if (modeToggle) {
+    modeToggle.hidden = false;
+    modeToggle.querySelectorAll('.seg-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.mode === _balanceMode));
+  }
+  if (_balanceMode === 'networth') renderBalanceChart().catch(console.error);
 
   totalEl.textContent = formatCurrency(snap.total) + (snap.anyMissing ? ' +' : '');
 
@@ -207,6 +346,9 @@ async function renderCrypto(bankBalance) {
     const suffix = snap.anyMissing ? ' +' : '';
     animateValue(document.getElementById('statCryptoTotal'), snap.total, v => formatCurrency(v) + suffix, 1400);
   }
+
+  /* milestone check uses the real net worth (cash + crypto) */
+  checkNetWorthMilestone(bankBalance + snap.total);
 
   const btn = document.getElementById('cryptoRangeBtn');
   if (btn && !btn.dataset.wired) {
@@ -562,6 +704,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   QuickLog?.init({ onLogged: () => initDashboard() }).catch(console.error);
 
   document.getElementById('balanceChartRange')?.addEventListener('change', () => initDashboard().catch(console.error));
+
+  /* Cash / Net-worth toggle — redraws just the balance chart, no full reload */
+  document.querySelectorAll('#balanceModeToggle .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode === 'networth' ? 'networth' : 'cash';
+      if (mode === _balanceMode) return;
+      _balanceMode = mode;
+      try { localStorage.setItem('pf_balance_mode', mode); } catch (_) {}
+      document.querySelectorAll('#balanceModeToggle .seg-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.mode === mode));
+      renderBalanceChart().catch(console.error);
+    });
+  });
 
   document.getElementById('monthNavPrev')?.addEventListener('click', async () => {
     currentMonthView.month--;

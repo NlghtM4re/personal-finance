@@ -143,14 +143,20 @@
           <div class="term">
             <div class="term__head">
               <span class="term__title">Balance &amp; forecast</span>
-              <select class="select--sm" id="balanceChartRange">
-                <option value="all" selected>All time</option>
-                <option value="365">1 Year</option>
-                <option value="180">6 Months</option>
-                <option value="90">3 Months</option>
-                <option value="30">1 Month</option>
-                <option value="7">1 Week</option>
-              </select>
+              <div class="balance-head-controls">
+                <div class="seg-toggle balance-mode" id="balanceModeToggle" role="group" aria-label="Chart mode" hidden>
+                  <button type="button" class="seg-btn active" data-mode="cash">Cash</button>
+                  <button type="button" class="seg-btn" data-mode="networth">Net worth</button>
+                </div>
+                <select class="select--sm" id="balanceChartRange">
+                  <option value="all" selected>All time</option>
+                  <option value="365">1 Year</option>
+                  <option value="180">6 Months</option>
+                  <option value="90">3 Months</option>
+                  <option value="30">1 Month</option>
+                  <option value="7">1 Week</option>
+                </select>
+              </div>
             </div>
             <div class="term__body">
               <div class="forecast-head" id="forecastHead" hidden>
@@ -179,6 +185,7 @@
                   </div>
                 </div>
               </div>
+              <div class="balance-mode-note" id="balanceModeNote" hidden>Net worth = cash + crypto · current holdings valued at historical prices (estimate)</div>
               <div class="forecast-basis" id="forecastBasis"></div>
             </div>
           </div>

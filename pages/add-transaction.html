@@ -18,7 +18,23 @@
 </head>
 <body data-title="Add Transaction" data-title-id="formTitle">
 
-  
+  <!-- Minimalist boot screen — see styles/main.css (#app-loader). Reveals once
+       the page has painted; safety-net auto-hide guards slow/stuck loads. -->
+  <div id="app-loader" role="status" aria-label="Loading">
+    <div class="app-loader__mark">Flow</div>
+    <div class="app-loader__bar"></div>
+  </div>
+  <script>
+    window.hideAppLoader = function () {
+      var el = document.getElementById('app-loader');
+      if (el) el.classList.add('is-hidden');
+    };
+    window.addEventListener('load', function () {
+      requestAnimationFrame(function () { setTimeout(window.hideAppLoader, 120); });
+    });
+    setTimeout(function () { window.hideAppLoader(); }, 6000);
+  </script>
+
   <aside class="sidebar" id="sidebar"></aside>
 
   <div class="overlay" id="overlay"></div>
