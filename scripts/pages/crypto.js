@@ -149,7 +149,7 @@ function wireTileActions(container) {
       e.stopPropagation();
       const w = (await CryptoStore.getAll()).find(x => x.id === btn.dataset.id);
       if (!w) return;
-      if (!confirm(`Remove "${w.label}"? This only removes it from this view — your wallet and funds are untouched.`)) return;
+      if (!await confirmDialog(`Remove "${w.label}"? This only removes it from this view — your wallet and funds are untouched.`, { confirmText: "Remove" })) return;
       try {
         await CryptoStore.remove(btn.dataset.id);
         await renderCryptoPage();

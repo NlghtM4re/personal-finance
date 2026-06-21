@@ -650,7 +650,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('deleteSubBtn')?.addEventListener('click', async () => {
     const id = document.getElementById('editId').value;
     if (!id) return;
-    if (!confirm('Delete this subscription? Existing logged transactions are not affected.')) return;
+    if (!await confirmDialog('Delete this subscription? Existing logged transactions are not affected.', { confirmText: 'Delete' })) return;
     await SubscriptionStore.remove(id);
     hideForm();
     await renderPage();

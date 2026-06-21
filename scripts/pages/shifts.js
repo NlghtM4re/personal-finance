@@ -290,8 +290,8 @@ function renderPresets() {
   row.querySelectorAll('.hours-preset__use').forEach(b =>
     b.addEventListener('click', () => usePreset(b.dataset.id)));
   row.querySelectorAll('.hours-preset__del').forEach(b =>
-    b.addEventListener('click', () => {
-      if (!confirm('Remove this preset?')) return;
+    b.addEventListener("click", async () => {
+      if (!await confirmDialog("Remove this preset?", { confirmText: "Remove" })) return;
       ShiftStore.removePreset(b.dataset.id);
       renderPresets();
     }));
@@ -547,7 +547,7 @@ async function deleteShift() {
   const id = document.getElementById('sEditId').value;
   const s = _shifts.find(x => x.id === id);
   if (!s) return;
-  if (!confirm(s.txId ? 'Delete this shift and its logged income entry?' : 'Delete this shift?')) return;
+  if (!await confirmDialog(s.txId ? 'Delete this shift and its logged income entry?' : 'Delete this shift?', { confirmText: 'Delete' })) return;
   try {
     if (s.txId) { try { await TransactionStore.delete(s.txId); } catch (_) {} }
     await ShiftStore.remove(id);
@@ -559,9 +559,9 @@ async function deleteShift() {
   }
 }
 
-function saveAsPreset() {
+async function saveAsPreset() {
   const d = readForm();
-  const name = (prompt('Name this preset (e.g. “Café day”):', d.employer || '') || '').trim().slice(0, 40);
+  const name = ((await promptDialog('Name this preset (e.g. “Café day”):', d.employer || '', { confirmText: 'Save preset', maxlength: 40 })) || '').trim().slice(0, 40);
   if (!name) return;
   ShiftStore.savePreset({
     name, employer: d.employer, start: d.start, end: d.end, breakMin: d.breakMin,

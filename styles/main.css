@@ -13,8 +13,10 @@
   --color-border:       #222226;
   --color-border-light: #18181b;
   --color-text:         #f4f4f6;
-  --color-text-muted:   #6e6e78;
-  --color-text-light:   #46464e;
+  /* muted bumped from #6e6e78 (~3.7:1, failed WCAG AA) to ~4.8:1 on the
+     dark surfaces; light is for very-low-emphasis text only */
+  --color-text-muted:   #8a8a94;
+  --color-text-light:   #5c5c66;
 
   /* Sidebar */
   --color-sidebar-bg:          #000000;
