@@ -22,9 +22,10 @@
 .err-toast__head{display:flex;align-items:center;gap:8px;margin-bottom:3px}
 .err-toast__kind{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#ff5c7a}
 .err-toast--warn .err-toast__kind{color:#d4a64a}
-.err-toast__count{font-size:9px;color:#6e6e78}
-.err-toast__close{margin-left:auto;background:none;border:none;color:#6e6e78;cursor:pointer;font-size:12px;line-height:1;padding:2px}
-.err-toast__close:hover{color:#f4f4f6}
+.err-toast__count{font-size:9px;color:#8a8a94}
+.err-toast__copy{margin-left:auto;background:none;border:none;color:#8a8a94;cursor:pointer;font-size:12px;line-height:1;padding:2px 4px}
+.err-toast__close{background:none;border:none;color:#8a8a94;cursor:pointer;font-size:12px;line-height:1;padding:2px}
+.err-toast__copy:hover,.err-toast__close:hover{color:#f4f4f6}
 .err-toast__msg{font-size:11px;line-height:1.45;color:#f4f4f6;white-space:pre-wrap;word-break:break-word;max-height:140px;overflow-y:auto;margin:0}`;
   function injectStyles() {
     if (document.getElementById('errOverlayStyle')) return;
@@ -76,11 +77,21 @@
       el.className = 'err-toast err-toast--' + (kind === 'warn' ? 'warn' : 'error');
       const head = document.createElement('div');
       head.className = 'err-toast__head';
-      head.innerHTML = `<span class="err-toast__kind">${kind}</span><span class="err-toast__count" hidden></span><button class="err-toast__close" aria-label="Dismiss" title="Dismiss">✕</button>`;
+      head.innerHTML = `<span class="err-toast__kind">${kind}</span><span class="err-toast__count" hidden></span><button class="err-toast__copy" aria-label="Copy" title="Copy">⧉</button><button class="err-toast__close" aria-label="Dismiss" title="Dismiss">✕</button>`;
       const body = document.createElement('div');
       body.className = 'err-toast__msg';
       body.textContent = text.length > 600 ? text.slice(0, 600) + '…' : text;
       el.appendChild(head); el.appendChild(body);
+      const copyBtn = head.querySelector('.err-toast__copy');
+      copyBtn.addEventListener('click', async () => {
+        const full = lastCount > 1 ? `(${lastCount}×) ${text}` : text;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(full);
+          else { const ta = document.createElement('textarea'); ta.value = full; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+          copyBtn.textContent = '✓';
+          setTimeout(() => { copyBtn.textContent = '⧉'; }, 1200);
+        } catch (_) { copyBtn.textContent = '✕'; setTimeout(() => { copyBtn.textContent = '⧉'; }, 1200); }
+      });
       head.querySelector('.err-toast__close').addEventListener('click', () => { el.remove(); if (el === lastEl) { lastEl = null; lastKey = ''; } });
       c.appendChild(el);
       lastEl = el;

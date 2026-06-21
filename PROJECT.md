@@ -3,6 +3,9 @@
 > Living document. Update this file as decisions are made, phases complete, and plans change.
 > Last updated: 2026-06-16
 
+> **Assistant convention:** replies whose work used graphify must start with `[Graphify]`.
+> The enforceable rule lives in the repo `CLAUDE.md` (auto-loaded); this is just a pointer.
+
 ---
 
 ## Project Goal
