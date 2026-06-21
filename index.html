@@ -22,8 +22,10 @@
   <!-- Minimalist boot screen: paints with the first frame, fades out once the
        dashboard's data is ready (hideAppLoader, called from dashboard.js). -->
   <div id="app-loader" role="status" aria-label="Loading">
-    <div class="app-loader__mark">Flow</div>
-    <div class="app-loader__bar"></div>
+    <div class="app-loader__card">
+      <div class="app-loader__mark">Flow</div>
+      <div class="app-loader__bar"></div>
+    </div>
   </div>
   <script>
     window.hideAppLoader = function () {

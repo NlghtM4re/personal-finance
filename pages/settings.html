@@ -21,8 +21,10 @@
   <!-- Minimalist boot screen — see styles/main.css (#app-loader). Reveals once
        the page has painted; safety-net auto-hide guards slow/stuck loads. -->
   <div id="app-loader" role="status" aria-label="Loading">
-    <div class="app-loader__mark">Flow</div>
-    <div class="app-loader__bar"></div>
+    <div class="app-loader__card">
+      <div class="app-loader__mark">Flow</div>
+      <div class="app-loader__bar"></div>
+    </div>
   </div>
   <script>
     window.hideAppLoader = function () {
