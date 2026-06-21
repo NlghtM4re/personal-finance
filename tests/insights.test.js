@@ -259,3 +259,57 @@ test('forecastBalance — variance band & transfers', async (t) => {
     assert.ok(fc.points.every(p => p.balance === 1000));
   });
 });
+
+test('upcomingBills', async (t) => {
+  await t.test('lists the next bills in date order with daysUntil', () => {
+    const subs = [
+      { id: 'r', name: 'Rent',    amount: 1200, frequency: 'monthly', nextDue: daysAfter(12) },
+      { id: 'n', name: 'Netflix', amount: 18,   frequency: 'monthly', nextDue: daysAfter(3)  },
+    ];
+    const u = InsightsEngine.upcomingBills(subs, { asOf: ASOF, withinDays: 30 });
+    assert.deepEqual(u.bills.map(b => b.name), ['Netflix', 'Rent']);
+    assert.equal(u.bills[0].daysUntil, 3);
+    assert.equal(u.bills[1].daysUntil, 12);
+    assert.equal(u.count, 2);
+  });
+
+  await t.test('normalizes cost to monthly + annual across all active subs', () => {
+    const subs = [
+      { id: 'm', name: 'Monthly', amount: 10, frequency: 'monthly', nextDue: daysAfter(5) },
+      { id: 'y', name: 'Yearly',  amount: 120, frequency: 'yearly', nextDue: daysAfter(40) },
+      { id: 'w', name: 'Weekly',  amount: 5,  frequency: 'weekly',  nextDue: daysAfter(1) },
+    ];
+    const u = InsightsEngine.upcomingBills(subs, { asOf: ASOF, withinDays: 30 });
+    // 10 (monthly) + 10 (120/yr) + 5*52/12≈21.67 ≈ 41.67/mo
+    assert.ok(Math.abs(u.monthlyTotal - 41.67) < 0.05, `monthly ~41.67, got ${u.monthlyTotal}`);
+    assert.ok(Math.abs(u.annualTotal - 500) < 0.6, `annual ~500, got ${u.annualTotal}`);
+  });
+
+  await t.test('a weekly bill recurs several times within the window', () => {
+    const subs = [{ id: 'w', name: 'Weekly', amount: 5, frequency: 'weekly', nextDue: daysAfter(1) }];
+    const u = InsightsEngine.upcomingBills(subs, { asOf: ASOF, withinDays: 30, max: 10 });
+    assert.ok(u.bills.length >= 4, `expected >=4 weekly occurrences, got ${u.bills.length}`);
+    assert.ok(u.bills.every(b => b.name === 'Weekly'));
+  });
+
+  await t.test('overdue bills surface with a negative daysUntil; inactive/zero are skipped', () => {
+    const subs = [
+      { id: 'o', name: 'Overdue', amount: 9,  frequency: 'monthly', nextDue: daysBefore(2) },
+      { id: 'x', name: 'Paused',  amount: 9,  frequency: 'monthly', nextDue: daysAfter(2), active: false },
+      { id: 'z', name: 'Free',    amount: 0,  frequency: 'monthly', nextDue: daysAfter(2) },
+    ];
+    const u = InsightsEngine.upcomingBills(subs, { asOf: ASOF, withinDays: 30 });
+    assert.equal(u.count, 1);
+    assert.equal(u.bills[0].name, 'Overdue');
+    assert.equal(u.bills[0].daysUntil, -2);
+  });
+
+  await t.test('caps the list at max and empty input → no bills', () => {
+    const subs = Array.from({ length: 8 }, (_, i) => ({ id: 'b' + i, name: 'B' + i, amount: 5, frequency: 'monthly', nextDue: daysAfter(i + 1) }));
+    assert.equal(InsightsEngine.upcomingBills(subs, { asOf: ASOF, max: 3 }).bills.length, 3);
+    const none = InsightsEngine.upcomingBills([], { asOf: ASOF });
+    assert.deepEqual(none.bills, []);
+    assert.equal(none.monthlyTotal, 0);
+    assert.equal(none.count, 0);
+  });
+});

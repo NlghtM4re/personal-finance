@@ -140,6 +140,35 @@
             </div>
           </div>
 
+          <!-- Net-worth savings goal — progress toward a target (cash + crypto).
+               Set/cleared inline; target stored per-device. -->
+          <div class="term nw-goal" id="nwGoalCard">
+            <div class="term__head">
+              <span class="term__title">Net-worth goal</span>
+              <button type="button" class="btn btn--ghost btn--sm" id="nwGoalEditBtn">Set goal</button>
+            </div>
+            <div class="term__body">
+              <div class="nw-goal__display" id="nwGoalDisplay">
+                <div class="nw-goal__ring" id="nwGoalRing"></div>
+                <div class="nw-goal__info">
+                  <div class="nw-goal__pct font-display" id="nwGoalPct">—</div>
+                  <div class="nw-goal__detail" id="nwGoalDetail">No goal set yet</div>
+                  <div class="nw-goal__pace" id="nwGoalPace"></div>
+                </div>
+              </div>
+              <form class="nw-goal__edit" id="nwGoalEdit" hidden>
+                <div class="nw-goal__input-row">
+                  <span class="ql-prefix">$</span>
+                  <input type="number" id="nwGoalTarget" class="form-control" min="0" step="100" placeholder="Target net worth — e.g. 25000" aria-label="Target net worth" />
+                </div>
+                <div class="nw-goal__actions">
+                  <button type="button" class="btn btn--ghost btn--sm" id="nwGoalClear">Clear</button>
+                  <button type="submit" class="btn btn--primary btn--sm">Save goal</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
           <div class="term">
             <div class="term__head">
               <span class="term__title">Balance &amp; forecast</span>
@@ -227,6 +256,19 @@
               </form>
               <div class="quicklog__rate" id="qlRateHint"></div>
               <div class="quicklog__stat" id="quicklogStat"></div>
+            </div>
+          </div>
+
+          <!-- Upcoming bills — next recurring charges from subscriptions, with
+               normalized monthly/annual cost. Hidden until a subscription exists. -->
+          <div class="term dash-bills" id="upcomingBills" hidden>
+            <div class="term__head">
+              <span class="term__title">Upcoming bills</span>
+              <a href="pages/subscriptions.html" class="link--sm">Manage</a>
+            </div>
+            <div class="term__body term__body--flush">
+              <div class="bills-list" id="billsList"></div>
+              <div class="bills-foot" id="billsFoot"></div>
             </div>
           </div>
 

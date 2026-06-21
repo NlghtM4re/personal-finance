@@ -740,3 +740,38 @@
 .forecast-basis { font-size: 0.6875rem; color: var(--color-text-light); margin-top: 10px; }
 
 .crypto-range-btn { font-family: var(--font-display); font-size: 0.6875rem; min-width: 46px; padding: 4px 9px; }
+
+/* ============================================================
+   NET-WORTH GOAL — progress ring toward a target
+   ============================================================ */
+.nw-goal__display { display: flex; align-items: center; gap: 16px; }
+.nw-goal__ring { flex-shrink: 0; width: 54px; height: 54px; line-height: 0; }
+.nw-goal__ring svg { width: 54px; height: 54px; }
+.nw-goal__info { min-width: 0; }
+.nw-goal__pct { font-size: 1.75rem; font-weight: 600; color: #ffffff; letter-spacing: -0.04em; line-height: 1; }
+.nw-goal__detail { font-size: 0.8125rem; color: var(--color-text); margin-top: 3px; }
+.nw-goal__of { color: var(--color-text-muted); }
+.nw-goal__pace { font-size: 0.75rem; margin-top: 4px; color: var(--color-text-muted); }
+.nw-goal__pace--up { color: var(--color-income); }
+.nw-goal__input-row { display: flex; align-items: center; gap: 8px; }
+.nw-goal__input-row .form-control { flex: 1; }
+.nw-goal__actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+/* ============================================================
+   UPCOMING BILLS — next recurring charges
+   ============================================================ */
+.bill-row { display: flex; align-items: center; gap: 11px; padding: 9px 4px; border-bottom: 1px solid var(--color-border-light); }
+.bill-row:last-child { border-bottom: none; }
+.bill-row__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--dot, var(--color-text-muted)); }
+.bill-row__id { flex: 1; min-width: 0; }
+.bill-row__name { font-size: 0.8125rem; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bill-row__due { font-size: 0.6875rem; color: var(--color-text-muted); margin-top: 1px; }
+.bill-row__due--over { color: var(--color-expense); }
+.bill-row__amt { font-size: 0.875rem; font-weight: 600; color: var(--color-text); flex-shrink: 0; }
+.bills-foot {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  padding: 10px 4px 4px; margin-top: 4px;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-display); font-size: 0.6875rem; color: var(--color-text-muted);
+}
+.bills-foot__sep { opacity: 0.5; }

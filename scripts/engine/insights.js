@@ -306,6 +306,63 @@ const InsightsEngine = {
     if (!similar.length) return null;
     return { ...pickBest(similar), confidence: 'similar' };
   },
+
+  /* Upcoming recurring bills + their normalized cost. Pure: no DOM, no store.
+     Expands each active subscription forward from its nextDue across the next
+     `withinDays`, so a weekly bill can appear several times. Overdue items
+     (nextDue already in the past) surface with a negative daysUntil.
+
+     opts: { asOf=new Date(), withinDays=30, max=5 }
+     Returns { bills:[{ id,name,amount,date,daysUntil,frequency,color,
+     categoryId,accountId }] (date asc, capped at max), monthlyTotal,
+     annualTotal, count } where the totals span ALL active subscriptions, not
+     just the ones inside the window. */
+  upcomingBills(subscriptions, opts = {}) {
+    const { asOf = new Date(), withinDays = 30, max = 5 } = opts;
+    const DAY = 86400000;
+    const startOfDay = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+    const iso = d => { const x = startOfDay(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; };
+
+    const today      = startOfDay(asOf);
+    const horizonEnd = startOfDay(new Date(today.getTime() + withinDays * DAY));
+    /* monthly-equivalent factor per frequency (used for the cost totals) */
+    const MONTHLY = { daily: 365 / 12, weekly: 52 / 12, monthly: 1, yearly: 1 / 12 };
+    const step = (d, freq) => {
+      const x = new Date(d);
+      if (freq === 'daily')       x.setDate(x.getDate() + 1);
+      else if (freq === 'weekly') x.setDate(x.getDate() + 7);
+      else if (freq === 'yearly') x.setFullYear(x.getFullYear() + 1);
+      else                        x.setMonth(x.getMonth() + 1);
+      return x;
+    };
+
+    const active = (subscriptions || []).filter(s => s && s.active !== false && s.amount > 0 && s.nextDue);
+
+    let monthlyTotal = 0;
+    const bills = [];
+    active.forEach(s => {
+      monthlyTotal += s.amount * (MONTHLY[s.frequency] ?? 1);
+      let due = startOfDay(new Date(s.nextDue + 'T00:00:00'));
+      let guard = 0;
+      while (due <= horizonEnd && guard++ < 500) {
+        bills.push({
+          id: s.id, name: s.name || 'Recurring', amount: s.amount,
+          date: iso(due), daysUntil: Math.round((startOfDay(due) - today) / DAY),
+          frequency: s.frequency, color: s.color || null,
+          categoryId: s.categoryId || null, accountId: s.accountId || null,
+        });
+        due = step(due, s.frequency);
+      }
+    });
+
+    bills.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    return {
+      bills: bills.slice(0, max),
+      monthlyTotal: Math.round(monthlyTotal * 100) / 100,
+      annualTotal:  Math.round(monthlyTotal * 12 * 100) / 100,
+      count: active.length,
+    };
+  },
 };
 
 /* Export for Node-based unit tests. Harmless in the browser, where there is

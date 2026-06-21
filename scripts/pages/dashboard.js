@@ -142,6 +142,9 @@ async function initDashboard() {
 
   renderAccounts(accounts, balanceMap, allTx);
   renderAllocation(accounts, balanceMap);
+  /* net-worth goal starts from cash; renderCrypto upgrades it to cash+crypto */
+  renderNwGoal(totalBalance);
+  renderUpcomingBills(subs);
   /* crypto folds into net worth (not the cash balance); non-blocking so a
      wallet/network hiccup never breaks the rest of the dashboard */
   renderCrypto(totalBalance).catch(console.error);
@@ -293,6 +296,118 @@ function celebrateMilestone(amount) {
   setTimeout(() => el.classList.add('milestone-pop--out'), 2600);
 }
 
+/* ---- Upcoming bills -------------------------------------------------------- */
+function billDueLabel(daysUntil) {
+  if (daysUntil < 0)  return `${Math.abs(daysUntil)}d overdue`;
+  if (daysUntil === 0) return 'Today';
+  if (daysUntil === 1) return 'Tomorrow';
+  return `in ${daysUntil}d`;
+}
+function renderUpcomingBills(subs) {
+  const card = document.getElementById('upcomingBills');
+  const list = document.getElementById('billsList');
+  const foot = document.getElementById('billsFoot');
+  if (!card || !list || typeof InsightsEngine === 'undefined') return;
+
+  const u = InsightsEngine.upcomingBills(subs || [], { withinDays: 30, max: 5 });
+  if (!u.count) { card.hidden = true; return; }   /* no active subscriptions */
+  card.hidden = false;
+
+  list.innerHTML = u.bills.length
+    ? u.bills.map(b => {
+        const over = b.daysUntil < 0;
+        const dot  = b.color ? ` style="--dot:${b.color}"` : '';
+        return `
+          <div class="bill-row">
+            <span class="bill-row__dot"${dot}></span>
+            <div class="bill-row__id">
+              <div class="bill-row__name">${escapeHTML(b.name)}</div>
+              <div class="bill-row__due${over ? ' bill-row__due--over' : ''}">${billDueLabel(b.daysUntil)} · ${formatDateShort(b.date)}</div>
+            </div>
+            <div class="bill-row__amt font-display">${formatCurrency(b.amount)}</div>
+          </div>`;
+      }).join('')
+    : `<div class="empty-state" style="padding:14px;">Nothing due in the next 30 days.</div>`;
+
+  if (foot) foot.innerHTML =
+    `<span>${formatCurrency(u.monthlyTotal)}/mo</span>` +
+    `<span class="bills-foot__sep">·</span><span>${formatCurrency(u.annualTotal)}/yr</span>` +
+    `<span class="bills-foot__sep">·</span><span>${u.count} active</span>`;
+}
+
+/* ---- Net-worth savings goal ------------------------------------------------
+   A simple progress ring toward a target net worth (cash + crypto). The target
+   is a per-device convenience (localStorage), mirroring the shift goal. The
+   live value comes from initDashboard (cash) and is upgraded by renderCrypto
+   once holdings load, so the ring reflects the same figure as the stat bar. */
+const NW_GOAL_KEY = 'pf_nw_goal';
+let _lastNetWorth = 0;
+
+function getNwGoal() {
+  const v = parseFloat(localStorage.getItem(NW_GOAL_KEY));
+  return Number.isFinite(v) && v > 0 ? v : 0;
+}
+function setNwGoal(target) {
+  const t = Math.max(0, Number(target) || 0);
+  try { if (t > 0) localStorage.setItem(NW_GOAL_KEY, String(t)); else localStorage.removeItem(NW_GOAL_KEY); }
+  catch (_) {}
+  return t;
+}
+function renderNwGoal(netWorth) {
+  if (Number.isFinite(netWorth)) _lastNetWorth = netWorth;
+  const ringEl   = document.getElementById('nwGoalRing');
+  const pctEl    = document.getElementById('nwGoalPct');
+  const detailEl = document.getElementById('nwGoalDetail');
+  const paceEl   = document.getElementById('nwGoalPace');
+  const editBtn  = document.getElementById('nwGoalEditBtn');
+  if (!ringEl || !pctEl) return;
+
+  const target = getNwGoal();
+  if (editBtn) editBtn.textContent = target ? 'Edit' : 'Set goal';
+
+  if (!target) {
+    ringEl.innerHTML = ringSVG(0, 'var(--color-text-light)', 54);
+    pctEl.textContent = '—';
+    if (detailEl) detailEl.textContent = 'No goal set yet';
+    if (paceEl) { paceEl.textContent = 'Set a target to track progress.'; paceEl.className = 'nw-goal__pace'; }
+    return;
+  }
+
+  const cur = _lastNetWorth;
+  const pct = target > 0 ? Math.max(0, (cur / target) * 100) : 0;
+  ringEl.innerHTML = ringSVG(Math.min(pct, 100), pct >= 100 ? 'var(--color-income)' : '#ffffff', 54);
+  pctEl.textContent = `${Math.round(pct)}%`;
+  if (detailEl) detailEl.innerHTML = `${formatCurrency(cur)} <span class="nw-goal__of">of ${formatCurrency(target)}</span>`;
+  if (paceEl) {
+    if (cur >= target) { paceEl.textContent = '✓ Goal reached'; paceEl.className = 'nw-goal__pace nw-goal__pace--up'; }
+    else { paceEl.textContent = `▲ ${formatCurrency(target - cur)} to go`; paceEl.className = 'nw-goal__pace'; }
+  }
+}
+function openNwGoalEdit() {
+  document.getElementById('nwGoalDisplay').hidden = true;
+  document.getElementById('nwGoalEdit').hidden = false;
+  const inp = document.getElementById('nwGoalTarget');
+  inp.value = getNwGoal() || '';
+  inp.focus();
+}
+function closeNwGoalEdit() {
+  document.getElementById('nwGoalEdit').hidden = true;
+  document.getElementById('nwGoalDisplay').hidden = false;
+}
+function saveNwGoal(e) {
+  e?.preventDefault();
+  const t = setNwGoal(document.getElementById('nwGoalTarget').value);
+  closeNwGoalEdit();
+  renderNwGoal(_lastNetWorth);
+  showToast(t > 0 ? 'Net-worth goal saved' : 'Goal cleared', 'success');
+}
+function clearNwGoal() {
+  setNwGoal(0);
+  closeNwGoalEdit();
+  renderNwGoal(_lastNetWorth);
+  showToast('Goal cleared', 'success');
+}
+
 /* Crypto holdings — one panel per wallet; total counts toward net worth.
    A timeframe toggle (24H · 1W · 1M · 1Y · 5Y) re-fetches just the
    sparkline + change for the chosen range; balances are not re-fetched. */
@@ -347,8 +462,9 @@ async function renderCrypto(bankBalance) {
     animateValue(document.getElementById('statCryptoTotal'), snap.total, v => formatCurrency(v) + suffix, 1400);
   }
 
-  /* milestone check uses the real net worth (cash + crypto) */
+  /* milestone + goal use the real net worth (cash + crypto) */
   checkNetWorthMilestone(bankBalance + snap.total);
+  renderNwGoal(bankBalance + snap.total);
 
   const btn = document.getElementById('cryptoRangeBtn');
   if (btn && !btn.dataset.wired) {
@@ -717,6 +833,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderBalanceChart().catch(console.error);
     });
   });
+
+  /* Net-worth goal — inline set / edit / clear */
+  document.getElementById('nwGoalEditBtn')?.addEventListener('click', openNwGoalEdit);
+  document.getElementById('nwGoalEdit')?.addEventListener('submit', saveNwGoal);
+  document.getElementById('nwGoalClear')?.addEventListener('click', clearNwGoal);
 
   document.getElementById('monthNavPrev')?.addEventListener('click', async () => {
     currentMonthView.month--;
