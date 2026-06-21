@@ -96,7 +96,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await renderInsights();
   } catch (err) {
     console.error('Insights error:', err);
-    const listEl = document.getElementById('insightsList');
-    if (listEl) listEl.innerHTML = `<div class="empty-state" style="color:var(--color-expense)">Couldn't load insights: ${escapeHTML(err.message || 'error')}</div>`;
+    showErrorState('insightsList', "Couldn't load insights. " + (err.message || ''), () => location.reload());
   }
 });

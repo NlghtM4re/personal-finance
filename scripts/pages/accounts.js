@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initAccounts();
   } catch (err) {
     console.error('Accounts error:', err);
-    document.getElementById('accountsGrid').innerHTML = `<div class="empty-state" style="color:var(--color-expense)">Error: ${err.message}</div>`;
+    showErrorState('accountsGrid', "Couldn't load your accounts. " + (err.message || ''), () => location.reload());
   }
 
   document.getElementById('accForm')?.addEventListener('submit', async e => {

@@ -128,6 +128,23 @@ function updateFilterBadge(filters) {
   }
 }
 
+/* --- Consistent error state (replaces ad-hoc per-page error markup) ---
+   Renders a centered "couldn't load" card with an optional Retry button
+   into `target` (an element or element id). */
+function showErrorState(target, message, onRetry) {
+  const el = typeof target === 'string' ? document.getElementById(target) : target;
+  if (!el) return;
+  const esc = typeof escapeHTML === 'function' ? escapeHTML : (s => String(s));
+  el.innerHTML = `
+    <div class="error-state">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div class="error-state__msg">${esc(message || "Couldn't load this. Check your connection and try again.")}</div>
+      ${onRetry ? '<button type="button" class="btn btn--ghost btn--sm" data-retry>Retry</button>' : ''}
+    </div>`;
+  const btn = el.querySelector('[data-retry]');
+  if (btn) btn.addEventListener('click', () => onRetry());
+}
+
 /* --- Number count-up animation --- */
 function animateValue(el, endValue, formatter, duration = 550) {
   if (!el) return;

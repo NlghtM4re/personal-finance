@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await renderBudgetPage();
   } catch (err) {
     console.error('Budget error:', err);
-    showToast('Error loading budget: ' + err.message, 'error');
+    showErrorState('budgetCategoryList', "Couldn't load your budget. " + (err.message || ''), () => location.reload());
   }
 
   document.getElementById('prevMonthBtn')?.addEventListener('click', () => {

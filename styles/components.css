@@ -313,6 +313,14 @@ select.form-control {
 }
 .empty-state a { color: var(--color-primary); }
 
+/* --- Error state (shared; see showErrorState in ui.js) --- */
+.error-state {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 40px 24px; text-align: center; color: var(--color-text-muted);
+}
+.error-state svg { color: var(--color-expense); opacity: 0.85; }
+.error-state__msg { font-size: 0.875rem; max-width: 340px; line-height: 1.55; }
+
 /* --- Modal --- */
 .modal-overlay {
   position: fixed; inset: 0;

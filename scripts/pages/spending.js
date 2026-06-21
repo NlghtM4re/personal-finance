@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await renderSpending();
   } catch (err) {
     console.error('Spending page error:', err);
-    showToast('Error loading data: ' + err.message, 'error');
+    showErrorState('spendingBreakdown', "Couldn't load your cash flow. " + (err.message || ''), () => location.reload());
   }
 
   /* Spending / Income toggle */

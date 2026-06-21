@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initTransactions();
   } catch (err) {
     console.error('Transactions error:', err);
-    document.getElementById('txListFull').innerHTML = `<div class="empty-state" style="color:var(--color-expense)">Error: ${err.message}</div>`;
+    showErrorState('txListFull', "Couldn't load transactions. " + (err.message || ''), () => location.reload());
   }
 
   /* search (debounced) */

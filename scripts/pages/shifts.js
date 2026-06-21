@@ -615,7 +615,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await renderPage();
   } catch (err) {
     console.error('Hours Tracker error:', err);
-    showToast('Error loading shifts: ' + err.message, 'error');
+    showErrorState('shiftsList', "Couldn't load your shifts. " + (err.message || ''), () => location.reload());
   }
 
   /* form */
