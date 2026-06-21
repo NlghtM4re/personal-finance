@@ -196,14 +196,16 @@ async function renderCrypto(bankBalance) {
 
   totalEl.textContent = formatCurrency(snap.total) + (snap.anyMissing ? ' +' : '');
 
-  /* surface net worth (cash + crypto) and the crypto total in the top stat bar */
+  /* surface net worth (cash + crypto) and the crypto total in the top stat bar.
+     Count both up like the hero balance so they feel as rewarding, not static. */
   if (nwCell) {
-    setText('statNetWorth', formatCurrency(bankBalance + snap.total));
     nwCell.hidden = false;
+    animateValue(document.getElementById('statNetWorth'), bankBalance + snap.total, formatCurrency, 1400);
   }
   if (cryCell) {
-    setText('statCryptoTotal', formatCurrency(snap.total) + (snap.anyMissing ? ' +' : ''));
     cryCell.hidden = false;
+    const suffix = snap.anyMissing ? ' +' : '';
+    animateValue(document.getElementById('statCryptoTotal'), snap.total, v => formatCurrency(v) + suffix, 1400);
   }
 
   const btn = document.getElementById('cryptoRangeBtn');
@@ -536,8 +538,15 @@ function txItemHTML(t, cat) {
 function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const user = await SupaAuth.requireAuth();
-  if (!user) return;
+  let user;
+  try {
+    user = await SupaAuth.requireAuth();
+  } catch (err) {
+    console.error('Auth error:', err);
+    window.hideAppLoader?.();   /* reveal the page rather than hang on the loader */
+    return;
+  }
+  if (!user) return;            /* requireAuth redirected to login — keep the loader up */
 
   try {
     await initDashboard();
@@ -545,6 +554,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Dashboard error:', err);
     showToast('Error loading data: ' + err.message, 'error');
     ['totalBalance','monthIncome','monthExpense','monthNet'].forEach(id => setText(id, '—'));
+  } finally {
+    window.hideAppLoader?.();   /* data rendered (or errored) — fade the boot screen out */
   }
 
   /* Quick-log hours widget — refresh the dashboard after a shift is logged. */

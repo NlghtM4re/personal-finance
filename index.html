@@ -19,6 +19,21 @@
 </head>
 <body data-title="Dashboard">
 
+  <!-- Minimalist boot screen: paints with the first frame, fades out once the
+       dashboard's data is ready (hideAppLoader, called from dashboard.js). -->
+  <div id="app-loader" role="status" aria-label="Loading">
+    <div class="app-loader__mark">Flow</div>
+    <div class="app-loader__bar"></div>
+  </div>
+  <script>
+    window.hideAppLoader = function () {
+      var el = document.getElementById('app-loader');
+      if (el) el.classList.add('is-hidden');
+    };
+    /* safety net — never trap the user on the loader if a script hangs/errors */
+    window.addEventListener('load', function () { setTimeout(window.hideAppLoader, 4000); });
+  </script>
+
   <aside class="sidebar" id="sidebar"></aside>
 
   <div class="overlay" id="overlay"></div>

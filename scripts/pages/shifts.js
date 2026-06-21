@@ -27,7 +27,7 @@ const todayISO = () => iso(new Date());
 
 function startOfWeek(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
-  const dow = (d.getDay() + 6) % 7;            /* 0 = Monday */
+  const dow = d.getDay();                       /* 0 = Sunday */
   d.setDate(d.getDate() - dow);
   return iso(d);
 }
@@ -62,7 +62,7 @@ function fmtDay(dateStr) {
 }
 function fmtHours(h) { return `${(Math.round(h * 100) / 100).toFixed(h % 1 === 0 ? 0 : 1)} h`; }
 function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
-const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /* ============================================================
    STATS BAR
@@ -139,8 +139,8 @@ function renderGoal() {
   pctEl.textContent = `${Math.round(pct)}%`;
   detail.innerHTML = `${fmt(current)} <span class="goal-info__of">of ${fmt(_goal.target)}</span>`;
 
-  /* pace vs how far through the week we are (Mon=day 1 … Sun=day 7) */
-  const dow = (new Date().getDay() + 6) % 7;          /* 0=Mon */
+  /* pace vs how far through the week we are (Sun=day 1 … Sat=day 7) */
+  const dow = new Date().getDay();                    /* 0=Sun */
   const elapsed = dow + 1;
   const expected = _goal.target * (elapsed / 7);
   if (pct >= 100) {

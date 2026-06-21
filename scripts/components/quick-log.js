@@ -17,7 +17,7 @@ let _onLogged = null;
 let _selected = null;            /* selected day, YYYY-MM-DD */
 let _mode = 'hours';             /* 'hours' | 'times' */
 
-const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const iso = d => isoLocal(d);
 const todayISO = () => iso(new Date());
 function fmtHours(h) { return `${(Math.round(h * 100) / 100).toFixed(h % 1 === 0 ? 0 : 1)} h`; }
@@ -28,14 +28,14 @@ function weekRange() {
   return { from, to: iso(to) };
 }
 
-/* current week, Monday→Sunday */
+/* current week, Sunday→Saturday */
 function weekDays() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const t = todayISO();
-  const monday = new Date(today); monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const sunday = new Date(today); sunday.setDate(today.getDate() - today.getDay());
   const out = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const d = new Date(sunday); d.setDate(sunday.getDate() + i);
     const ds = iso(d);
     out.push({ date: ds, dow: DOW[i], num: d.getDate(), isToday: ds === t, isFuture: ds > t });
   }

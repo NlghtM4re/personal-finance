@@ -61,17 +61,17 @@ const ShiftEngine = {
     return s.hours > 0 ? Math.round((s.pay / s.hours) * 100) / 100 : 0;
   },
 
-  /* Monday-based week start (YYYY-MM-DD) for a date string. Pure: no locale,
+  /* Sunday-based week start (YYYY-MM-DD) for a date string. Pure: no locale,
      no DOM. Mirrors the page helper so analytics can group by week. */
   weekStart(dateStr) {
     const d = new Date(dateStr + 'T00:00:00');
-    const dow = (d.getDay() + 6) % 7;          /* 0 = Monday */
+    const dow = d.getDay();                     /* 0 = Sunday */
     d.setDate(d.getDate() - dow);
     return ymd(d);
   },
 
-  /* Earnings/hours grouped by day of week, Monday→Sunday. Returns a length-7
-     array of { dow, hours, pay, count } where dow 0 = Monday. Useful for a
+  /* Earnings/hours grouped by day of week, Sunday→Saturday. Returns a length-7
+     array of { dow, hours, pay, count } where dow 0 = Sunday. Useful for a
      "when do you work" distribution bar chart. */
   byDayOfWeek(shifts, opts = {}) {
     const { from, to } = opts;
@@ -79,7 +79,7 @@ const ShiftEngine = {
     (shifts || []).forEach(s => {
       if ((from && s.date < from) || (to && s.date > to)) return;
       const d = new Date(s.date + 'T00:00:00');
-      const i = (d.getDay() + 6) % 7;
+      const i = d.getDay();
       buckets[i].hours += this.hours(s);
       buckets[i].pay   += this.pay(s);
       buckets[i].count += 1;
@@ -112,7 +112,7 @@ const ShiftEngine = {
       .sort((a, b) => b.pay - a.pay);
   },
 
-  /* A continuous series of the last `weeks` Monday-weeks ending with the week
+  /* A continuous series of the last `weeks` Sunday-weeks ending with the week
      containing `today` (default: now). Every week is present even with no
      shifts, so a bar chart shows real gaps. Returns
      [{ weekStart, hours, pay, count }] oldest→newest. */
