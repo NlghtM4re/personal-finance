@@ -837,12 +837,37 @@ const CSVService = {
     URL.revokeObjectURL(url);
   },
 
+  /* RFC-4180-ish CSV tokenizer: handles quoted fields containing commas,
+     escaped quotes ("") and embedded newlines. Returns an array of rows,
+     each an array of cell strings. (The old line-split + regex broke on any
+     note that contained a comma or a line break.) */
+  _parse(text) {
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    const pushField = () => { row.push(field); field = ''; };
+    const pushRow = () => { if (row.length > 1 || row[0] !== '') rows.push(row); row = []; };
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQuotes = false; }
+        else field += c;
+      } else if (c === '"') { inQuotes = true; }
+      else if (c === ',') { pushField(); }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        pushField(); pushRow();
+      } else field += c;
+    }
+    if (field !== '' || row.length) { pushField(); pushRow(); }
+    return rows;
+  },
+
   async import(file) {
     const text = await file.text();
-    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    if (lines.length < 2) throw new Error('CSV is empty or has no data rows');
+    const records = this._parse(text);
+    if (records.length < 2) throw new Error('CSV is empty or has no data rows');
 
-    const header = lines[0].toLowerCase().split(',').map(h => h.replace(/"/g,'').trim());
+    const header = records[0].map(h => h.toLowerCase().trim());
     const idx = k => header.indexOf(k);
 
     const [accounts, cats] = await Promise.all([
@@ -852,13 +877,10 @@ const CSVService = {
     const accByName = Object.fromEntries(accounts.map(a => [a.name.toLowerCase(), a.id]));
     const catByName = Object.fromEntries(cats.map(c => [c.name.toLowerCase(), c.id]));
 
-    const parseCell = s => s.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
-
-    const rows = lines.slice(1);
     let imported = 0, skipped = 0;
-    for (const line of rows) {
+    for (const cells0 of records.slice(1)) {
       try {
-        const cells = line.match(/("(?:[^"]|"")*"|[^,]*)/g).map(parseCell);
+        const cells = cells0.map(c => (c || '').trim());
         const type   = cells[idx('type')]?.toLowerCase();
         const amount = parseFloat(cells[idx('amount')]);
         if (!['income','expense','transfer'].includes(type) || !amount || amount <= 0) { skipped++; continue; }
