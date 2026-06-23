@@ -56,10 +56,10 @@
     .card {
       background: #0d0d0f;
       border: 1px solid #222226;
-      border-radius: 16px;
-      padding: 40px;
+      border-radius: 0;
+      padding: 28px;
       width: 100%;
-      max-width: 380px;
+      max-width: 360px;
       box-shadow: 0 24px 64px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.04);
       position: relative;
       z-index: 1;
@@ -70,19 +70,11 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 32px;
-    }
-    .logo-icon {
-      width: 34px; height: 34px;
-      border-radius: 8px;
-      background: #ffffff;
-      display: flex; align-items: center; justify-content: center;
-      color: #0a0a0a;
-      flex-shrink: 0;
+      margin-bottom: 20px;
     }
     .logo-text {
       font-family: 'JetBrains Mono', Consolas, monospace;
-      font-size: 1.375rem;
+      font-size: 1.25rem;
       font-weight: 600;
       letter-spacing: -0.02em;
       color: #f4f4f6;
@@ -90,28 +82,28 @@
     .logo-text::after { content: '_'; color: #6e6e78; }
 
     .card-title {
-      font-size: 1.25rem;
+      font-size: 1.125rem;
       font-weight: 700;
       letter-spacing: -0.03em;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       color: #f8fafc;
     }
     .card-sub {
       font-size: 0.875rem;
       color: #64748b;
-      margin-bottom: 28px;
-      line-height: 1.5;
+      margin-bottom: 18px;
+      line-height: 1.45;
     }
 
-    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 11px; }
     .form-label { font-size: 0.8125rem; font-weight: 500; color: #64748b; }
 
     .form-control {
       width: 100%;
-      padding: 11px 14px;
+      padding: 10px 13px;
       background: #151518;
       border: 1px solid #222226;
-      border-radius: 8px;
+      border-radius: 0;
       color: #f8fafc;
       font-family: inherit;
       font-size: 0.875rem;
@@ -126,16 +118,16 @@
 
     .btn {
       width: 100%;
-      padding: 12px;
+      padding: 10px;
       background: #ffffff;
       color: #0a0a0a;
       border: none;
-      border-radius: 8px;
+      border-radius: 0;
       font-family: inherit;
       font-size: 0.9375rem;
       font-weight: 600;
       cursor: pointer;
-      margin-top: 8px;
+      margin-top: 4px;
       transition: background .15s, box-shadow .15s, transform .1s;
       letter-spacing: -0.01em;
       position: relative;
@@ -163,7 +155,7 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      margin-top: 20px;
+      margin-top: 16px;
       font-size: 0.875rem;
       color: #475569;
     }
@@ -182,7 +174,7 @@
 
     .msg {
       padding: 11px 14px;
-      border-radius: 8px;
+      border-radius: 0;
       font-size: 0.875rem;
       font-weight: 500;
       margin-bottom: 16px;
@@ -203,7 +195,7 @@
     .success-screen.show { display: block; }
     .success-icon {
       width: 56px; height: 56px;
-      border-radius: 50%;
+      border-radius: 0;
       background: rgba(0,209,143,.12);
       border: 1px solid rgba(0,209,143,.25);
       color: #00d18f;
@@ -220,15 +212,33 @@
       background: #151518;
       margin: 24px 0;
     }
+
+    /* Input with a show/hide password toggle */
+    .input-wrap { position: relative; }
+    .input-wrap .form-control { padding-right: 42px; }
+    .pw-toggle {
+      position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+      background: none; border: none; color: #64748b; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 6px; border-radius: 0;
+      transition: color .15s;
+    }
+    .pw-toggle:hover { color: #f4f4f6; }
+
+    /* Inline field hints (caps lock, email validation) */
+    .field-hint { font-size: 0.75rem; margin-top: 4px; display: none; line-height: 1.4; }
+    .field-hint.show { display: block; }
+    .field-hint--warn  { color: #94a3b8; }
+    .field-hint--error { color: #ff5c7a; }
+
+    /* Forgot-password link, right-aligned under the password field */
+    .forgot-row { display: flex; justify-content: flex-end; margin: -2px 0 4px; }
   </style>
 </head>
 <body>
   <div class="card" id="card">
-    <!-- Logo -->
+    <!-- Wordmark (matches the app sidebar/topbar: Flow + terminal cursor, no icon) -->
     <div class="logo">
-      <div class="logo-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-      </div>
       <span class="logo-text">Flow</span>
     </div>
 
@@ -246,11 +256,19 @@
           <label class="form-label" for="email">Email</label>
           <input class="form-control" type="email" id="email"
             placeholder="you@example.com" autocomplete="email" required />
+          <div class="field-hint field-hint--error" id="emailHint">Enter a valid email address.</div>
         </div>
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
-          <input class="form-control" type="password" id="password"
-            placeholder="••••••••" autocomplete="current-password" required />
+          <div class="input-wrap">
+            <input class="form-control" type="password" id="password"
+              placeholder="••••••••" autocomplete="current-password" required />
+            <button type="button" class="pw-toggle" id="pwToggle" aria-label="Show password"></button>
+          </div>
+          <div class="field-hint field-hint--warn" id="capsHint">Caps Lock is on</div>
+        </div>
+        <div class="forgot-row" id="forgotRow">
+          <button type="button" class="toggle-link" id="forgotBtn" style="font-size:.8125rem;">Forgot password?</button>
         </div>
         <button class="btn" type="submit" id="submitBtn">
           <span id="btnText">Sign in</span>
@@ -261,6 +279,44 @@
         <span id="toggleText">Don't have an account?</span>
         <button class="toggle-link" id="toggleBtn">Create one</button>
       </div>
+    </div>
+
+    <!-- Forgot-password: request a reset link -->
+    <div id="resetView" style="display:none;">
+      <div class="card-title">Reset password</div>
+      <div class="card-sub">Enter your email and we'll send you a link to set a new password.</div>
+      <div class="msg msg--error" id="resetError"></div>
+      <div class="msg msg--info"  id="resetInfo"></div>
+      <form id="resetForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="resetEmail">Email</label>
+          <input class="form-control" type="email" id="resetEmail"
+            placeholder="you@example.com" autocomplete="email" required />
+        </div>
+        <button class="btn" type="submit" id="resetSubmit"><span>Send reset link</span></button>
+      </form>
+      <div class="toggle-row">
+        <button class="toggle-link" id="resetBack">← Back to sign in</button>
+      </div>
+    </div>
+
+    <!-- Recovery: set a new password (shown when arriving from a reset link) -->
+    <div id="newPwView" style="display:none;">
+      <div class="card-title">Set a new password</div>
+      <div class="card-sub">Choose a new password for your account.</div>
+      <div class="msg msg--error" id="newPwError"></div>
+      <form id="newPwForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="newPw">New password</label>
+          <div class="input-wrap">
+            <input class="form-control" type="password" id="newPw"
+              placeholder="••••••••" autocomplete="new-password" required />
+            <button type="button" class="pw-toggle" id="newPwToggle" aria-label="Show password"></button>
+          </div>
+          <div class="field-hint field-hint--warn" id="newCapsHint">Caps Lock is on</div>
+        </div>
+        <button class="btn" type="submit" id="newPwSubmit"><span>Update password</span></button>
+      </form>
     </div>
 
     <!-- Success screen (shown after sign up) -->
@@ -274,7 +330,10 @@
         <strong id="confirmedEmail" style="color:#f8fafc;"></strong><br/><br/>
         Click the link in the email, then come back to sign in.
       </div>
+      <div class="field-hint field-hint--warn" id="resendMsg" style="text-align:center;"></div>
       <div class="divider"></div>
+      <button class="toggle-link" id="resendBtn" style="font-size:.875rem;">Resend confirmation email</button>
+      <div style="height:14px;"></div>
       <button class="toggle-link" id="backToLogin" style="font-size:.875rem;">← Back to sign in</button>
     </div>
   </div>
@@ -284,7 +343,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="scripts/data/supabase.js"></script>
   <script>
+    /* A password-reset link returns here with a recovery session in the URL
+       hash. Don't auto-redirect to the app in that case — let the
+       set-new-password flow take over first. */
+    const isRecovery = window.location.hash.includes('type=recovery');
+
     (async () => {
+      if (isRecovery) return;
       const { data: { session } } = await sb.auth.getSession();
       if (session) window.location.replace('index.html');
     })();
@@ -349,6 +414,7 @@
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       if (!email || !password) { showError('Please enter your email and password.'); return; }
+      if (!validEmail(email)) { document.getElementById('emailHint').classList.add('show'); showError('Enter a valid email address.'); return; }
       if (isSignUp && password.length < 6) { showError('Password must be at least 6 characters.'); return; }
 
       setLoading(true);
@@ -374,6 +440,143 @@
         showError(msg);
       } finally {
         setLoading(false);
+      }
+    });
+
+    /* ============================================================
+       Shared helpers + extra flows (forgot password, recovery,
+       show/hide password, caps-lock hint, resend confirmation).
+       ============================================================ */
+    function validEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+    function escapeHTML(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+      ));
+    }
+
+    const EYE     = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const EYE_OFF = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+    function wirePwToggle(btnId, inputId) {
+      const t = document.getElementById(btnId), inp = document.getElementById(inputId);
+      t.innerHTML = EYE;
+      t.addEventListener('click', () => {
+        const reveal = inp.type === 'password';
+        inp.type = reveal ? 'text' : 'password';
+        t.innerHTML = reveal ? EYE_OFF : EYE;
+        t.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
+        inp.focus();
+      });
+    }
+    function wireCaps(inputId, hintId) {
+      const inp = document.getElementById(inputId), hint = document.getElementById(hintId);
+      const check = e => {
+        const on = typeof e.getModifierState === 'function' && e.getModifierState('CapsLock');
+        hint.classList.toggle('show', !!on);
+      };
+      inp.addEventListener('keydown', check);
+      inp.addEventListener('keyup', check);
+      inp.addEventListener('blur', () => hint.classList.remove('show'));
+    }
+    function btnLoading(btn, loading, label, busy) {
+      btn.disabled  = loading;
+      btn.innerHTML = loading ? `<span class="btn-spinner"></span><span>${busy}</span>` : `<span>${label}</span>`;
+    }
+
+    wirePwToggle('pwToggle', 'password');
+    wireCaps('password', 'capsHint');
+    document.getElementById('email').addEventListener('input', () =>
+      document.getElementById('emailHint').classList.remove('show'));
+
+    /* ---- view switching ---- */
+    const resetView = document.getElementById('resetView');
+    const newPwView = document.getElementById('newPwView');
+    function showView(name) {
+      formView.style.display  = name === 'form'  ? '' : 'none';
+      resetView.style.display = name === 'reset' ? '' : 'none';
+      newPwView.style.display = name === 'newpw' ? '' : 'none';
+      successView.classList.toggle('show', name === 'success');
+      clearMsgs();
+    }
+
+    /* ---- forgot password: request a reset link ---- */
+    document.getElementById('forgotBtn').addEventListener('click', () => {
+      showView('reset');
+      document.getElementById('resetForm').style.display = '';
+      document.getElementById('resetInfo').classList.remove('show');
+      document.getElementById('resetError').classList.remove('show');
+      document.getElementById('resetEmail').value = document.getElementById('email').value.trim();
+    });
+    document.getElementById('resetBack').addEventListener('click', () => showView('form'));
+
+    document.getElementById('resetForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const email  = document.getElementById('resetEmail').value.trim();
+      const errEl  = document.getElementById('resetError');
+      const infoEl = document.getElementById('resetInfo');
+      errEl.classList.remove('show'); infoEl.classList.remove('show');
+      if (!validEmail(email)) { errEl.textContent = 'Enter a valid email address.'; errEl.classList.add('show'); return; }
+      const btn = document.getElementById('resetSubmit');
+      btnLoading(btn, true, 'Send reset link', 'Sending…');
+      try {
+        const redirectTo = window.location.origin + window.location.pathname;
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        document.getElementById('resetForm').style.display = 'none';
+        infoEl.innerHTML = `If an account exists for <strong style="color:#f8fafc;">${escapeHTML(email)}</strong>, a password-reset link is on its way. Check your inbox.`;
+        infoEl.classList.add('show');
+      } catch (err) {
+        errEl.textContent = err.message || 'Could not send the reset link. Please try again.';
+        errEl.classList.add('show');
+      } finally {
+        btnLoading(btn, false, 'Send reset link', 'Sending…');
+      }
+    });
+
+    /* ---- recovery: set a new password ---- */
+    wirePwToggle('newPwToggle', 'newPw');
+    wireCaps('newPw', 'newCapsHint');
+
+    sb.auth.onAuthStateChange((event) => { if (event === 'PASSWORD_RECOVERY') showView('newpw'); });
+    if (isRecovery) showView('newpw');
+
+    document.getElementById('newPwForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const pw    = document.getElementById('newPw').value;
+      const errEl = document.getElementById('newPwError');
+      errEl.classList.remove('show');
+      if (pw.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.classList.add('show'); return; }
+      const btn = document.getElementById('newPwSubmit');
+      btnLoading(btn, true, 'Update password', 'Updating…');
+      try {
+        const { error } = await sb.auth.updateUser({ password: pw });
+        if (error) throw error;
+        history.replaceState(null, '', window.location.pathname);   // drop the recovery hash
+        btn.innerHTML = '<span>Password updated ✓</span>';
+        setTimeout(() => window.location.replace('index.html'), 900);
+      } catch (err) {
+        errEl.textContent = err.message || 'Could not update the password. The link may have expired — request a new one.';
+        errEl.classList.add('show');
+        btnLoading(btn, false, 'Update password', 'Updating…');
+      }
+    });
+
+    /* ---- resend the signup confirmation email ---- */
+    document.getElementById('resendBtn').addEventListener('click', async () => {
+      const email = document.getElementById('confirmedEmail').textContent;
+      const msg   = document.getElementById('resendMsg');
+      const btn   = document.getElementById('resendBtn');
+      btn.disabled = true;
+      try {
+        const { error } = await sb.auth.resend({ type: 'signup', email });
+        if (error) throw error;
+        msg.textContent = 'Sent again — check your inbox.';
+        msg.classList.add('show');
+      } catch (err) {
+        msg.textContent = err.message || 'Could not resend just now. Try again shortly.';
+        msg.classList.add('show');
+      } finally {
+        setTimeout(() => { btn.disabled = false; }, 4000);
       }
     });
   </script>
