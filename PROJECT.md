@@ -275,6 +275,8 @@ personal finance/
 - 2026-06-14 — Added read-only **Crypto** balances (BTC + SOL) — public addresses only, never keys/seeds, no signing. Balances via keyless public APIs (Blockstream / publicnode RPC / CoinGecko). v1 stored wallets in localStorage
 - 2026-06-14 — Crypto sync + net-worth integration — wallets now sync via a Supabase `crypto_wallets` table (table-first, localStorage fallback + lazy migration, same pattern as `SubscriptionStore`). Crypto folds into **net worth** (Dashboard "Net worth · cash + crypto" line + per-wallet panels; Accounts "incl. $X crypto") but never into the cash **balance**. Styling: Flow + crypto-wallet flair (per-chain `--chain` color, badges, gradient tiles)
 - 2026-06-15 — **Removed the Recurring-transactions feature** — Subscriptions already covers scheduled/repeating charges, so the Recurring page, the dashboard due-banner, the add-transaction "Repeat" toggle, `RecurringStore`, and the `recurring_rules` table/column were all removed. Existing `recurring_rules` tables can be dropped manually in Supabase.
+- 2026-06-23 — **Hours Tracker: quick-hours logging + payday reconciliation** — built for an under-the-table, weekly-lump, hourly job ($17/h, boss rounds up, irregular payday). (1) **Quick log** = pick a day chip + type total hours (no clock times); rate defaults to $17. (2) **Estimate vs actual**: an *Unpaid so far* panel accrues hours × rate; **Mark as paid** settles all unpaid days, takes the **actual cash** received, records the difference as a **bonus** (`ShiftEngine.settlePay`), and tops up the balance with a `tags:['shift','bonus']` income row for just the extra. (3) Payday is **user-driven** (no assumed schedule); a **Payouts** history with Undo. New pure/tested engine fns: `unpaidSummary`, `settlePay`, direct-`hours` support. New `PayoutStore` + `shifts.hours`/`shift_payouts` schema (v5 in `supabase-schema.sql`, localStorage fallback). A shift is "paid" iff a payout's `shiftIds` cover it (no `paid` column needed). Verified via a throwaway local-mode harness (page is behind auth). Tests: 131 → 142.
+- 2026-06-22 — **Login improvements** — added a full **forgot-password / recovery** flow on `login.html` (`resetPasswordForEmail` → reset link returns to `login.html`; the `type=recovery` hash now suppresses the auto-redirect so the in-page "set a new password" view can run `updateUser({ password })`). Plus UX polish: show/hide password toggle, Caps-Lock hint, inline email validation, and a "Resend confirmation email" button on the post-signup screen. All pure front-end (no schema/dashboard changes); privacy-friendly reset wording ("if an account exists…"). Verified in-browser. Still **not** wired: magic-link sign-in and Google/social OAuth (the latter needs Supabase-dashboard provider config).
 
 ---
 
@@ -282,9 +284,13 @@ personal finance/
 
 > Things noticed during build that aren't part of the current step.
 
-- **Test coverage is partial** — `SummaryEngine` (incl. `pickChangeWindows`) and the crypto address
-  validators + `_fetch` retry helper are unit-tested (`tests/`, Node's built-in runner, `npm test`).
-  Page-level/DOM logic is still untested — the next target if the test layer grows.
+- **Test coverage is partial** — all four pure engines are unit-tested (`tests/`, Node's built-in
+  runner, `npm test`; 142 tests): `SummaryEngine` (incl. `pickChangeWindows`), `InsightsEngine`
+  (forecast / budgets / insights / `suggestCategory` / `upcomingBills`), `ShiftEngine`, and the crypto
+  address validators + `_fetch` retry helper. Plus the pure helpers in `store.js`: the `CSVService._parse`
+  tokenizer and the date/currency formatters (`store.test.js`). Still untested — the next target if the
+  test layer grows — is everything that needs a live Supabase client or the DOM: the store CRUD methods
+  (`TransactionStore` etc.), `CSVService.export`/`import`, and all page-level rendering logic.
 - Single-theme by design — "Flow" is true-black only; no light mode (intentional, not a gap).
 - Long transaction names still truncate on very narrow phones — now wrap to two lines first (≤768px),
   so far fewer names get cut; full names always visible on the edit screen.

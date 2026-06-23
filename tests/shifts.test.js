@@ -25,6 +25,21 @@ test('hours', async (t) => {
   });
 });
 
+test('hours — direct entry (the "just total hours" path)', async (t) => {
+  await t.test('uses a direct hours value when present, ignoring times', () => {
+    assert.equal(ShiftEngine.hours({ hours: 6.5 }), 6.5);
+    // direct value wins even if start/end are also set
+    assert.equal(ShiftEngine.hours({ hours: 5, start: '09:00', end: '17:00' }), 5);
+  });
+  await t.test('falls back to start/end when hours is missing or zero', () => {
+    assert.equal(ShiftEngine.hours({ start: '09:00', end: '17:00' }), 8);
+    assert.equal(ShiftEngine.hours({ hours: 0, start: '09:00', end: '17:00' }), 8);
+  });
+  await t.test('pay uses direct hours × rate', () => {
+    assert.equal(ShiftEngine.pay({ hours: 4, rate: 17 }), 68);
+  });
+});
+
 test('pay', async (t) => {
   await t.test('hourly: hours × rate, rounded to cents', () => {
     assert.equal(ShiftEngine.pay({ start: '09:00', end: '17:00', rate: 20 }), 160);
@@ -78,6 +93,36 @@ test('effectiveRate', async (t) => {
   await t.test('no hours (only flat-pay) → 0', () => {
     assert.equal(ShiftEngine.effectiveRate([{ payMode: 'fixed', fixedPay: 100 }]), 0);
     assert.equal(ShiftEngine.effectiveRate([]), 0);
+  });
+});
+
+test('unpaidSummary', async (t) => {
+  const shifts = [
+    { date: '2026-06-15', hours: 8, rate: 17 },              // unpaid: 136
+    { date: '2026-06-16', hours: 7.5, rate: 17, tips: 5 },   // unpaid: 132.50
+    { date: '2026-06-10', hours: 8, rate: 17, paid: true },  // already paid — excluded
+  ];
+  await t.test('sums only shifts not yet covered by a payout', () => {
+    assert.deepEqual(ShiftEngine.unpaidSummary(shifts), { count: 2, hours: 15.5, estimated: 268.5 });
+  });
+  await t.test('empty / all-paid → zeros', () => {
+    assert.deepEqual(ShiftEngine.unpaidSummary([]), { count: 0, hours: 0, estimated: 0 });
+    assert.deepEqual(ShiftEngine.unpaidSummary([{ hours: 8, rate: 17, paid: true }]),
+      { count: 0, hours: 0, estimated: 0 });
+  });
+});
+
+test('settlePay (estimate vs actual)', async (t) => {
+  await t.test('actual above estimate → positive bonus', () => {
+    assert.deepEqual(ShiftEngine.settlePay(399.5, 410), { estimated: 399.5, actual: 410, bonus: 10.5 });
+  });
+  await t.test('exact pay → zero bonus', () => {
+    assert.deepEqual(ShiftEngine.settlePay(340, 340), { estimated: 340, actual: 340, bonus: 0 });
+  });
+  await t.test('underpaid → negative bonus; rounds to cents', () => {
+    const r = ShiftEngine.settlePay(100.005, 90);
+    assert.equal(r.estimated, 100.01);
+    assert.equal(r.bonus, -10.01);
   });
 });
 

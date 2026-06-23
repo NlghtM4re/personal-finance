@@ -16,6 +16,50 @@
   <link rel="stylesheet" href="../styles/components.css" />
   <link rel="stylesheet" href="../styles/pages.css" />
   <link rel="stylesheet" href="../styles/dashboard.css" />
+  <style>
+    /* Unpaid / pay-period panel */
+    .hours-unpaid .unpaid { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .unpaid__label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-muted); }
+    .unpaid__amount { font-family: var(--font-display); font-size: 1.75rem; font-weight: 700; color: var(--color-text); line-height: 1.1; margin-top: 3px; }
+    .unpaid__sub { font-size: .8125rem; color: var(--color-text-muted); margin-top: 4px; }
+    .hours-unpaid--clear .unpaid__amount { color: var(--color-text-muted); }
+    #markPaidBtn { flex-shrink: 0; }
+
+    /* Quick log (just total hours) */
+    .quick-log { display: flex; flex-direction: column; gap: 10px; }
+    .quick-log__row { display: flex; gap: 8px; align-items: stretch; }
+    .quick-log__field { position: relative; flex: 1; }
+    .quick-log__field .form-control { padding-right: 26px; }
+    .quick-log__unit { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); font-size: .875rem; pointer-events: none; }
+    .quick-log__row .btn { white-space: nowrap; }
+    .quick-log__meta { font-size: .75rem; color: var(--color-text-muted); }
+
+    /* Payout history */
+    .payout-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--color-border-light); }
+    .payout-row:last-child { border-bottom: none; }
+    .payout-row__main { flex: 1; min-width: 0; }
+    .payout-row__date { font-weight: 600; font-size: .875rem; color: var(--color-text); }
+    .payout-row__meta { font-size: .75rem; color: var(--color-text-muted); margin-top: 1px; }
+    .payout-row__figs { text-align: right; }
+    .payout-row__actual { font-family: var(--font-display); font-weight: 600; color: var(--color-text); }
+    .payout__bonus { font-size: .75rem; font-family: var(--font-display); }
+    .payout__bonus--up { color: var(--color-income); }
+    .payout__bonus--down { color: var(--color-expense); }
+
+    /* Mark-as-paid modal */
+    .pf-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .pf-modal[hidden] { display: none; }
+    .pf-modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.7); }
+    .pf-modal__card { position: relative; z-index: 1; background: var(--color-surface); border: 1px solid var(--color-border); width: 100%; max-width: 380px; box-shadow: 0 24px 64px rgba(0,0,0,.85); }
+    .pf-modal__title { font-size: 1rem; font-weight: 700; padding: 16px 18px; border-bottom: 1px solid var(--color-border); }
+    .pf-modal__body { padding: 16px 18px; }
+    .pf-modal__actions { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 18px; border-top: 1px solid var(--color-border); }
+    .paid-row { display: flex; justify-content: space-between; font-size: .875rem; padding: 4px 0; color: var(--color-text-muted); }
+    .paid-row span:last-child { color: var(--color-text); font-family: var(--font-display); }
+    .paid-bonus { margin-top: 10px; font-size: .9375rem; font-family: var(--font-display); min-height: 1.2em; }
+    .paid-bonus--up { color: var(--color-income); }
+    .paid-bonus--down { color: var(--color-expense); }
+  </style>
 </head>
 <body data-title="Hours Tracker">
 
@@ -73,6 +117,20 @@
           </div>
         </div>
 
+        <!-- ── Unpaid / pay period ──────────────────────────────── -->
+        <section class="term hours-unpaid" id="unpaidPanel" hidden>
+          <div class="term__body">
+            <div class="unpaid">
+              <div class="unpaid__main">
+                <div class="unpaid__label">Unpaid so far</div>
+                <div class="unpaid__amount" id="unpaidAmount">—</div>
+                <div class="unpaid__sub" id="unpaidSub">—</div>
+              </div>
+              <button type="button" class="btn btn--primary" id="markPaidBtn">Mark as paid</button>
+            </div>
+          </div>
+        </section>
+
         <!-- ── Goal + Quick log row ─────────────────────────────── -->
         <div class="hours-row hours-row--two">
 
@@ -113,10 +171,22 @@
           <section class="term hours-quick" id="quickPanel">
             <div class="term__head">
               <span class="term__title">Quick log</span>
-              <button type="button" class="btn btn--primary btn--sm" id="addShiftBtn">+ Log shift</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="addShiftBtn">More options</button>
             </div>
             <div class="term__body">
-              <div class="hours-presets" id="hoursPresets"></div>
+              <form class="quick-log" id="quickLogForm">
+                <div class="day-chips" id="quickDayChips"></div>
+                <div class="quick-log__row">
+                  <div class="quick-log__field">
+                    <input type="number" id="qlHours" class="form-control" min="0" step="0.25"
+                      inputmode="decimal" placeholder="Hours worked" aria-label="Hours worked" />
+                    <span class="quick-log__unit">h</span>
+                  </div>
+                  <button type="submit" class="btn btn--primary" id="qlAdd">Add</button>
+                </div>
+                <div class="quick-log__meta" id="qlMeta">logs as income</div>
+              </form>
+              <div class="hours-presets" id="hoursPresets" style="margin-top:10px;"></div>
               <p class="hours-quick__hint" id="quickHint" hidden>
                 Save a shift as a preset to log repeat days in one tap.
               </p>
@@ -250,6 +320,17 @@
           </div>
         </section>
 
+        <!-- ── Payout history ───────────────────────────────────── -->
+        <section class="term hours-payouts" id="payoutsPanel" hidden>
+          <div class="term__head">
+            <span class="term__title">Payouts</span>
+            <span class="term-label" id="payoutsTotal"></span>
+          </div>
+          <div class="term__body term__body--flush">
+            <div id="payoutsList"></div>
+          </div>
+        </section>
+
         <!-- ── Logged hours ─────────────────────────────────────── -->
         <section class="term hours-log">
           <div class="term__head">
@@ -268,6 +349,32 @@
   </div>
 
   <nav class="bottom-nav" id="bottomNav" aria-label="Main navigation"></nav>
+
+  <!-- ── Mark-as-paid modal ─────────────────────────────────── -->
+  <div class="pf-modal" id="paidModal" hidden>
+    <div class="pf-modal__backdrop" id="paidBackdrop"></div>
+    <div class="pf-modal__card" role="dialog" aria-modal="true" aria-labelledby="paidTitle">
+      <div class="pf-modal__title" id="paidTitle">Mark as paid</div>
+      <div class="pf-modal__body">
+        <div class="paid-row"><span>Hours unpaid</span><span id="paidHours">—</span></div>
+        <div class="paid-row"><span>Estimated (at your rate)</span><span id="paidEstimated">—</span></div>
+        <div class="form-group" style="margin-top:14px;">
+          <label class="form-label" for="paidActual">Actual cash received</label>
+          <input type="number" id="paidActual" class="form-control" min="0" step="0.01"
+            inputmode="decimal" placeholder="0.00" />
+        </div>
+        <div class="paid-bonus" id="paidBonus"></div>
+        <label class="shift-checkbox" style="margin-top:6px;">
+          <input type="checkbox" id="paidAddBonus" checked />
+          <span>Add the extra to my balance as income</span>
+        </label>
+      </div>
+      <div class="pf-modal__actions">
+        <button type="button" class="btn btn--ghost" id="paidCancel">Cancel</button>
+        <button type="button" class="btn btn--primary" id="paidConfirm">Confirm payout</button>
+      </div>
+    </div>
+  </div>
 
   <script src="../scripts/components/error-overlay.js"></script>
 

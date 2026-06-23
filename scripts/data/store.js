@@ -572,6 +572,7 @@ const SubscriptionStore = {
 function shiftToRow(s) {
   const row = {};
   if (s.date       !== undefined) row.date        = s.date;
+  if (s.hours      !== undefined) row.hours       = Number(s.hours) || 0;
   if (s.start      !== undefined) row.start_time  = s.start || '';
   if (s.end        !== undefined) row.end_time    = s.end   || '';
   if (s.breakMin   !== undefined) row.break_min   = Number(s.breakMin) || 0;
@@ -588,7 +589,8 @@ function shiftToRow(s) {
 }
 function shiftToCamel(r) {
   return {
-    id: r.id, date: r.date, start: r.start_time || '', end: r.end_time || '',
+    id: r.id, date: r.date, hours: Number(r.hours) || 0,
+    start: r.start_time || '', end: r.end_time || '',
     breakMin: r.break_min || 0, rate: Number(r.rate) || 0, employer: r.employer || '',
     payMode: r.pay_mode === 'fixed' ? 'fixed' : 'hourly',
     fixedPay: Number(r.fixed_pay) || 0, tips: Number(r.tips) || 0,
@@ -734,6 +736,103 @@ const ShiftStore = {
       return;
     }
     const { error } = await sb.from('shifts').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+};
+
+/* ============================================================
+   PAYOUTS — weekly "marked as paid" cash events.
+   Each payout settles a set of shifts: it records the estimated total
+   (hours × rate), the actual cash received, and the difference (the boss's
+   rounding-up bonus). A shift is "paid" when some payout's shiftIds include
+   it. Table-first (`shift_payouts`) with a localStorage fallback + lazy
+   migration, same pattern as ShiftStore/SubscriptionStore.
+   ============================================================ */
+function payoutToRow(p) {
+  const row = {};
+  if (p.date      !== undefined) row.date       = p.date;
+  if (p.hours     !== undefined) row.hours      = Number(p.hours) || 0;
+  if (p.estimated !== undefined) row.estimated  = Number(p.estimated) || 0;
+  if (p.actual    !== undefined) row.actual     = Number(p.actual) || 0;
+  if (p.bonus     !== undefined) row.bonus      = Number(p.bonus) || 0;
+  if (p.shiftIds  !== undefined) row.shift_ids  = Array.isArray(p.shiftIds) ? p.shiftIds : [];
+  if (p.txId      !== undefined) row.tx_id      = p.txId || null;
+  if (p.note      !== undefined) row.note       = p.note || '';
+  return row;
+}
+function payoutToCamel(r) {
+  return {
+    id: r.id, date: r.date,
+    hours: Number(r.hours) || 0, estimated: Number(r.estimated) || 0,
+    actual: Number(r.actual) || 0, bonus: Number(r.bonus) || 0,
+    shiftIds: Array.isArray(r.shift_ids) ? r.shift_ids : [],
+    txId: r.tx_id || null, note: r.note || '',
+  };
+}
+
+const PayoutStore = {
+  _key: 'pf_payouts',
+  _mode: null,
+
+  _local() { try { return JSON.parse(localStorage.getItem(this._key) || '[]'); } catch { return []; } },
+  _persistLocal(list) { localStorage.setItem(this._key, JSON.stringify(list)); },
+
+  async _detect() {
+    if (this._mode) return this._mode;
+    const { error } = await sb.from('shift_payouts').select('id').limit(1);
+    this._mode = error ? 'local' : 'table';
+    if (this._mode === 'table') await this._migrate();
+    return this._mode;
+  },
+
+  async _migrate() {
+    try {
+      const legacy = this._local();
+      if (!legacy.length) return;
+      const uid = await userId();
+      if (!uid) return;
+      const rows = legacy.map(p => ({ id: IS_UUID(p.id) ? p.id : newUUID(), user_id: uid, ...payoutToRow(p) }));
+      const { error } = await sb.from('shift_payouts').insert(rows);
+      if (!error) this._persistLocal([]);
+    } catch (_) { /* local data stays until the next successful load */ }
+  },
+
+  async getAll() {
+    if (await this._detect() === 'local') {
+      return this._local().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    }
+    const { data, error } = await sb.from('shift_payouts').select('*').order('date', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data || []).map(payoutToCamel);
+  },
+
+  /* Set of shift ids already covered by a payout — drives the "unpaid" view. */
+  async paidShiftIds() {
+    const set = new Set();
+    (await this.getAll()).forEach(p => (p.shiftIds || []).forEach(id => set.add(id)));
+    return set;
+  },
+
+  async add(payout) {
+    if (await this._detect() === 'local') {
+      const list = this._local();
+      payout.id = newUUID();
+      list.push(payout);
+      this._persistLocal(list);
+      return payout;
+    }
+    const uid = await userId();
+    const { data, error } = await sb.from('shift_payouts').insert({ user_id: uid, ...payoutToRow(payout) }).select().single();
+    if (error) throw new Error(error.message);
+    return payoutToCamel(data);
+  },
+
+  async remove(id) {
+    if (await this._detect() === 'local') {
+      this._persistLocal(this._local().filter(p => p.id !== id));
+      return;
+    }
+    const { error } = await sb.from('shift_payouts').delete().eq('id', id);
     if (error) throw new Error(error.message);
   },
 };
@@ -906,3 +1005,11 @@ const CSVService = {
     return { imported, skipped };
   },
 };
+
+/* Export for Node-based unit tests. Harmless in the browser, where there is
+   no `module` and these stay globals. Only the pure, DOM/Supabase-free pieces
+   are exposed (the CSV tokenizer + formatters); the store methods need a live
+   Supabase client and aren't unit-testable here. */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { CSVService, isoLocal, formatCurrency, formatDate, formatDateShort };
+}

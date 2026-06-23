@@ -11,9 +11,13 @@ function ymd(d) {
 
 const ShiftEngine = {
 
-  /* Decimal hours worked for a shift. Handles a break (minutes) and an
-     overnight shift (end earlier than start → crosses midnight). */
+  /* Decimal hours worked for a shift. A direct `hours` value (the fast
+     "just total hours" log path) wins when present; otherwise computed from
+     start/end with a break (minutes) and overnight support (end earlier than
+     start → crosses midnight). */
   hours(shift) {
+    const direct = Number(shift && shift.hours);
+    if (Number.isFinite(direct) && direct > 0) return Math.round(direct * 100) / 100;
     const toMin = t => {
       const [h, m] = String(t || '').split(':').map(Number);
       return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
@@ -59,6 +63,25 @@ const ShiftEngine = {
   effectiveRate(shifts, opts = {}) {
     const s = this.summarize(shifts, opts);
     return s.hours > 0 ? Math.round((s.pay / s.hours) * 100) / 100 : 0;
+  },
+
+  /* Everything worked but not yet covered by a payout. A shift is "unpaid"
+     when its `paid` flag is falsy (the page sets this from payout coverage).
+     Returns { count, hours, estimated } where estimated = sum of pay()
+     (hours × rate, or the flat amount, plus tips). */
+  unpaidSummary(shifts) {
+    const list = (shifts || []).filter(s => !s.paid);
+    const sum = fn => Math.round(list.reduce((acc, s) => acc + fn(s), 0) * 100) / 100;
+    return { count: list.length, hours: sum(s => this.hours(s)), estimated: sum(s => this.pay(s)) };
+  },
+
+  /* Reconcile an estimated payout against the actual cash received. The
+     difference is the boss's rounding-up "bonus" (negative if underpaid).
+     Pure money math, rounded to cents. */
+  settlePay(estimated, actual) {
+    const r = v => Math.round((Number(v) || 0) * 100) / 100;
+    const est = r(estimated), act = r(actual);
+    return { estimated: est, actual: act, bonus: r(act - est) };
   },
 
   /* Sunday-based week start (YYYY-MM-DD) for a date string. Pure: no locale,

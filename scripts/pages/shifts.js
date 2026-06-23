@@ -15,12 +15,18 @@
 'use strict';
 
 let _shifts = [];
+let _payouts = [];
 let _accounts = [];
 let _incomeCats = [];
 let _payMode = 'hourly';
 let _goal = { metric: 'pay', target: 0 };
 let _chartMetric = 'pay';
 let _employerFilter = '';
+let _qlDate = null;          /* quick-log selected day */
+let _paidContext = null;     /* snapshot of what the mark-as-paid modal is settling */
+
+/* The job's hourly rate, defaulting to $17 when none has been set yet. */
+function jobRate() { return ShiftStore.getDefaultRate() || 17; }
 
 const iso = d => isoLocal(d);
 const todayISO = () => iso(new Date());
@@ -95,6 +101,214 @@ function renderStats() {
     } else {
       pill.hidden = true;
     }
+  }
+}
+
+/* ============================================================
+   UNPAID PANEL + MARK-AS-PAID  (estimate vs actual)
+   ============================================================ */
+function renderUnpaid() {
+  const panel = document.getElementById('unpaidPanel');
+  if (!panel) return;
+  const u = ShiftEngine.unpaidSummary(_shifts);
+  panel.hidden = false;
+  const amt = document.getElementById('unpaidAmount');
+  const sub = document.getElementById('unpaidSub');
+  const btn = document.getElementById('markPaidBtn');
+
+  if (u.count === 0) {
+    amt.textContent = formatCurrency(0);
+    sub.textContent = "All caught up — nothing waiting to be paid.";
+    btn.disabled = true;
+    panel.classList.add('hours-unpaid--clear');
+  } else {
+    amt.textContent = '~' + formatCurrency(u.estimated);
+    sub.textContent = `${fmtHours(u.hours)} · ${u.count} day${u.count === 1 ? '' : 's'} unpaid · est. at ${formatCurrency(jobRate())}/h`;
+    btn.disabled = false;
+    panel.classList.remove('hours-unpaid--clear');
+  }
+}
+
+function openPaidModal() {
+  const u = ShiftEngine.unpaidSummary(_shifts);
+  if (u.count === 0) return;
+  _paidContext = { hours: u.hours, estimated: u.estimated, shiftIds: _shifts.filter(s => !s.paid).map(s => s.id) };
+  document.getElementById('paidHours').textContent = fmtHours(u.hours);
+  document.getElementById('paidEstimated').textContent = formatCurrency(u.estimated);
+  const actual = document.getElementById('paidActual');
+  actual.value = u.estimated.toFixed(2);          /* prefill with the estimate */
+  document.getElementById('paidAddBonus').checked = true;
+  updatePaidBonus();
+  document.getElementById('paidModal').hidden = false;
+  actual.focus();
+  actual.select();
+}
+
+function closePaidModal() {
+  document.getElementById('paidModal').hidden = true;
+  _paidContext = null;
+}
+
+function updatePaidBonus() {
+  if (!_paidContext) return;
+  const actual = parseFloat(document.getElementById('paidActual').value) || 0;
+  const s = ShiftEngine.settlePay(_paidContext.estimated, actual);
+  const el = document.getElementById('paidBonus');
+  if (s.bonus > 0.005) {
+    el.textContent = `+${formatCurrency(s.bonus)} over the estimate (bonus)`;
+    el.className = 'paid-bonus paid-bonus--up';
+  } else if (s.bonus < -0.005) {
+    el.textContent = `${formatCurrency(s.bonus)} under the estimate`;
+    el.className = 'paid-bonus paid-bonus--down';
+  } else {
+    el.textContent = 'Matches the estimate exactly';
+    el.className = 'paid-bonus';
+  }
+}
+
+async function confirmPaid() {
+  if (!_paidContext) return;
+  const actual = parseFloat(document.getElementById('paidActual').value) || 0;
+  const s = ShiftEngine.settlePay(_paidContext.estimated, actual);
+  const addBonus = document.getElementById('paidAddBonus').checked;
+  const btn = document.getElementById('paidConfirm');
+  btn.disabled = true;
+  try {
+    /* Top up the balance so it equals the real cash: the per-day entries
+       already logged the estimate, so only the extra needs an income row. */
+    let txId = null;
+    if (addBonus && s.bonus > 0.005) {
+      txId = (await TransactionStore.add({
+        date: todayISO(), amount: s.bonus, type: 'income',
+        accountId: ShiftStore.getJobDefaults().accountId || null,
+        note: 'Pay bonus', tags: ['shift', 'bonus'],
+      })).id;
+    }
+    await PayoutStore.add({
+      date: todayISO(), hours: _paidContext.hours,
+      estimated: s.estimated, actual: s.actual, bonus: s.bonus,
+      shiftIds: _paidContext.shiftIds, txId, note: '',
+    });
+    closePaidModal();
+    await renderPage();
+    showToast('Marked as paid', 'success');
+  } catch (err) {
+    showToast(err.message || 'Failed to record payout', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ============================================================
+   PAYOUT HISTORY
+   ============================================================ */
+function renderPayouts() {
+  const panel = document.getElementById('payoutsPanel');
+  const list = document.getElementById('payoutsList');
+  if (!panel) return;
+  if (!_payouts.length) { panel.hidden = true; return; }
+  panel.hidden = false;
+
+  const totalBonus = Math.round(_payouts.reduce((a, p) => a + p.bonus, 0) * 100) / 100;
+  document.getElementById('payoutsTotal').textContent =
+    totalBonus > 0.005 ? `+${formatCurrency(totalBonus)} over estimate · all-time` : '';
+
+  list.innerHTML = _payouts.map(p => {
+    const days = p.shiftIds.length;
+    const bonus = p.bonus > 0.005
+      ? `<span class="payout__bonus payout__bonus--up">+${formatCurrency(p.bonus)}</span>`
+      : p.bonus < -0.005
+      ? `<span class="payout__bonus payout__bonus--down">${formatCurrency(p.bonus)}</span>`
+      : '';
+    return `<div class="payout-row" data-id="${p.id}">
+      <div class="payout-row__main">
+        <div class="payout-row__date">${fmtDay(p.date)}</div>
+        <div class="payout-row__meta">${fmtHours(p.hours)} · est ${formatCurrency(p.estimated)} · ${days} day${days === 1 ? '' : 's'}</div>
+      </div>
+      <div class="payout-row__figs">
+        <div class="payout-row__actual">${formatCurrency(p.actual)}</div>
+        ${bonus}
+      </div>
+      <button type="button" class="btn btn--ghost btn--sm payout-undo" data-id="${p.id}">Undo</button>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.payout-undo').forEach(b =>
+    b.addEventListener('click', () => undoPayout(b.dataset.id)));
+}
+
+async function undoPayout(id) {
+  const p = _payouts.find(x => x.id === id);
+  if (!p) return;
+  if (!await confirmDialog('Undo this payout? Those days go back to unpaid' + (p.txId ? ' and the bonus income entry is removed.' : '.'), { confirmText: 'Undo' })) return;
+  try {
+    if (p.txId) { try { await TransactionStore.delete(p.txId); } catch (_) {} }
+    await PayoutStore.remove(id);
+    await renderPage();
+    showToast('Payout undone', 'success');
+  } catch (err) {
+    showToast(err.message || 'Failed to undo', 'error');
+  }
+}
+
+/* ============================================================
+   QUICK LOG — just total hours for a day
+   ============================================================ */
+function renderQuickChips(selected) {
+  _qlDate = selected;
+  const el = document.getElementById('quickDayChips');
+  if (!el) return;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let html = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const val = iso(d);
+    const dow = i === 0 ? 'Today' : i === 1 ? 'Yest' : d.toLocaleDateString('en-US', { weekday: 'short' });
+    html += `<button type="button" class="day-chip${val === selected ? ' selected' : ''}" data-date="${val}">
+      <span class="day-chip__dow">${dow}</span>
+      <span class="day-chip__date">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+    </button>`;
+  }
+  el.innerHTML = html;
+  el.querySelectorAll('.day-chip').forEach(b =>
+    b.addEventListener('click', () => renderQuickChips(b.dataset.date)));
+}
+
+function renderQuickMeta() {
+  const el = document.getElementById('qlMeta');
+  if (el) el.textContent = `at ${formatCurrency(jobRate())}/h · logs as income`;
+}
+
+async function quickLog(e) {
+  e.preventDefault();
+  const hoursVal = parseFloat(document.getElementById('qlHours').value) || 0;
+  if (hoursVal <= 0) { showToast('Enter hours worked', 'error'); return; }
+  const jd = ShiftStore.getJobDefaults();
+  const rate = jobRate();
+  ShiftStore.setDefaultRate(rate);          /* remember $17 (or your set rate) */
+  const data = {
+    date: _qlDate || todayISO(), hours: hoursVal, rate, payMode: 'hourly', tips: 0,
+    start: '', end: '', breakMin: 0,
+    employer: jd.employer || '', accountId: jd.accountId || null, categoryId: null,
+  };
+  const btn = document.getElementById('qlAdd');
+  btn.disabled = true;
+  try {
+    const pay = ShiftEngine.pay(data);
+    if (pay > 0) {
+      data.txId = (await TransactionStore.add({
+        date: data.date, amount: pay, type: 'income',
+        categoryId: data.categoryId, accountId: data.accountId,
+        note: data.employer || 'Shift', tags: ['shift'],
+      })).id;
+    }
+    await ShiftStore.add(data);
+    document.getElementById('qlHours').value = '';
+    await renderPage();
+    showToast(`Logged ${fmtHours(hoursVal)}`, 'success');
+  } catch (err) {
+    showToast(err.message || 'Failed to log hours', 'error');
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -595,14 +809,21 @@ function renderEmployerDatalist() {
 
 async function renderPage() {
   _shifts = await ShiftStore.getAll();
+  _payouts = await PayoutStore.getAll();
+  const paidIds = await PayoutStore.paidShiftIds();
+  _shifts.forEach(s => { s.paid = paidIds.has(s.id); });
   renderStats();
+  renderUnpaid();
   renderGoal();
+  renderQuickChips(_qlDate || todayISO());
+  renderQuickMeta();
   renderChart();
   renderDayOfWeek();
   renderJobs();
   renderPresets();
   renderEmployerFilter();
   renderEmployerDatalist();
+  renderPayouts();
   renderList();
 }
 
@@ -617,6 +838,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Hours Tracker error:', err);
     showErrorState('shiftsList', "Couldn't load your shifts. " + (err.message || ''), () => location.reload());
   }
+
+  /* quick log + mark-as-paid */
+  document.getElementById('quickLogForm')?.addEventListener('submit', quickLog);
+  document.getElementById('markPaidBtn')?.addEventListener('click', openPaidModal);
+  document.getElementById('paidActual')?.addEventListener('input', updatePaidBonus);
+  document.getElementById('paidConfirm')?.addEventListener('click', confirmPaid);
+  document.getElementById('paidCancel')?.addEventListener('click', closePaidModal);
+  document.getElementById('paidBackdrop')?.addEventListener('click', closePaidModal);
 
   /* form */
   document.getElementById('addShiftBtn')?.addEventListener('click', openAdd);

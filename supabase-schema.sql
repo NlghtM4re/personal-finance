@@ -124,3 +124,32 @@ alter table shifts add column if not exists tips      numeric not null default 0
 create index if not exists idx_shifts_user on shifts(user_id, date desc);
 alter table shifts enable row level security;
 create policy "own shifts" on shifts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ============================================================
+-- v5 (June 2026): "just total hours" logging + payday reconciliation.
+--   * shifts.hours — a direct decimal-hours value for the fast quick-log
+--     path (no clock times). 0/null means use start_time/end_time instead.
+--   * shift_payouts — each "mark as paid" cash event: it settles a set of
+--     shifts (shift_ids), recording the estimated total (hours × rate), the
+--     actual cash received, and the bonus (actual − estimated, i.e. the boss
+--     rounding up). A shift is "paid" when a payout's shift_ids include it.
+-- The app falls back to localStorage until these exist. Safe to re-run.
+-- ============================================================
+alter table shifts add column if not exists hours numeric not null default 0;
+
+create table if not exists shift_payouts (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid references auth.users(id) on delete cascade not null,
+  date       date not null,
+  hours      numeric not null default 0,
+  estimated  numeric not null default 0,
+  actual     numeric not null default 0,
+  bonus      numeric not null default 0,
+  shift_ids  jsonb not null default '[]'::jsonb,
+  tx_id      uuid references transactions(id) on delete set null,
+  note       text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_payouts_user on shift_payouts(user_id, date desc);
+alter table shift_payouts enable row level security;
+create policy "own payouts" on shift_payouts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
