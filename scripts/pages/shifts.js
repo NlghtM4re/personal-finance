@@ -173,14 +173,34 @@ async function confirmPaid() {
   const addBonus = document.getElementById('paidAddBonus').checked;
   const btn = document.getElementById('paidConfirm');
   btn.disabled = true;
+  const jd = ShiftStore.getJobDefaults();
   try {
-    /* Top up the balance so it equals the real cash: the per-day entries
-       already logged the estimate, so only the extra needs an income row. */
+    /* Log any still-"unlogged" days in this batch as income before settling.
+       Quick-logged days start unlogged, so without this their base pay would
+       never hit the balance — only the bonus would. Each freshly-logged day is
+       linked (txId) so its badge flips to "income" too. Days already logged are
+       skipped, so the per-day entries sum to exactly the estimate. */
+    for (const id of _paidContext.shiftIds) {
+      const sh = _shifts.find(x => x.id === id);
+      if (!sh || sh.txId) continue;
+      const pay = ShiftEngine.pay(sh);
+      if (pay <= 0) continue;
+      const dayTxId = (await TransactionStore.add({
+        date: sh.date, amount: pay, type: 'income',
+        categoryId: sh.categoryId || null,
+        accountId: sh.accountId || jd.accountId || null,
+        note: sh.employer || 'Shift', tags: ['shift'],
+      })).id;
+      await ShiftStore.update(id, { txId: dayTxId });
+    }
+
+    /* Top up the balance so it equals the real cash: the per-day entries now
+       cover the full estimate, so only the rounding bonus needs an extra row. */
     let txId = null;
     if (addBonus && s.bonus > 0.005) {
       txId = (await TransactionStore.add({
         date: todayISO(), amount: s.bonus, type: 'income',
-        accountId: ShiftStore.getJobDefaults().accountId || null,
+        accountId: jd.accountId || null,
         note: 'Pay bonus', tags: ['shift', 'bonus'],
       })).id;
     }
@@ -275,7 +295,7 @@ function renderQuickChips(selected) {
 
 function renderQuickMeta() {
   const el = document.getElementById('qlMeta');
-  if (el) el.textContent = `at ${formatCurrency(jobRate())}/h · logs as income`;
+  if (el) el.textContent = `at ${formatCurrency(jobRate())}/h · added unlogged — tap a shift to log it`;
 }
 
 async function quickLog(e) {
@@ -293,18 +313,13 @@ async function quickLog(e) {
   const btn = document.getElementById('qlAdd');
   btn.disabled = true;
   try {
-    const pay = ShiftEngine.pay(data);
-    if (pay > 0) {
-      data.txId = (await TransactionStore.add({
-        date: data.date, amount: pay, type: 'income',
-        categoryId: data.categoryId, accountId: data.accountId,
-        note: data.employer || 'Shift', tags: ['shift'],
-      })).id;
-    }
+    /* Quick-log records the hours only — the shift starts "unlogged" (no income
+       transaction). Tap the badge in the list to log it as income when you're
+       ready (e.g. once the boss has actually paid you). */
     await ShiftStore.add(data);
     document.getElementById('qlHours').value = '';
     await renderPage();
-    showToast(`Logged ${fmtHours(hoursVal)}`, 'success');
+    showToast(`Logged ${fmtHours(hoursVal)} · unlogged`, 'success');
   } catch (err) {
     showToast(err.message || 'Failed to log hours', 'error');
   } finally {
@@ -556,9 +571,39 @@ function shiftRowHTML(s) {
         <div class="shift-row__hours">${hours > 0 ? hours.toFixed(2) + ' h' : '—'}</div>
         <div class="shift-row__pay">${pay > 0 ? '+' + formatCurrency(pay) : '—'}</div>
       </div>
-      ${s.txId ? '<span class="shift-row__badge" title="Logged as income">income</span>' : '<span class="shift-row__badge shift-row__badge--off" title="Not logged as income">unlogged</span>'}
+      ${s.txId
+        ? `<button type="button" class="shift-row__badge shift-toggle" data-id="${s.id}" title="Logged as income — tap to mark unlogged">income</button>`
+        : `<button type="button" class="shift-row__badge shift-row__badge--off shift-toggle" data-id="${s.id}" title="Not logged — tap to log as income">unlogged</button>`}
       <button type="button" class="btn btn--ghost btn--sm shift-edit" data-id="${s.id}">Edit</button>
     </div>`;
+}
+
+/* Flip a shift between "unlogged" (hours only) and "income" (linked income
+   entry). Mirrors the log/unlog branch in saveShift, but driven straight from
+   the badge in the list so a day can be settled without opening the form. */
+async function toggleLogged(id) {
+  const s = _shifts.find(x => x.id === id);
+  if (!s) return;
+  try {
+    if (s.txId) {
+      try { await TransactionStore.delete(s.txId); } catch (_) {}
+      await ShiftStore.update(id, { txId: null });
+      showToast('Marked unlogged', 'success');
+    } else {
+      const pay = ShiftEngine.pay(s);
+      if (pay <= 0) { showToast('Nothing to log for this shift', 'error'); return; }
+      const txId = (await TransactionStore.add({
+        date: s.date, amount: pay, type: 'income',
+        categoryId: s.categoryId || null, accountId: s.accountId || null,
+        note: s.employer || 'Shift', tags: ['shift'],
+      })).id;
+      await ShiftStore.update(id, { txId });
+      showToast('Logged as income', 'success');
+    }
+    await renderPage();
+  } catch (err) {
+    showToast(err.message || 'Failed to update', 'error');
+  }
 }
 
 function renderEmployerFilter() {
@@ -602,6 +647,7 @@ function renderList() {
     </div>`;
   }).join('');
   el.querySelectorAll('.shift-edit').forEach(b => b.addEventListener('click', () => openEdit(b.dataset.id)));
+  el.querySelectorAll('.shift-toggle').forEach(b => b.addEventListener('click', () => toggleLogged(b.dataset.id)));
 }
 
 /* ============================================================
