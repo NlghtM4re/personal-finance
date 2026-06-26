@@ -24,9 +24,17 @@ let _chartMetric = 'pay';
 let _employerFilter = '';
 let _qlDate = null;          /* quick-log selected day */
 let _paidContext = null;     /* snapshot of what the mark-as-paid modal is settling */
+let _jobs = [];              /* saved jobs (cross-device, from JobStore) */
 
-/* The job's hourly rate, defaulting to $17 when none has been set yet. */
-function jobRate() { return ShiftStore.getDefaultRate() || 17; }
+/* The job currently picked in the quick-log selector, or null. */
+function activeJob() {
+  const id = document.getElementById('qlJob')?.value;
+  return _jobs.find(j => j.id === id) || null;
+}
+
+/* Hourly rate to show/estimate with: the active job's rate, then the saved
+   default, then $17 as a last resort. */
+function jobRate() { return (activeJob()?.rate) || ShiftStore.getDefaultRate() || 17; }
 
 const iso = d => isoLocal(d);
 const todayISO = () => iso(new Date());
@@ -302,13 +310,16 @@ async function quickLog(e) {
   e.preventDefault();
   const hoursVal = parseFloat(document.getElementById('qlHours').value) || 0;
   if (hoursVal <= 0) { showToast('Enter hours worked', 'error'); return; }
-  const jd = ShiftStore.getJobDefaults();
-  const rate = jobRate();
-  ShiftStore.setDefaultRate(rate);          /* remember $17 (or your set rate) */
+  const job = activeJob();
+  if (!job) { showToast('Add a job first', 'error'); openJobModal(); return; }
+  localStorage.setItem('pf_quick_job', job.id);   /* remember the pick on this device */
+  const rate = job.rate || ShiftStore.getDefaultRate() || 17;
+  ShiftStore.setDefaultRate(rate);
   const data = {
     date: _qlDate || todayISO(), hours: hoursVal, rate, payMode: 'hourly', tips: 0,
     start: '', end: '', breakMin: 0,
-    employer: jd.employer || '', accountId: jd.accountId || null, categoryId: null,
+    employer: job.name, jobId: job.id,
+    accountId: job.accountId || null, categoryId: job.categoryId || null,
   };
   const btn = document.getElementById('qlAdd');
   btn.disabled = true;
@@ -483,23 +494,32 @@ function renderDayOfWeek() {
 function renderJobs() {
   const el = document.getElementById('jobList');
   if (!el) return;
-  const jobs = ShiftEngine.byEmployer(_shifts);
-  if (!jobs.length) {
-    el.innerHTML = `<div class="empty-state" style="padding:22px 14px;">No jobs logged yet.</div>`;
+  if (!_jobs.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:22px 14px;text-align:center;">
+        <div style="margin-bottom:10px;">No jobs yet — add one to log hours against it.</div>
+        <button type="button" class="btn btn--ghost btn--sm" id="emptyAddJob">+ Add your first job</button>
+      </div>`;
+    document.getElementById('emptyAddJob')?.addEventListener('click', () => openJobModal());
     return;
   }
-  const max = Math.max(...jobs.map(j => j.pay), 0);
-  el.innerHTML = jobs.slice(0, 6).map(j => {
-    const w = max > 0 ? (j.pay / max) * 100 : 0;
-    return `<div class="job-row">
+  /* all-time hours/pay per job, matched to the saved job by name */
+  const stats  = ShiftEngine.byEmployer(_shifts);
+  const byName = Object.fromEntries(stats.map(s => [s.employer, s]));
+  const max    = Math.max(...stats.map(s => s.pay), 0);
+  el.innerHTML = _jobs.map(j => {
+    const st = byName[j.name] || { hours: 0, pay: 0, count: 0 };
+    const w  = max > 0 ? (st.pay / max) * 100 : 0;
+    return `<button type="button" class="job-row job-row--btn" data-id="${j.id}" title="Edit job">
       <div class="job-row__bar" style="width:${Math.max(2, w)}%"></div>
       <div class="job-row__main">
-        <span class="job-row__name">${escapeHTML(j.employer)}</span>
-        <span class="job-row__meta">${fmtHours(j.hours)}${j.rate > 0 ? ` · ${formatCurrency(j.rate)}/h` : ''} · ${j.count} shift${j.count === 1 ? '' : 's'}</span>
+        <span class="job-row__name">${escapeHTML(j.name)}</span>
+        <span class="job-row__meta">${j.rate > 0 ? `${formatCurrency(j.rate)}/h` : 'no rate'} · ${fmtHours(st.hours)} · ${st.count} shift${st.count === 1 ? '' : 's'}</span>
       </div>
-      <span class="job-row__pay">${formatCurrency(j.pay)}</span>
-    </div>`;
+      <span class="job-row__pay">${formatCurrency(st.pay)}</span>
+    </button>`;
   }).join('');
+  el.querySelectorAll('.job-row--btn').forEach(b =>
+    b.addEventListener('click', () => openJobModal(b.dataset.id)));
 }
 
 /* ============================================================
@@ -530,7 +550,8 @@ function usePreset(id) {
   const p = ShiftStore.getPresets().find(x => x.id === id);
   if (!p) return;
   openAdd();
-  document.getElementById('sEmployer').value = p.employer || '';
+  const sj = document.getElementById('sJob');
+  if (sj) sj.value = _jobs.find(j => j.name === (p.employer || '').trim())?.id || '';
   document.getElementById('sStart').value = p.start || '';
   document.getElementById('sEnd').value = p.end || '';
   document.getElementById('sBreak').value = p.breakMin || 0;
@@ -684,9 +705,11 @@ function setPayMode(mode) {
 }
 
 function readForm() {
+  const job = _jobs.find(j => j.id === document.getElementById('sJob').value);
   return {
     date:       document.getElementById('sDate').value,
-    employer:   document.getElementById('sEmployer').value.trim(),
+    jobId:      job ? job.id   : null,
+    employer:   job ? job.name : '',
     start:      document.getElementById('sStart').value,
     end:        document.getElementById('sEnd').value,
     breakMin:   parseInt(document.getElementById('sBreak').value) || 0,
@@ -722,7 +745,8 @@ function showForm(show) {
 function openAdd() {
   document.getElementById('sEditId').value = '';
   document.getElementById('shiftFormTitle').textContent = 'Log shift';
-  document.getElementById('sEmployer').value = '';
+  const aj = activeJob();
+  document.getElementById('sJob').value = aj?.id || '';
   document.getElementById('sStart').value = '';
   document.getElementById('sEnd').value = '';
   document.getElementById('sBreak').value = '0';
@@ -733,6 +757,7 @@ function openAdd() {
   document.getElementById('shiftDelete').hidden = true;
   setDate(todayISO());
   setPayMode('hourly');
+  if (aj) applyJobToForm(aj);
   syncIncomeFields(); payPreview(); showForm(true);
 }
 
@@ -741,7 +766,9 @@ function openEdit(id) {
   if (!s) return;
   document.getElementById('sEditId').value = s.id;
   document.getElementById('shiftFormTitle').textContent = 'Edit shift';
-  document.getElementById('sEmployer').value = s.employer || '';
+  const sj = document.getElementById('sJob');
+  if (sj) sj.value = (s.jobId && _jobs.some(j => j.id === s.jobId)) ? s.jobId
+    : (_jobs.find(j => j.name === (s.employer || '').trim())?.id || '');
   document.getElementById('sStart').value = s.start || '';
   document.getElementById('sEnd').value = s.end || '';
   document.getElementById('sBreak').value = s.breakMin || 0;
@@ -838,19 +865,136 @@ async function saveAsPreset() {
 async function loadOptions() {
   _accounts   = await AccountStore.getAll();
   _incomeCats = await CategoryStore.getByType('income');
-  const accSel = document.getElementById('sAccount');
-  if (accSel) accSel.innerHTML = '<option value="">— none —</option>' +
+  const acctOpts = '<option value="">— none —</option>' +
     _accounts.map(a => `<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('');
-  const catSel = document.getElementById('sCategory');
-  if (catSel) catSel.innerHTML = '<option value="">— none —</option>' +
+  const catOpts  = '<option value="">— none —</option>' +
     _incomeCats.map(c => `<option value="${c.id}">${escapeHTML(c.name)}</option>`).join('');
+  ['sAccount', 'jAccount'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = acctOpts; });
+  ['sCategory', 'jCategory'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = catOpts; });
 }
 
-function renderEmployerDatalist() {
-  const dl = document.getElementById('employerList');
-  if (!dl) return;
-  const names = [...new Set(_shifts.map(s => (s.employer || '').trim()).filter(Boolean))].sort();
-  dl.innerHTML = names.map(n => `<option value="${escapeHTML(n)}"></option>`).join('');
+/* Load saved jobs and (re)fill the quick-log + form selectors. Keeps the
+   quick-log job picked across renders when it still exists. */
+async function loadJobs() {
+  _jobs = await JobStore.getAll();
+  populateJobSelects();
+}
+
+function populateJobSelects() {
+  /* Quick-log picker: just the jobs (no "none" — quick-log needs a job's rate).
+     Falls back to a hint option when there are none yet. */
+  const ql = document.getElementById('qlJob');
+  if (ql) {
+    const keep = ql.value;
+    if (!_jobs.length) {
+      ql.innerHTML = '<option value="">Add a job first →</option>';
+    } else {
+      ql.innerHTML = _jobs.map(j => `<option value="${j.id}">${escapeHTML(j.name)}</option>`).join('');
+      /* prefer the current pick, then the Settings default job, then the
+         last-used one, then just the first job */
+      ql.value = [keep, JobStore.getDefaultId(), localStorage.getItem('pf_quick_job')]
+        .find(id => id && _jobs.some(j => j.id === id)) || _jobs[0].id;
+    }
+  }
+  /* Shift form picker: optional, plus an inline "new job" shortcut. */
+  const sj = document.getElementById('sJob');
+  if (sj) {
+    const keep = sj.value;
+    sj.innerHTML = '<option value="">— No job —</option>' +
+      _jobs.map(j => `<option value="${j.id}">${escapeHTML(j.name)}</option>`).join('') +
+      '<option value="__new__">+ New job…</option>';
+    sj.value = _jobs.some(j => j.id === keep) ? keep : '';
+  }
+}
+
+/* ============================================================
+   JOB EDITOR (modal) + form job selector
+   ============================================================ */
+let _jobModalFromForm = false;   /* opened via the shift form's "+ New job"? */
+
+/* Fill the shift form's rate/account/category from a job's defaults. */
+function applyJobToForm(job) {
+  if (!job) return;
+  setPayMode('hourly');
+  if (job.rate) document.getElementById('sRate').value = job.rate;
+  document.getElementById('sAccount').value  = job.accountId  || '';
+  document.getElementById('sCategory').value = job.categoryId || '';
+  payPreview();
+}
+
+function onShiftJobChange() {
+  const sel = document.getElementById('sJob');
+  if (sel.value === '__new__') {
+    sel.value = '';                 /* revert; the modal selects it on save */
+    openJobModal(null, true);
+    return;
+  }
+  applyJobToForm(_jobs.find(j => j.id === sel.value));
+}
+
+function openJobModal(id = null, fromForm = false) {
+  _jobModalFromForm = fromForm;
+  const job = id ? _jobs.find(j => j.id === id) : null;
+  document.getElementById('jEditId').value = job ? job.id : '';
+  document.getElementById('jobModalTitle').textContent = job ? 'Edit job' : 'New job';
+  document.getElementById('jName').value = job ? job.name : '';
+  document.getElementById('jRate').value = job && job.rate ? job.rate : (ShiftStore.getDefaultRate() || '');
+  document.getElementById('jAccount').value  = job ? (job.accountId || '') : (ShiftStore.getJobDefaults().accountId || '');
+  document.getElementById('jCategory').value = job ? (job.categoryId || '') : '';
+  document.getElementById('jobDelete').hidden = !job;
+  document.getElementById('jobModal').hidden = false;
+  document.getElementById('jName').focus();
+}
+
+function closeJobModal() {
+  document.getElementById('jobModal').hidden = true;
+  _jobModalFromForm = false;
+}
+
+async function saveJob() {
+  const id   = document.getElementById('jEditId').value;
+  const name = document.getElementById('jName').value.trim();
+  if (!name) { showToast('Name the job', 'error'); return; }
+  const data = {
+    name,
+    rate:       parseFloat(document.getElementById('jRate').value) || 0,
+    accountId:  document.getElementById('jAccount').value  || null,
+    categoryId: document.getElementById('jCategory').value || null,
+  };
+  const btn = document.getElementById('jobSave');
+  btn.disabled = true;
+  try {
+    const saved = id ? await JobStore.update(id, data) : await JobStore.add(data);
+    if (data.rate > 0) ShiftStore.setDefaultRate(data.rate);   /* keep a sensible fallback rate */
+    const fromForm = _jobModalFromForm;
+    closeJobModal();
+    await loadJobs();
+    if (fromForm && saved) {
+      const sel = document.getElementById('sJob');
+      if (sel) { sel.value = saved.id; applyJobToForm(saved); }
+    }
+    renderJobs();
+    showToast(id ? 'Job saved' : 'Job added', 'success');
+  } catch (err) {
+    showToast(err.message || 'Failed to save job', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteJob() {
+  const id = document.getElementById('jEditId').value;
+  if (!id) return;
+  if (!await confirmDialog('Delete this job? Your logged shifts stay, but lose their job link.', { confirmText: 'Delete' })) return;
+  try {
+    await JobStore.remove(id);
+    closeJobModal();
+    await loadJobs();
+    renderJobs();
+    showToast('Job deleted', 'success');
+  } catch (err) {
+    showToast(err.message || 'Failed to delete job', 'error');
+  }
 }
 
 async function renderPage() {
@@ -858,6 +1002,7 @@ async function renderPage() {
   _payouts = await PayoutStore.getAll();
   const paidIds = await PayoutStore.paidShiftIds();
   _shifts.forEach(s => { s.paid = paidIds.has(s.id); });
+  await loadJobs();
   renderStats();
   renderUnpaid();
   renderGoal();
@@ -868,7 +1013,6 @@ async function renderPage() {
   renderJobs();
   renderPresets();
   renderEmployerFilter();
-  renderEmployerDatalist();
   renderPayouts();
   renderList();
 }
@@ -879,6 +1023,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   _goal = ShiftStore.getGoal();
   try {
     await loadOptions();
+    /* one-time: turn any existing shift job names into saved jobs */
+    await JobStore.seedFromShifts(await ShiftStore.getAll());
     await renderPage();
   } catch (err) {
     console.error('Hours Tracker error:', err);
@@ -892,6 +1038,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('paidConfirm')?.addEventListener('click', confirmPaid);
   document.getElementById('paidCancel')?.addEventListener('click', closePaidModal);
   document.getElementById('paidBackdrop')?.addEventListener('click', closePaidModal);
+
+  /* jobs */
+  document.getElementById('addJobBtn')?.addEventListener('click', () => openJobModal());
+  document.getElementById('jobSave')?.addEventListener('click', saveJob);
+  document.getElementById('jobDelete')?.addEventListener('click', deleteJob);
+  document.getElementById('jobCancel')?.addEventListener('click', closeJobModal);
+  document.getElementById('jobBackdrop')?.addEventListener('click', closeJobModal);
+  document.getElementById('sJob')?.addEventListener('change', onShiftJobChange);
+  document.getElementById('qlJob')?.addEventListener('change', e => {
+    localStorage.setItem('pf_quick_job', e.target.value);
+    renderQuickMeta();
+  });
 
   /* form */
   document.getElementById('addShiftBtn')?.addEventListener('click', openAdd);

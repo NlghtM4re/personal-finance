@@ -2,18 +2,26 @@
    quick-log.js — Dashboard "Log hours" widget.
    Pick a day of the current week, enter the hours (or a start→end
    time range), and log — the hourly rate, deposit account and job
-   name come from your Job defaults (Settings). Mirrors the Hours
-   Tracker save path: a paying shift also creates a linked income
-   transaction (tags:['shift']). Exposes window.QuickLog.init.
-   Depends on ShiftStore, ShiftEngine, TransactionStore,
-   AccountStore, formatCurrency, escapeHTML, showToast.
+   name come from your Job defaults (Settings). Like the Hours
+   Tracker quick-log, a shift is added "unlogged" — no income
+   transaction until you flip it from the Hours Tracker list.
+   Exposes window.QuickLog.init.
+   Depends on ShiftStore, ShiftEngine, AccountStore,
+   formatCurrency, escapeHTML, showToast.
    ============================================================ */
 (function () {
 'use strict';
 
 let _accounts = [];
 let _incomeCats = [];
+let _jobs = [];
 let _onLogged = null;
+
+/* The default job chosen in Settings (a JobStore job), or null. */
+function defaultJob() {
+  if (typeof JobStore === 'undefined') return null;
+  return _jobs.find(j => j.id === JobStore.getDefaultId()) || null;
+}
 let _selected = null;            /* selected day, YYYY-MM-DD */
 let _mode = 'hours';             /* 'hours' | 'times' */
 
@@ -50,18 +58,12 @@ function addHours(start, h) {
   return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
 }
 
-/* Shared save: build the shift, log income when it pays, link the two. */
+/* Shared save: add the shift as "unlogged" — no income transaction. Flip it
+   to income from the Hours Tracker list once you're actually paid. Mirrors the
+   Hours Tracker quick-log default. */
 async function logShift(data) {
   const pay = ShiftEngine.pay(data);
-  let txId = null;
-  if (pay > 0) {
-    txId = (await TransactionStore.add({
-      date: data.date, amount: pay, type: 'income',
-      categoryId: data.categoryId || null, accountId: data.accountId || null,
-      note: data.employer || 'Shift', tags: ['shift'],
-    })).id;
-  }
-  data.txId = txId;
+  data.txId = null;
   await ShiftStore.add(data);
   return pay;
 }
@@ -85,12 +87,19 @@ function renderHint() {
   const el = document.getElementById('qlRateHint');
   if (!el) return;
   const job = ShiftStore.getJobDefaults();
-  const acc = _accounts.find(a => a.id === job.accountId) || _accounts[0];
+  const dj  = defaultJob();
+  const name = dj ? `${escapeHTML(dj.name)} · ` : '';
+  const rate = dj ? dj.rate : job.rate;
+  const acc = _accounts.find(a => a.id === ((dj && dj.accountId) || job.accountId)) || _accounts[0];
   if (_mode === 'pay') {
-    if (acc) { el.innerHTML = `Deposited → ${escapeHTML(acc.name)}`; el.hidden = false; }
+    if (acc) { el.innerHTML = `${name}Deposited → ${escapeHTML(acc.name)}`; el.hidden = false; }
+    else if (name) { el.innerHTML = name.replace(/ · $/, ''); el.hidden = false; }
     else { el.innerHTML = ''; el.hidden = true; }
-  } else if (job.rate > 0) {
-    el.innerHTML = `Paid <strong>${formatCurrency(job.rate)}/h</strong>${acc ? ` → ${escapeHTML(acc.name)}` : ''}`;
+  } else if (rate > 0) {
+    el.innerHTML = `${name}Paid <strong>${formatCurrency(rate)}/h</strong>${acc ? ` → ${escapeHTML(acc.name)}` : ''}`;
+    el.hidden = false;
+  } else if (name) {
+    el.innerHTML = name.replace(/ · $/, '');
     el.hidden = false;
   } else {
     el.innerHTML = '';
@@ -113,10 +122,14 @@ function setMode(mode) {
 async function submitForm(e) {
   e.preventDefault();
   const job = ShiftStore.getJobDefaults();
+  const dj  = defaultJob();
   const base = {
-    date: _selected || todayISO(), employer: job.employer || '', breakMin: 0, tips: 0,
-    accountId: job.accountId || _accounts[0]?.id || null,
-    categoryId: _incomeCats[0]?.id || null,
+    date: _selected || todayISO(),
+    employer: dj ? dj.name : (job.employer || ''),
+    jobId: dj ? dj.id : null,
+    breakMin: 0, tips: 0,
+    accountId: (dj && dj.accountId) || job.accountId || _accounts[0]?.id || null,
+    categoryId: (dj && dj.categoryId) || _incomeCats[0]?.id || null,
   };
 
   let data;
@@ -135,7 +148,7 @@ async function submitForm(e) {
       if (hours <= 0) { showToast('Enter the number of hours', 'error'); return; }
       start = '09:00'; end = addHours(start, hours);
     }
-    data = { ...base, start, end, payMode: 'hourly', rate: job.rate || 0, fixedPay: 0 };
+    data = { ...base, start, end, payMode: 'hourly', rate: (dj ? dj.rate : job.rate) || 0, fixedPay: 0 };
   }
 
   const btn = document.getElementById('qlSubmit');
@@ -144,8 +157,8 @@ async function submitForm(e) {
     const pay = await logShift(data);
     const hrs = ShiftEngine.hours(data);
     const msg = _mode === 'pay'
-      ? `Logged +${formatCurrency(pay)}`
-      : (pay > 0 ? `Logged ${fmtHours(hrs)} · +${formatCurrency(pay)}` : `Logged ${fmtHours(hrs)}`);
+      ? `Logged ${formatCurrency(pay)} · unlogged`
+      : (pay > 0 ? `Logged ${fmtHours(hrs)} · unlogged` : `Logged ${fmtHours(hrs)}`);
     showToast(msg, 'success');
     ['qlHours', 'qlStart', 'qlEnd', 'qlPay'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     await afterLog();
@@ -184,7 +197,8 @@ async function init(opts = {}) {
   try {
     _accounts   = await AccountStore.getAll();
     _incomeCats = await CategoryStore.getByType('income');
-  } catch (_) { _accounts = []; _incomeCats = []; }
+    _jobs       = (typeof JobStore !== 'undefined') ? await JobStore.getAll() : [];
+  } catch (_) { _accounts = []; _incomeCats = []; _jobs = []; }
 
   _selected = todayISO();
   setMode('hours');

@@ -176,6 +176,7 @@
             <div class="term__body">
               <form class="quick-log" id="quickLogForm">
                 <div class="day-chips" id="quickDayChips"></div>
+                <select id="qlJob" class="form-control quick-log__job" aria-label="Job"></select>
                 <div class="quick-log__row">
                   <div class="quick-log__field">
                     <input type="number" id="qlHours" class="form-control" min="0" step="0.25"
@@ -225,8 +226,8 @@
           <!-- By job -->
           <section class="term" id="jobPanel">
             <div class="term__head">
-              <span class="term__title">By job</span>
-              <span class="term-label">all-time</span>
+              <span class="term__title">Jobs</span>
+              <button type="button" class="btn btn--ghost btn--sm" id="addJobBtn">+ Add job</button>
             </div>
             <div class="term__body term__body--flush">
               <div id="jobList"></div>
@@ -251,9 +252,8 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="sEmployer">Employer / job</label>
-              <input type="text" id="sEmployer" class="form-control" placeholder="e.g. Café" maxlength="60" list="employerList" />
-              <datalist id="employerList"></datalist>
+              <label class="form-label" for="sJob">Job</label>
+              <select id="sJob" class="form-control"></select>
             </div>
 
             <div class="shift-form-grid">
@@ -372,6 +372,38 @@
       <div class="pf-modal__actions">
         <button type="button" class="btn btn--ghost" id="paidCancel">Cancel</button>
         <button type="button" class="btn btn--primary" id="paidConfirm">Confirm payout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Job editor modal ───────────────────────────────────── -->
+  <div class="pf-modal" id="jobModal" hidden>
+    <div class="pf-modal__backdrop" id="jobBackdrop"></div>
+    <div class="pf-modal__card" role="dialog" aria-modal="true" aria-labelledby="jobModalTitle">
+      <div class="pf-modal__title" id="jobModalTitle">New job</div>
+      <div class="pf-modal__body">
+        <input type="hidden" id="jEditId" />
+        <div class="form-group">
+          <label class="form-label" for="jName">Job name</label>
+          <input type="text" id="jName" class="form-control" placeholder="e.g. Lawn mowing" maxlength="60" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="jRate">Hourly rate</label>
+          <input type="number" id="jRate" class="form-control" min="0" step="0.01" inputmode="decimal" placeholder="0.00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="jAccount">Deposit to</label>
+          <select id="jAccount" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="jCategory">Income category</label>
+          <select id="jCategory" class="form-control"></select>
+        </div>
+      </div>
+      <div class="pf-modal__actions">
+        <button type="button" class="btn btn--danger btn--sm" id="jobDelete" hidden>Delete</button>
+        <button type="button" class="btn btn--ghost" id="jobCancel">Cancel</button>
+        <button type="button" class="btn btn--primary" id="jobSave">Save job</button>
       </div>
     </div>
   </div>

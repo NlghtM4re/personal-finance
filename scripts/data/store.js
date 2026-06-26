@@ -584,6 +584,7 @@ function shiftToRow(s) {
   if (s.accountId  !== undefined) row.account_id  = s.accountId  || null;
   if (s.categoryId !== undefined) row.category_id = s.categoryId || null;
   if (s.txId       !== undefined) row.tx_id       = s.txId       || null;
+  if (s.jobId      !== undefined) row.job_id      = s.jobId      || null;
   if (s.note       !== undefined) row.note        = s.note || '';
   return row;
 }
@@ -595,7 +596,7 @@ function shiftToCamel(r) {
     payMode: r.pay_mode === 'fixed' ? 'fixed' : 'hourly',
     fixedPay: Number(r.fixed_pay) || 0, tips: Number(r.tips) || 0,
     accountId: r.account_id || null, categoryId: r.category_id || null,
-    txId: r.tx_id || null, note: r.note || '',
+    txId: r.tx_id || null, jobId: r.job_id || null, note: r.note || '',
   };
 }
 
@@ -737,6 +738,133 @@ const ShiftStore = {
     }
     const { error } = await sb.from('shifts').delete().eq('id', id);
     if (error) throw new Error(error.message);
+  },
+};
+
+/* ============================================================
+   JOBS — named, reusable employers/roles with default rate + deposit
+   account + income category. Replaces the per-device localStorage "job
+   defaults" so the same jobs follow you across devices. Table-first
+   (`jobs`) with a localStorage fallback + lazy migration, same pattern as
+   ShiftStore. Shifts link to a job via jobId and keep the job's name in
+   `employer` so the existing by-job analytics keep working.
+   ============================================================ */
+function jobToRow(j) {
+  const row = {};
+  if (j.name       !== undefined) row.name        = j.name || '';
+  if (j.rate       !== undefined) row.rate        = Number(j.rate) || 0;
+  if (j.accountId  !== undefined) row.account_id  = j.accountId  || null;
+  if (j.categoryId !== undefined) row.category_id = j.categoryId || null;
+  if (j.archived   !== undefined) row.archived    = !!j.archived;
+  return row;
+}
+function jobToCamel(r) {
+  return {
+    id: r.id, name: r.name || '', rate: Number(r.rate) || 0,
+    accountId: r.account_id || null, categoryId: r.category_id || null,
+    archived: !!r.archived,
+  };
+}
+
+const JobStore = {
+  _key: 'pf_jobs',
+  _mode: null,
+
+  _local() { try { return JSON.parse(localStorage.getItem(this._key) || '[]'); } catch { return []; } },
+  _persistLocal(list) { localStorage.setItem(this._key, JSON.stringify(list)); },
+
+  /* The default job (set in Settings) — what the quick-logs log against.
+     Stored as a job id; '' = none chosen. */
+  getDefaultId() { return localStorage.getItem('pf_default_job') || ''; },
+  setDefaultId(id) {
+    if (id) localStorage.setItem('pf_default_job', id);
+    else localStorage.removeItem('pf_default_job');
+  },
+
+  async _detect() {
+    if (this._mode) return this._mode;
+    const { error } = await sb.from('jobs').select('id').limit(1);
+    this._mode = error ? 'local' : 'table';
+    if (this._mode === 'table') await this._migrate();
+    return this._mode;
+  },
+
+  async _migrate() {
+    try {
+      const legacy = this._local();
+      if (!legacy.length) return;
+      const uid = await userId();
+      if (!uid) return;
+      const rows = legacy.map(j => ({ id: IS_UUID(j.id) ? j.id : newUUID(), user_id: uid, ...jobToRow(j) }));
+      const { error } = await sb.from('jobs').insert(rows);
+      if (!error) this._persistLocal([]);
+    } catch (_) { /* local data stays until the next successful load */ }
+  },
+
+  async getAll() {
+    if (await this._detect() === 'local') {
+      return this._local().filter(j => !j.archived)
+        .slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+    const { data, error } = await sb.from('jobs').select('*').eq('archived', false).order('name');
+    if (error) throw new Error(error.message);
+    return (data || []).map(jobToCamel);
+  },
+
+  async getById(id) { return (await this.getAll()).find(j => j.id === id) || null; },
+
+  async add(job) {
+    if (await this._detect() === 'local') {
+      const list = this._local();
+      job.id = newUUID();
+      job.archived = !!job.archived;
+      list.push(job);
+      this._persistLocal(list);
+      return job;
+    }
+    const uid = await userId();
+    const { data, error } = await sb.from('jobs').insert({ user_id: uid, ...jobToRow(job) }).select().single();
+    if (error) throw new Error(error.message);
+    return jobToCamel(data);
+  },
+
+  async update(id, patch) {
+    if (await this._detect() === 'local') {
+      const list = this._local();
+      const idx  = list.findIndex(j => j.id === id);
+      if (idx === -1) return;
+      list[idx] = { ...list[idx], ...patch };
+      this._persistLocal(list);
+      return list[idx];
+    }
+    const { data, error } = await sb.from('jobs').update(jobToRow(patch)).eq('id', id).select().single();
+    if (error) throw new Error(error.message);
+    return jobToCamel(data);
+  },
+
+  async remove(id) {
+    if (await this._detect() === 'local') {
+      this._persistLocal(this._local().filter(j => j.id !== id));
+      return;
+    }
+    const { error } = await sb.from('jobs').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  /* One-time seed: if there are no jobs yet, create one per distinct job name
+     already on the user's shifts (carrying the saved default rate + account),
+     so existing data maps onto jobs without manual re-entry. */
+  async seedFromShifts(shifts) {
+    const existing = await this.getAll();
+    if (existing.length) return existing;
+    const names = [...new Set((shifts || []).map(s => (s.employer || '').trim()).filter(Boolean))];
+    if (!names.length) return existing;
+    const rate = ShiftStore.getDefaultRate() || 0;
+    const accountId = ShiftStore.getJobDefaults().accountId || null;
+    for (const name of names) {
+      try { await this.add({ name, rate, accountId, categoryId: null }); } catch (_) {}
+    }
+    return this.getAll();
   },
 };
 

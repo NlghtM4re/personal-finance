@@ -178,14 +178,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const job = ShiftStore.getJobDefaults();
-    const jobEmployer = document.getElementById('jobEmployer');
     const jobRate     = document.getElementById('jobRate');
     const jobAccSel   = document.getElementById('jobAccountSelect');
-    if (jobEmployer) {
-      jobEmployer.value = job.employer;
-      jobEmployer.addEventListener('change', () => {
-        ShiftStore.setJobDefaults({ employer: jobEmployer.value.trim() });
-        showToast('Job defaults saved', 'success');
+
+    const jobs   = await JobStore.getAll();
+    const jobSel = document.getElementById('jobDefaultSelect');
+    if (jobSel) {
+      jobSel.innerHTML = '<option value="">— None —</option>' +
+        jobs.map(j => `<option value="${j.id}">${escapeHTML(j.name)}</option>`).join('');
+      jobSel.value = JobStore.getDefaultId();
+      jobSel.addEventListener('change', () => {
+        JobStore.setDefaultId(jobSel.value);
+        const j = jobs.find(x => x.id === jobSel.value);
+        if (j) {
+          /* mirror the job's defaults into the legacy job-defaults so the rate
+             + deposit rows reflect it and old consumers keep working */
+          ShiftStore.setJobDefaults({ employer: j.name, rate: j.rate, accountId: j.accountId || '' });
+          if (jobRate)   jobRate.value   = j.rate || '';
+          if (jobAccSel) jobAccSel.value = j.accountId || '';
+        }
+        showToast('Default job saved', 'success');
       });
     }
     if (jobRate) {

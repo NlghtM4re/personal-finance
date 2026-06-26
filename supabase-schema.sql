@@ -153,3 +153,29 @@ create table if not exists shift_payouts (
 create index if not exists idx_payouts_user on shift_payouts(user_id, date desc);
 alter table shift_payouts enable row level security;
 create policy "own payouts" on shift_payouts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ============================================================
+-- v6 (June 2026): named jobs. A job is a reusable employer/role with a
+-- default hourly rate, deposit account and income category — it replaces the
+-- per-device localStorage "job defaults" so the same jobs follow you across
+-- devices. Shifts reference a job (job_id) and keep the job's name in
+-- `employer` for the by-job analytics. The app falls back to localStorage
+-- until this table exists, then seeds jobs from your existing shift names on
+-- first load. Safe to re-run.
+-- ============================================================
+create table if not exists jobs (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references auth.users(id) on delete cascade not null,
+  name        text not null default '',
+  rate        numeric not null default 0,
+  account_id  uuid references accounts(id) on delete set null,
+  category_id text,
+  archived    boolean not null default false,
+  created_at  timestamptz not null default now()
+);
+create index if not exists idx_jobs_user on jobs(user_id);
+alter table jobs enable row level security;
+create policy "own jobs" on jobs for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Link shifts to a job (the name stays denormalised in `employer`):
+alter table shifts add column if not exists job_id uuid references jobs(id) on delete set null;
