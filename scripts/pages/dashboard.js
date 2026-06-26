@@ -806,6 +806,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   if (!user) return;            /* requireAuth redirected to login — keep the loader up */
 
+  /* pull synced settings, then re-read the balance mode (set at module load) */
+  try { await SettingsStore.hydrateLocalDefaults(); } catch (_) {}
+  _balanceMode = localStorage.getItem('pf_balance_mode') === 'networth' ? 'networth' : 'cash';
+
   try {
     await initDashboard();
   } catch (err) {
@@ -828,6 +832,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (mode === _balanceMode) return;
       _balanceMode = mode;
       try { localStorage.setItem('pf_balance_mode', mode); } catch (_) {}
+      SettingsStore.setUiPref({ balanceMode: mode });   /* sync cross-device */
       document.querySelectorAll('#balanceModeToggle .seg-btn').forEach(b =>
         b.classList.toggle('active', b.dataset.mode === mode));
       renderBalanceChart().catch(console.error);

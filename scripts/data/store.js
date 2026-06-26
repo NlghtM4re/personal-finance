@@ -179,6 +179,7 @@ const AccountStore = {
   setDefaultId(id) {
     if (id) localStorage.setItem('pf_default_account', id);
     else localStorage.removeItem('pf_default_account');
+    SettingsStore.setJobSettings({ defaultAccountId: id || '' });   /* sync cross-device */
   },
 
   /* last-good cache → a transient error shows stale accounts, not a blank page */
@@ -372,6 +373,117 @@ const SettingsStore = {
   async setSubscriptions(subs) {
     if (this._cache) this._cache.subscriptions = subs;
     await this._save({ subscriptions: subs });
+  },
+
+  /* ---- Hours-tracker defaults, synced cross-device ----
+     The job/account defaults used to live only in localStorage, so a second
+     device started blank. They now persist in user_settings.job_defaults and
+     mirror back into the same localStorage keys the synchronous getters read
+     (pf_default_job / pf_job_employer / pf_shift_rate / pf_job_account /
+     pf_default_account) — so nothing downstream changes, it just hydrates from
+     the server on load. The write is an isolated upsert of only job_defaults,
+     so a pre-migration DB (no column yet) degrades to local-only instead of
+     breaking the other settings saves. */
+  /* Write a single jsonb column on its own — isolated from _save so a
+     pre-migration DB (missing column) degrades to local-only rather than
+     breaking the other settings. Caches the value only on success. */
+  async _putColumn(column, value) {
+    const uid = await userId();
+    if (!uid) return;
+    try {
+      await sb.from('user_settings').upsert({ user_id: uid, [column]: value }, { onConflict: 'user_id' });
+      if (this._cache) this._cache[column] = value;
+    } catch (_) { /* pre-migration / offline: the localStorage mirror still applied */ }
+  },
+
+  async getJobSettings() {
+    const s = await this._load();
+    return (s && s.job_defaults && typeof s.job_defaults === 'object') ? s.job_defaults : {};
+  },
+
+  _mirrorJobDefaults(jd) {
+    const set = (k, v) => { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); };
+    if (jd.defaultJobId     !== undefined) set('pf_default_job',     jd.defaultJobId);
+    if (jd.employer         !== undefined) set('pf_job_employer',    jd.employer);
+    if (jd.rate             !== undefined) localStorage.setItem('pf_shift_rate', String(Number(jd.rate) || 0));
+    if (jd.accountId        !== undefined) set('pf_job_account',     jd.accountId);
+    if (jd.defaultAccountId !== undefined) set('pf_default_account', jd.defaultAccountId);
+  },
+
+  async setJobSettings(patch) {
+    const merged = { ...(await this.getJobSettings()), ...patch };
+    this._mirrorJobDefaults(merged);                 /* local mirror applies immediately */
+    await this._putColumn('job_defaults', merged);
+  },
+
+  /* Weekly goal { metric, target } */
+  async setShiftGoal(goal) {
+    localStorage.setItem('pf_shift_goal', JSON.stringify(goal));
+    await this._putColumn('shift_goal', goal);
+  },
+
+  /* Saved quick-log shift presets (array) */
+  async setShiftPresets(list) {
+    localStorage.setItem('pf_shift_presets', JSON.stringify(list));
+    await this._putColumn('shift_presets', list);
+  },
+
+  /* Misc UI prefs, e.g. { balanceMode } */
+  async getUiPrefs() {
+    const s = await this._load();
+    return (s && s.ui_prefs && typeof s.ui_prefs === 'object') ? s.ui_prefs : {};
+  },
+  async setUiPref(patch) {
+    const merged = { ...(await this.getUiPrefs()), ...patch };
+    if (merged.balanceMode) localStorage.setItem('pf_balance_mode', merged.balanceMode);
+    await this._putColumn('ui_prefs', merged);
+  },
+
+  /* On boot: pull the server's settings into localStorage so the synchronous
+     getters see them. For any field the server hasn't got yet, seed it from
+     this device's current local value (one-time per field). */
+  async hydrateLocalDefaults() {
+    try {
+      const s = await this._load();
+
+      /* job/account defaults */
+      const jd = (s && s.job_defaults && Object.keys(s.job_defaults).length) ? s.job_defaults : null;
+      if (jd) this._mirrorJobDefaults(jd);
+      else {
+        const local = {
+          defaultJobId:     localStorage.getItem('pf_default_job')     || '',
+          employer:         localStorage.getItem('pf_job_employer')    || '',
+          rate:             Number(localStorage.getItem('pf_shift_rate')) || 0,
+          accountId:        localStorage.getItem('pf_job_account')     || '',
+          defaultAccountId: localStorage.getItem('pf_default_account') || '',
+        };
+        if (Object.values(local).some(Boolean)) await this.setJobSettings(local);
+      }
+
+      /* weekly goal */
+      if (s && s.shift_goal && Object.keys(s.shift_goal).length) {
+        localStorage.setItem('pf_shift_goal', JSON.stringify(s.shift_goal));
+      } else {
+        const lg = localStorage.getItem('pf_shift_goal');
+        if (lg && lg !== '{}') { try { await this._putColumn('shift_goal', JSON.parse(lg)); } catch (_) {} }
+      }
+
+      /* shift presets */
+      if (s && Array.isArray(s.shift_presets) && s.shift_presets.length) {
+        localStorage.setItem('pf_shift_presets', JSON.stringify(s.shift_presets));
+      } else {
+        const lp = localStorage.getItem('pf_shift_presets');
+        if (lp && lp !== '[]') { try { await this._putColumn('shift_presets', JSON.parse(lp)); } catch (_) {} }
+      }
+
+      /* UI prefs */
+      if (s && s.ui_prefs && Object.keys(s.ui_prefs).length) {
+        if (s.ui_prefs.balanceMode) localStorage.setItem('pf_balance_mode', s.ui_prefs.balanceMode);
+      } else {
+        const bm = localStorage.getItem('pf_balance_mode');
+        if (bm) await this._putColumn('ui_prefs', { balanceMode: bm });
+      }
+    } catch (_) {}
   },
 };
 
@@ -631,6 +743,12 @@ const ShiftStore = {
       if (accountId) localStorage.setItem('pf_job_account', accountId);
       else localStorage.removeItem('pf_job_account');
     }
+    /* sync cross-device — only the fields that were actually passed */
+    const patch = {};
+    if (employer  !== undefined) patch.employer  = employer  || '';
+    if (rate      !== undefined) patch.rate      = Number(rate) || 0;
+    if (accountId !== undefined) patch.accountId = accountId || '';
+    if (Object.keys(patch).length) SettingsStore.setJobSettings(patch);
   },
 
   /* weekly goal — local convenience. { metric: 'pay'|'hours', target:number }.
@@ -645,6 +763,7 @@ const ShiftStore = {
   setGoal(goal) {
     const g = { metric: goal.metric === 'hours' ? 'hours' : 'pay', target: Math.max(0, Number(goal.target) || 0) };
     localStorage.setItem(this._goalKey, JSON.stringify(g));
+    SettingsStore.setShiftGoal(g);          /* sync cross-device */
     return g;
   },
 
@@ -666,10 +785,13 @@ const ShiftStore = {
       list.push(preset);
     }
     localStorage.setItem(this._presetKey, JSON.stringify(list));
+    SettingsStore.setShiftPresets(list);    /* sync cross-device */
     return preset;
   },
   removePreset(id) {
-    localStorage.setItem(this._presetKey, JSON.stringify(this.getPresets().filter(p => p.id !== id)));
+    const list = this.getPresets().filter(p => p.id !== id);
+    localStorage.setItem(this._presetKey, JSON.stringify(list));
+    SettingsStore.setShiftPresets(list);    /* sync cross-device */
   },
 
   async _detect() {
@@ -779,6 +901,7 @@ const JobStore = {
   setDefaultId(id) {
     if (id) localStorage.setItem('pf_default_job', id);
     else localStorage.removeItem('pf_default_job');
+    SettingsStore.setJobSettings({ defaultJobId: id || '' });   /* sync cross-device */
   },
 
   async _detect() {

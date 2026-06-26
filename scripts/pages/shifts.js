@@ -1020,6 +1020,7 @@ async function renderPage() {
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
+  await SettingsStore.hydrateLocalDefaults();   /* pull synced job/account defaults */
   _goal = ShiftStore.getGoal();
   try {
     await loadOptions();

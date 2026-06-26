@@ -135,6 +135,7 @@ async function openDeleteCatModal(id) {
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
+  await SettingsStore.hydrateLocalDefaults();   /* pull synced job/account defaults */
 
   const emailEl = document.getElementById('userEmail');
   if (emailEl) emailEl.textContent = user.email;

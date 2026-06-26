@@ -243,6 +243,7 @@ function showSaveSuccess() {
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
+  await SettingsStore.hydrateLocalDefaults();   /* pull synced default account */
   /* Set currency prefix */
   SettingsStore.getCurrency().then(c => {
     const prefixEl = document.getElementById('currencyPrefix');

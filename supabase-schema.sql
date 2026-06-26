@@ -45,6 +45,17 @@ create table if not exists user_settings (
 -- Run these if the table already exists (safe to re-run):
 alter table user_settings add column if not exists custom_categories jsonb not null default '[]';
 alter table user_settings add column if not exists subscriptions     jsonb not null default '[]';
+-- v6: cross-device Hours-tracker defaults (default job, default rate, deposit
+-- account, default account) — mirrors the localStorage convenience keys so a
+-- new device picks them up. { defaultJobId, employer, rate, accountId, defaultAccountId }
+alter table user_settings add column if not exists job_defaults      jsonb not null default '{}'::jsonb;
+-- v6: the rest of the previously device-local settings, also synced.
+--   shift_goal   — weekly hours/pay goal { metric, target }
+--   shift_presets— saved quick-log shift templates (array)
+--   ui_prefs     — misc UI prefs, e.g. { balanceMode: 'cash'|'networth' }
+alter table user_settings add column if not exists shift_goal        jsonb not null default '{}'::jsonb;
+alter table user_settings add column if not exists shift_presets     jsonb not null default '[]'::jsonb;
+alter table user_settings add column if not exists ui_prefs          jsonb not null default '{}'::jsonb;
 alter table user_settings alter column currency set default 'CAD';
 alter table user_settings enable row level security;
 create policy "own settings" on user_settings for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

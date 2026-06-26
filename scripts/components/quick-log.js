@@ -195,6 +195,7 @@ async function init(opts = {}) {
   if (!document.getElementById('quickLog')) return;
 
   try {
+    if (typeof SettingsStore !== 'undefined') await SettingsStore.hydrateLocalDefaults();
     _accounts   = await AccountStore.getAll();
     _incomeCats = await CategoryStore.getByType('income');
     _jobs       = (typeof JobStore !== 'undefined') ? await JobStore.getAll() : [];
