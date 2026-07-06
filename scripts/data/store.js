@@ -476,12 +476,26 @@ const SettingsStore = {
         if (lp && lp !== '[]') { try { await this._putColumn('shift_presets', JSON.parse(lp)); } catch (_) {} }
       }
 
-      /* UI prefs */
-      if (s && s.ui_prefs && Object.keys(s.ui_prefs).length) {
-        if (s.ui_prefs.balanceMode) localStorage.setItem('pf_balance_mode', s.ui_prefs.balanceMode);
+      /* UI prefs (balance-chart mode + net-worth goal) */
+      const up = (s && s.ui_prefs && typeof s.ui_prefs === 'object') ? s.ui_prefs : null;
+      if (up && Object.keys(up).length) {
+        if (up.balanceMode) localStorage.setItem('pf_balance_mode', up.balanceMode);
+        if (up.nwGoal !== undefined) {
+          if (Number(up.nwGoal) > 0) localStorage.setItem('pf_nw_goal', String(up.nwGoal));
+          else localStorage.removeItem('pf_nw_goal');
+        }
+        if (Array.isArray(up.txTemplates)) localStorage.setItem('pf_tx_templates', JSON.stringify(up.txTemplates));
       } else {
+        const seed = {};
         const bm = localStorage.getItem('pf_balance_mode');
-        if (bm) await this._putColumn('ui_prefs', { balanceMode: bm });
+        if (bm) seed.balanceMode = bm;
+        const g = parseFloat(localStorage.getItem('pf_nw_goal'));
+        if (Number.isFinite(g) && g > 0) seed.nwGoal = g;
+        try {
+          const tpls = JSON.parse(localStorage.getItem('pf_tx_templates') || '[]');
+          if (Array.isArray(tpls) && tpls.length) seed.txTemplates = tpls;
+        } catch (_) {}
+        if (Object.keys(seed).length) await this._putColumn('ui_prefs', seed);
       }
     } catch (_) {}
   },
@@ -542,6 +556,40 @@ function advanceDate(iso, frequency) {
   }
   return isoLocal(d);
 }
+
+/* ============================================================
+   TX TEMPLATE STORE — saved transaction templates for fast
+   re-logging of recurring purchases. Device-local (localStorage);
+   no schema dependency. Mirrors the shift-preset pattern.
+   Template: { id, name, type, amount, note, accountId,
+               toAccountId, categoryId, tags }
+   ============================================================ */
+const TxTemplateStore = {
+  _key: 'pf_tx_templates',
+  getAll() {
+    try { return JSON.parse(localStorage.getItem(this._key) || '[]'); } catch { return []; }
+  },
+  save(tpl) {
+    const list = this.getAll();
+    if (tpl.id) {
+      const i = list.findIndex(t => t.id === tpl.id);
+      if (i >= 0) list[i] = tpl; else list.push(tpl);
+    } else {
+      tpl.id = 'tpl_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      list.push(tpl);
+    }
+    this._persist(list);
+    return tpl;
+  },
+  remove(id) {
+    this._persist(this.getAll().filter(t => t.id !== id));
+  },
+  _persist(list) {
+    try { localStorage.setItem(this._key, JSON.stringify(list)); } catch (_) {}
+    /* sync cross-device via the settings ui_prefs blob (fire and forget) */
+    try { SettingsStore.setUiPref({ txTemplates: list }); } catch (_) {}
+  },
+};
 
 /* ============================================================
    SUBSCRIPTION STORE — Supabase table `subscriptions`.
@@ -669,6 +717,22 @@ const SubscriptionStore = {
     const sub  = list.find(s => s.id === id);
     if (!sub) return;
     const { error } = await sb.from('subscriptions').update({ next_due: advanceDate(sub.nextDue, sub.frequency) }).eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  /* Set next_due directly. Used to catch an overdue subscription up to today
+     in one pass, after its missed occurrences have been logged. */
+  async setNextDue(id, iso) {
+    if (!iso) return;
+    if (await this._detect() === 'legacy') {
+      const list = await SettingsStore.getSubscriptions();
+      const sub  = list.find(s => s.id === id);
+      if (!sub) return;
+      sub.nextDue = iso;
+      await SettingsStore.setSubscriptions(list);
+      return;
+    }
+    const { error } = await sb.from('subscriptions').update({ next_due: iso }).eq('id', id);
     if (error) throw new Error(error.message);
   },
 };

@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     SettingsStore.getCurrency().then(c => { currencySelect.value = c; });
     currencySelect.addEventListener('change', async () => {
       await SettingsStore.setCurrency(currencySelect.value);
-      showToast('Currency updated', 'success');
+      showToast('Currency updated — amounts are re-formatted, not converted', 'success');
     });
   }
 
@@ -228,6 +228,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  /* Full JSON backup — every collection in one file */
+  document.getElementById('exportJsonBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('exportJsonBtn');
+    btn.disabled = true;
+    try {
+      const [transactions, accounts, subscriptions, shifts, payouts, jobs, wallets, currency, customCategories, budgets] = await Promise.all([
+        TransactionStore.getAll(),
+        AccountStore.getAll(),
+        SubscriptionStore.getAll().catch(() => []),
+        ShiftStore.getAll().catch(() => []),
+        PayoutStore.getAll().catch(() => []),
+        JobStore.getAll().catch(() => []),
+        (typeof CryptoStore !== 'undefined' ? CryptoStore.getAll().catch(() => []) : Promise.resolve([])),
+        SettingsStore.getCurrency(),
+        SettingsStore.getCustomCategories(),
+        SettingsStore.getBudgets(),
+      ]);
+      const backup = {
+        app: 'Flow', schema: 1, exportedAt: new Date().toISOString(),
+        currency, transactions, accounts, subscriptions, shifts, payouts, jobs,
+        cryptoWallets: wallets, customCategories, budgets,
+        txTemplates: (typeof TxTemplateStore !== 'undefined' ? TxTemplateStore.getAll() : []),
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url;
+      a.download = `flow-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast('Backup downloaded', 'success');
+    } catch (err) {
+      showToast(err.message || 'Backup failed', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   /* CSV import */
   document.getElementById('importCsvInput')?.addEventListener('change', async e => {
     const file = e.target.files?.[0];
@@ -269,9 +307,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         await sb.from('transactions').delete().eq('user_id', user.id);
         await sb.from('subscriptions').delete().eq('user_id', user.id);     /* no-op if table not created yet */
         await sb.from('accounts').delete().eq('user_id', user.id);
+        /* Hours Tracker + Crypto data (no-op if a table isn't created yet) */
+        await sb.from('shift_payouts').delete().eq('user_id', user.id);
+        await sb.from('shifts').delete().eq('user_id', user.id);
+        await sb.from('jobs').delete().eq('user_id', user.id);
+        await sb.from('crypto_wallets').delete().eq('user_id', user.id);
         await SettingsStore.setBudgets({});
         await SettingsStore.setSubscriptions([]);
         await SettingsStore.setCustomCategories([]);
+        /* clear localStorage fallbacks for stores that can run table-less */
+        ['pf_shifts', 'pf_payouts', 'pf_jobs', 'pf_crypto_wallets', 'pf_crypto_lastknown']
+          .forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
         showToast('All data deleted.', 'success');
       } catch (err) {
         showToast(err.message || 'Failed to delete data.', 'error');

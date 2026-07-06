@@ -31,6 +31,11 @@
 .term-label  { font-size: 0.625rem; }
 .term__body { padding: 14px; }
 .term__body--flush { padding: 6px 12px; }
+/* Head that stacks a range toggle beneath the title/nav row */
+.term__head--stack { flex-direction: column; align-items: stretch; gap: 9px; }
+.term__head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.seg-toggle--full { display: flex; width: 100%; }
+.seg-toggle--full .seg-btn { flex: 1; padding: 6px 4px; }
 
 /* Hairline cell frame: shared 1px dividers via gap-on-border-bg */
 .term-cells {
@@ -482,6 +487,14 @@
   gap: 6px;
   flex-wrap: wrap;
 }
+/* Range switcher (Week/Month/Year/All) + period arrows */
+.period-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+#rangeToggle .seg-btn { padding: 7px 13px; }
 
 /* Spending / Income segmented toggle */
 .seg-toggle {

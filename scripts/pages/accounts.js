@@ -148,17 +148,27 @@ async function openAccountModal(id) {
 
 async function deleteAccount(id) {
   const allTx   = await TransactionStore.getAll();
-  const txCount = allTx.filter(t => t.accountId === id || t.toAccountId === id).length;
+  const linkedTx = allTx.filter(t => t.accountId === id || t.toAccountId === id);
+  const txCount = linkedTx.length;
 
   const modal   = document.getElementById('deleteAccountModal');
   const msgEl   = document.getElementById('deleteAccountMsg');
   const confirm = document.getElementById('confirmDeleteAccount');
+  const txRow   = document.getElementById('deleteAccountTxRow');
+  const txChk   = document.getElementById('deleteAccountTx');
+  const txLabel = document.getElementById('deleteAccountTxLabel');
   if (!modal || !confirm) return;
 
   if (msgEl) {
     msgEl.textContent = txCount
-      ? `This account has ${txCount} transaction${txCount !== 1 ? 's' : ''}. Deleting it will not remove those transactions. This cannot be undone.`
+      ? `This account has ${txCount} transaction${txCount !== 1 ? 's' : ''}. Choose below whether to remove them too. This cannot be undone.`
       : 'This action cannot be undone. The account will be permanently removed.';
+  }
+  /* offer the choice only when there's something to delete */
+  if (txRow) {
+    txRow.style.display = txCount ? 'flex' : 'none';
+    if (txChk)   txChk.checked = false;
+    if (txLabel) txLabel.textContent = `Also delete this account's ${txCount} transaction${txCount !== 1 ? 's' : ''}`;
   }
 
   modal.classList.add('open');
@@ -166,8 +176,13 @@ async function deleteAccount(id) {
     confirm.classList.add('btn--loading');
     confirm.disabled = true;
     try {
+      /* per the user's choice, optionally remove the linked transactions first
+         (includes transfers where this account is the destination) */
+      if (txChk?.checked && txCount) {
+        for (const t of linkedTx) { try { await TransactionStore.delete(t.id); } catch (_) {} }
+      }
       await AccountStore.delete(id);
-      showToast('Account deleted', 'success');
+      showToast(txChk?.checked && txCount ? 'Account and transactions deleted' : 'Account deleted', 'success');
     } catch (err) {
       showToast(err.message || 'Failed to delete account', 'error');
     } finally {

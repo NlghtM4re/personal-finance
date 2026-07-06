@@ -48,21 +48,29 @@
     <main class="main-content">
 
       <!-- Spending / Income toggle -->
-      <div class="seg-toggle" role="tablist" aria-label="View">
+      <div class="seg-toggle" id="modeToggle" role="tablist" aria-label="View">
         <button type="button" class="seg-btn active" id="modeExpense" data-mode="expense" role="tab" aria-selected="true">Spending</button>
         <button type="button" class="seg-btn" id="modeIncome" data-mode="income" role="tab" aria-selected="false">Income</button>
       </div>
 
       <!-- Period picker -->
       <div class="spending-period-bar">
-        <div class="month-nav">
-          <button class="btn btn--ghost btn--sm" id="monthNavPrev" aria-label="Previous month">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <span class="month-nav__label" id="monthNavLabel"></span>
-          <button class="btn btn--ghost btn--sm" id="monthNavNext" aria-label="Next month">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
+        <div class="period-controls">
+          <div class="seg-toggle" id="rangeToggle" role="tablist" aria-label="Range">
+            <button type="button" class="seg-btn" data-range="week"  role="tab">Week</button>
+            <button type="button" class="seg-btn" data-range="month" role="tab">Month</button>
+            <button type="button" class="seg-btn" data-range="year"  role="tab">Year</button>
+            <button type="button" class="seg-btn" data-range="all"   role="tab">All</button>
+          </div>
+          <div class="month-nav">
+            <button class="btn btn--ghost btn--sm" id="periodPrev" aria-label="Previous period">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span class="month-nav__label" id="periodLabel"></span>
+            <button class="btn btn--ghost btn--sm" id="periodNext" aria-label="Next period">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
         </div>
         <div class="spending-summary-chips">
           <span class="hero-stat-chip">
@@ -100,7 +108,7 @@
       <section class="card chart-card chart-card--full">
         <div class="card-header">
           <h2 class="card-title" id="trendTitle">Spending Trend</h2>
-          <select class="select--sm" id="trendYear"></select>
+          <span class="card-title-sub" id="trendRangeLabel"></span>
         </div>
         <div class="chart-container">
           <canvas id="trendCanvas" role="img" aria-label="Monthly trend bar chart"></canvas>

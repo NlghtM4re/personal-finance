@@ -116,7 +116,7 @@
                 <span class="search-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </span>
-                <input type="text" id="searchInput" class="form-control" placeholder="Search notes, categories…" />
+                <input type="text" id="searchInput" class="form-control" placeholder="Search notes, categories, tags, amounts…" />
               </div>
               <div class="seg-toggle tx-typetabs" id="txTypeTabs">
                 <button type="button" class="seg-btn active" data-type="">All</button>
@@ -149,6 +149,7 @@
                 <option value="amount-asc">Smallest amount</option>
               </select>
               <div class="tx-toolbar__spacer"></div>
+              <button id="selectModeBtn" class="btn btn--ghost btn--sm" title="Select multiple transactions">Select</button>
               <button id="exportCsv" class="btn btn--ghost btn--sm" title="Export the current view to CSV">Export</button>
               <button id="clearFilters" class="btn btn--ghost btn--sm" hidden>Clear filters</button>
             </div>
@@ -159,9 +160,19 @@
         <section class="term tx-listpanel">
           <div class="term__head">
             <span class="term__title">Activity</span>
-            <a href="add-transaction.html" class="btn btn--primary btn--sm">+ Add transaction</a>
+            <a href="add-transaction.html" class="btn btn--primary btn--sm" title="New transaction (press N)">+ Add transaction</a>
           </div>
           <div class="term__body term__body--flush">
+            <div class="tx-bulkbar" id="txBulkbar" hidden style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--color-border);">
+              <label style="display:inline-flex;align-items:center;gap:6px;font-size:.8125rem;cursor:pointer;">
+                <input type="checkbox" id="bulkSelectAll" /> Select all
+              </label>
+              <span id="bulkCount" style="font-size:.8125rem;color:var(--color-text-muted);">0 selected</span>
+              <div style="flex:1;"></div>
+              <select id="bulkCategory" class="select--sm" title="Recategorize selected" disabled></select>
+              <button id="bulkDelete" class="btn btn--danger btn--sm" disabled>Delete</button>
+              <button id="bulkCancel" class="btn btn--ghost btn--sm">Done</button>
+            </div>
             <div class="tx-list-full" id="txListFull"><div class="spinner"></div></div>
             <div class="pagination" id="pagination"></div>
           </div>
@@ -205,7 +216,7 @@
               <span class="input-prefix">$</span>
               <input type="number" id="accBalance" class="form-control" placeholder="0.00" step="0.01" />
             </div>
-            <div class="form-hint">Your balance before you start tracking.</div>
+            <div class="form-hint">Balance as of today — transactions adjust it from here.</div>
           </div>
           <div class="form-group">
             <label class="form-label" for="accColor">Color</label>
@@ -232,6 +243,10 @@
       <p id="deleteAccountMsg" style="color:var(--color-text-muted);font-size:.875rem;line-height:1.6;">
         This action cannot be undone.
       </p>
+      <label id="deleteAccountTxRow" style="display:none;align-items:flex-start;gap:8px;margin-top:12px;font-size:.8125rem;color:var(--color-text);cursor:pointer;">
+        <input type="checkbox" id="deleteAccountTx" style="margin-top:2px;flex-shrink:0;">
+        <span id="deleteAccountTxLabel">Also delete this account's transactions</span>
+      </label>
       <div class="modal-footer">
         <button class="btn btn--ghost" id="cancelDeleteAccount">Cancel</button>
         <button class="btn btn--danger" id="confirmDeleteAccount">Delete account</button>
@@ -268,6 +283,7 @@
   <script src="../scripts/engine/summary.js"></script>
   <script src="../scripts/components/nav.js"></script>
   <script src="../scripts/components/ui.js"></script>
+  <script src="../scripts/components/dialog.js"></script>
   <script src="../scripts/pages/accounts.js"></script>
   <script src="../scripts/pages/transactions.js"></script>
   <script>

@@ -105,7 +105,7 @@
               </span>
               <div class="settings-row__info">
                 <div class="settings-row__title">Currency</div>
-                <div class="settings-row__sub">Used to format all amounts</div>
+                <div class="settings-row__sub">Formats how amounts display — it doesn't convert existing values</div>
               </div>
               <select id="currencySelect" class="settings-select">
                 <option value="USD">USD — US Dollar</option>
@@ -184,6 +184,16 @@
               <div class="settings-row__info">
                 <div class="settings-row__title">Export transactions</div>
                 <div class="settings-row__sub">Download all transactions as a CSV file</div>
+              </div>
+            </button>
+            <div class="settings-divider"></div>
+            <button type="button" id="exportJsonBtn" class="settings-row settings-row--btn">
+              <span class="settings-row__icon settings-row__icon--muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6a2 2 0 0 0-2-2h-5l-2-2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z"/><path d="M12 11v6"/><path d="m9 14 3 3 3-3"/></svg>
+              </span>
+              <div class="settings-row__info">
+                <div class="settings-row__title">Download full backup</div>
+                <div class="settings-row__sub">Everything as JSON — accounts, transactions, budgets, hours, jobs, subscriptions &amp; wallets</div>
               </div>
             </button>
             <div class="settings-divider"></div>

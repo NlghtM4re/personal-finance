@@ -49,6 +49,12 @@
 
           <form id="txForm" novalidate>
 
+            <!-- Templates (device-local quick re-logging) -->
+            <div class="form-group form-group--full" id="tplRow" style="margin-bottom:16px;display:none;">
+              <p class="form-section-title" style="margin-bottom:8px;">Templates</p>
+              <div class="tpl-chips" id="tplChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+            </div>
+
             <!-- Type selector -->
             <div class="form-group form-group--full" style="margin-bottom:20px;">
               <div class="type-toggle">
@@ -108,8 +114,9 @@
               <label class="form-label" for="tagInput">Tags</label>
               <div class="tag-input-wrap">
                 <div class="tag-list" id="tagList"></div>
-                <input type="text" id="tagInput" class="tag-input"
+                <input type="text" id="tagInput" class="tag-input" list="tagSuggestions"
                   placeholder="Add tag, press Enter…" maxlength="24" autocomplete="off" />
+                <datalist id="tagSuggestions"></datalist>
               </div>
               <div class="form-hint">Press Enter or comma to add. Click × to remove.</div>
             </div>
@@ -119,6 +126,12 @@
               <p class="form-section-title">Category</p>
               <div class="cat-suggestion" id="catSuggestion" hidden></div>
               <div class="category-grid" id="categoryPicker"></div>
+              <div id="budgetHint" hidden style="margin-top:10px;font-size:.8125rem;line-height:1.5;color:var(--color-text-muted);"></div>
+            </div>
+
+            <!-- Save current form as a reusable template -->
+            <div class="form-group form-group--full" style="margin-top:16px;">
+              <button type="button" class="btn btn--ghost btn--sm" id="saveTemplateBtn" style="width:100%;justify-content:center;">＋ Save as template</button>
             </div>
 
             <!-- Actions -->
@@ -200,6 +213,7 @@
   <script src="../scripts/engine/insights.js"></script>
   <script src="../scripts/components/nav.js"></script>
   <script src="../scripts/components/ui.js"></script>
+  <script src="../scripts/components/dialog.js"></script>
   <script src="../scripts/pages/add-transaction.js"></script>
   <!-- Account hydration is handled by add-transaction.js after auth -->
 </body>

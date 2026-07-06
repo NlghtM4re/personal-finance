@@ -7,14 +7,17 @@ let selectedCategory = '';
 let editId           = null;
 let selectedTags     = [];
 let _allTx           = [];   /* history, for category suggestions */
+let returnTo         = 'accounts.html';   /* where to go after edit/delete */
 
 async function initForm() {
   const params = new URLSearchParams(window.location.search);
   editId       = params.get('id');
+  returnTo     = params.get('from') || 'accounts.html';
+  if (/^(https?:)?\/\//i.test(returnTo)) returnTo = 'accounts.html';   /* internal only */
 
   await populateAccountSelects();
   await renderCategoryPicker();
-  TransactionStore.getAll().then(txs => { _allTx = txs; }).catch(() => {});
+  TransactionStore.getAll().then(txs => { _allTx = txs; populateTagSuggestions(); }).catch(() => {});
 
   if (editId) {
     const tx = await TransactionStore.getById(editId);
@@ -26,6 +29,8 @@ async function initForm() {
 
   const dateInput = document.getElementById('txDate');
   if (dateInput && !dateInput.value) dateInput.value = todayISO();
+
+  renderTemplates();
 }
 
 async function populateAccountSelects() {
@@ -68,6 +73,30 @@ async function renderCategoryPicker() {
   });
   document.getElementById('newCatBtn')?.addEventListener('click', openNewCatModal);
   updateCategorySuggestion();
+  updateBudgetHint();
+}
+
+/* Show how this expense lands against the selected category's monthly budget
+   (if one is set). Runs on category/amount/type change. */
+async function updateBudgetHint() {
+  const el = document.getElementById('budgetHint');
+  if (!el || typeof BudgetStore === 'undefined') return;
+  if (selectedType !== 'expense' || !selectedCategory) { el.hidden = true; el.textContent = ''; return; }
+  const monthKey = todayISO().slice(0, 7);
+  let limit = 0;
+  try { limit = (BudgetStore.getMonth(monthKey) || {})[selectedCategory] || 0; } catch (_) {}
+  if (!limit) { el.hidden = true; el.textContent = ''; return; }
+  const prefix = monthKey + '-';
+  const amount = parseFloat(document.getElementById('txAmount')?.value) || 0;
+  const priorSpent = _allTx
+    .filter(t => t.type === 'expense' && t.categoryId === selectedCategory && t.date.startsWith(prefix) && t.id !== editId)
+    .reduce((s, t) => s + t.amount, 0);
+  const after = priorSpent + amount;
+  const pct   = Math.round((after / limit) * 100);
+  const over  = after > limit;
+  el.hidden = false;
+  el.style.color = over ? 'var(--color-expense)' : (pct >= 80 ? 'var(--color-transfer)' : 'var(--color-text-muted)');
+  el.innerHTML = `At <strong>${pct}%</strong> of its ${formatCurrency(limit)} monthly budget${over ? ` — <strong>${formatCurrency(after - limit)} over</strong>` : ''}.`;
 }
 
 /* Suggest a category from the user's own history as they type the note
@@ -165,9 +194,74 @@ function renderTags() {
   });
 }
 
+/* Fill the tag autocomplete list from tags used in past transactions. */
+function populateTagSuggestions() {
+  const dl = document.getElementById('tagSuggestions');
+  if (!dl) return;
+  const tags = [...new Set(_allTx.flatMap(t => Array.isArray(t.tags) ? t.tags : []))].sort();
+  dl.innerHTML = tags.map(t => `<option value="${escapeHTML(t)}"></option>`).join('');
+}
+
 function addTag(raw) {
   const tag = raw.trim().toLowerCase().replace(/\s+/g, '-').slice(0, 24);
   if (tag && !selectedTags.includes(tag)) { selectedTags.push(tag); renderTags(); }
+}
+
+/* ---- transaction templates (device-local quick re-logging) ---- */
+function renderTemplates() {
+  const row   = document.getElementById('tplRow');
+  const chips = document.getElementById('tplChips');
+  if (!row || !chips || typeof TxTemplateStore === 'undefined') return;
+  const list = TxTemplateStore.getAll();
+  row.style.display = list.length ? '' : 'none';
+  chips.innerHTML = list.map(t => `
+    <span class="tpl-chip" style="display:inline-flex;align-items:center;gap:2px;">
+      <button type="button" class="btn btn--ghost btn--sm tpl-chip__use" data-id="${escapeHTML(t.id)}">${escapeHTML(t.name)}</button>
+      <button type="button" class="btn btn--ghost btn--sm tpl-chip__del" data-id="${escapeHTML(t.id)}" aria-label="Remove ${escapeHTML(t.name)}" style="padding:4px 8px;">×</button>
+    </span>`).join('');
+  chips.querySelectorAll('.tpl-chip__use').forEach(b =>
+    b.addEventListener('click', () => applyTemplate(list.find(t => t.id === b.dataset.id))));
+  chips.querySelectorAll('.tpl-chip__del').forEach(b =>
+    b.addEventListener('click', async () => {
+      if (window.confirmDialog && !(await window.confirmDialog('Remove this template?', { confirmText: 'Remove' }))) return;
+      TxTemplateStore.remove(b.dataset.id);
+      renderTemplates();
+    }));
+}
+
+function applyTemplate(tpl) {
+  if (!tpl) return;
+  setType(tpl.type || 'expense');            /* re-renders the category picker */
+  setValue('txAmount', tpl.amount || '');
+  setValue('txNote',   tpl.note   || '');
+  if (tpl.accountId)   setValue('txAccount',   tpl.accountId);
+  if (tpl.toAccountId) setValue('txToAccount', tpl.toAccountId);
+  selectedCategory = tpl.categoryId || '';
+  selectedTags     = Array.isArray(tpl.tags) ? [...tpl.tags] : [];
+  renderTags();
+  renderCategoryPicker();                     /* reflect the picked category */
+  document.getElementById('txAmount')?.focus();
+}
+
+async function saveCurrentAsTemplate() {
+  if (typeof TxTemplateStore === 'undefined') return;
+  const defName = document.getElementById('txNote')?.value.trim() || '';
+  const name = ((window.promptDialog
+    ? await window.promptDialog('Name this template (e.g. “Coffee”):', defName, { confirmText: 'Save', maxlength: 40 })
+    : window.prompt('Name this template:', defName)) || '').trim().slice(0, 40);
+  if (!name) return;
+  TxTemplateStore.save({
+    name,
+    type:        selectedType,
+    amount:      parseFloat(document.getElementById('txAmount').value) || 0,
+    note:        document.getElementById('txNote').value.trim(),
+    accountId:   document.getElementById('txAccount').value || null,
+    toAccountId: document.getElementById('txToAccount')?.value || null,
+    categoryId:  selectedCategory || null,
+    tags:        [...selectedTags],
+  });
+  renderTemplates();
+  showToast(`Template “${name}” saved`, 'success');
 }
 
 function setType(type) {
@@ -185,8 +279,13 @@ function validateForm() {
   let valid = true;
   if (!amount || amount <= 0) { showError('txAmount', 'Enter a valid amount greater than 0'); valid = false; }
   if (!accountId)             { showError('txAccount', 'Select an account'); valid = false; }
-  if (selectedType === 'transfer' && !document.getElementById('txToAccount')?.value) {
-    showError('txToAccount', 'Select a destination account'); valid = false;
+  if (selectedType === 'transfer') {
+    const toId = document.getElementById('txToAccount')?.value;
+    if (!toId) {
+      showError('txToAccount', 'Select a destination account'); valid = false;
+    } else if (toId === accountId) {
+      showError('txToAccount', 'Choose a different destination account'); valid = false;
+    }
   }
   return valid;
 }
@@ -244,6 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
   await SettingsStore.hydrateLocalDefaults();   /* pull synced default account */
+  try { await BudgetStore.load(); } catch (_) {}   /* for the add-time budget hint */
   /* Set currency prefix */
   SettingsStore.getCurrency().then(c => {
     const prefixEl = document.getElementById('currencyPrefix');
@@ -283,6 +383,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     clearTimeout(_suggestTimer);
     _suggestTimer = setTimeout(updateCategorySuggestion, 220);
   });
+
+  /* refresh the budget hint as the amount changes */
+  document.getElementById('txAmount')?.addEventListener('input', () => { updateBudgetHint(); });
+
+  /* transaction templates */
+  document.getElementById('saveTemplateBtn')?.addEventListener('click', saveCurrentAsTemplate);
 
   /* quick new-category modal */
   document.getElementById('saveNewCat')?.addEventListener('click', saveQuickCat);
@@ -324,7 +430,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (editId) {
         await TransactionStore.update(editId, data);
         showToast('Transaction updated', 'success');
-        setTimeout(() => window.location.href = 'accounts.html', 500);
+        setTimeout(() => window.location.href = returnTo, 500);
       } else {
         await TransactionStore.add(data);
         showSaveSuccess();
@@ -347,7 +453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         await TransactionStore.delete(editId);
         showToast('Transaction deleted', 'success');
-        setTimeout(() => window.location.href = 'accounts.html', 500);
+        setTimeout(() => window.location.href = returnTo, 500);
       } catch (err) {
         showToast(err.message || 'Failed to delete', 'error');
         btn.classList.remove('btn--loading'); btn.disabled = false;

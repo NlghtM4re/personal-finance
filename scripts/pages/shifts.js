@@ -330,7 +330,12 @@ async function quickLog(e) {
     await ShiftStore.add(data);
     document.getElementById('qlHours').value = '';
     await renderPage();
-    showToast(`Logged ${fmtHours(hoursVal)} · unlogged`, 'success');
+    if (!localStorage.getItem('pf_seen_unlogged_hint')) {
+      showToast('Saved as unlogged hours — tap the badge (or Mark as paid) when you get paid to count it as income', 'success');
+      try { localStorage.setItem('pf_seen_unlogged_hint', '1'); } catch (_) {}
+    } else {
+      showToast(`Logged ${fmtHours(hoursVal)} · unlogged`, 'success');
+    }
   } catch (err) {
     showToast(err.message || 'Failed to log hours', 'error');
   } finally {

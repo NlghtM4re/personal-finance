@@ -1,26 +1,42 @@
 /* ============================================================
    spending.js — Spending / Income analysis (toggle between the two)
+   Pages through Week / Month / Year / All-time ranges via PeriodEngine.
    ============================================================ */
 
-const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const RANGE_KEY = 'pf_spend_range';
 
-let currentMonth = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
-let mode = 'expense';  /* 'expense' (Spending) | 'income' (Income) */
+let period = { mode: 'month', offset: 0 };   /* mode ∈ week|month|year|all */
+let mode   = 'expense';                       /* 'expense' (Spending) | 'income' (Income) */
+
+try {
+  const saved = localStorage.getItem(RANGE_KEY);
+  if (saved && PeriodEngine.MODES.includes(saved)) period.mode = saved;
+} catch (_) {}
 
 function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
 
-function getMonthPrefix(year, month) {
-  return `${year}-${String(month).padStart(2, '0')}-`;
+/* Wipe a canvas and drop its chart state so a stale chart from a previous
+   period never shows through the empty overlay. */
+function clearCanvas(id) {
+  const cv = document.getElementById(id);
+  if (cv) { const ctx = cv.getContext('2d'); ctx && ctx.clearRect(0, 0, cv.width, cv.height); }
+  if (typeof Charts !== 'undefined' && Charts._state) delete Charts._state[id];
 }
 
-function updateMonthNav() {
-  const el = document.getElementById('monthNavLabel');
-  if (el) el.textContent = `${MONTH_NAMES[currentMonth.month - 1]} ${currentMonth.year}`;
+function syncRangeControls(rangeLabel) {
+  document.querySelectorAll('#rangeToggle .seg-btn').forEach(b => {
+    const on = b.dataset.range === period.mode;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  setText('periodLabel', rangeLabel);
+  const prev = document.getElementById('periodPrev');
+  const next = document.getElementById('periodNext');
+  if (prev) prev.disabled = !PeriodEngine.canPrev(period.mode, period.offset);
+  if (next) next.disabled = !PeriodEngine.canNext(period.mode, period.offset);
 }
 
 async function renderSpending() {
-  updateMonthNav();
-
   const isIncome = mode === 'income';
 
   /* Panel titles reflect the active mode (topbar stays "Cash Flow") */
@@ -28,10 +44,13 @@ async function renderSpending() {
   setText('trendTitle', isIncome ? 'Income Trend'       : 'Spending Trend');
 
   const allTx = await TransactionStore.getAll();
-  const prefix = getMonthPrefix(currentMonth.year, currentMonth.month);
-  const monthTx = allTx.filter(t => t.date.startsWith(prefix));
+  const { from, to, label } = PeriodEngine.range(period.mode, period.offset, allTx);
+  syncRangeControls(label);
+  setText('trendRangeLabel', label);
 
-  const totals = SummaryEngine.getTotals(monthTx);
+  const rangeTx = PeriodEngine.filter(allTx, from, to);
+
+  const totals = SummaryEngine.getTotals(rangeTx);
   const net = totals.income - totals.expense;
 
   setText('spendTotal',  formatCurrency(totals.expense));
@@ -41,7 +60,7 @@ async function renderSpending() {
   if (netEl) netEl.style.color = net >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
 
   /* Category donut for the active type */
-  const byCategory = SummaryEngine.getByCategory(monthTx, mode);
+  const byCategory = SummaryEngine.getByCategory(rangeTx, mode);
   const catEmpty = document.getElementById('categoryChartEmpty');
   const breakdownEl = document.getElementById('spendingBreakdown');
   const amtColor = isIncome ? 'var(--color-income)' : 'var(--color-expense)';
@@ -55,6 +74,7 @@ async function renderSpending() {
       label: escapeHTML(catObjects[i]?.name) || 'Other',
       value: b.total,
       cat:   catObjects[i],
+      catId: b.categoryId,
     }));
 
     Charts.drawDonutChart('categoryCanvas', slices, false, isIncome ? 'Total earned' : 'Total spent');
@@ -63,7 +83,7 @@ async function renderSpending() {
     const barHTML = slices.map((sl, i) => {
       const pct = total > 0 ? Math.round((sl.value / total) * 100) : 0;
       return `
-        <div class="spending-item">
+        <div class="spending-item" data-cat="${sl.catId || ''}" role="link" tabindex="0" title="View these transactions" style="cursor:pointer;">
           <div class="spending-item__icon">${categoryIconHTML(sl.cat, 18)}</div>
           <div class="spending-item__info">
             <div class="spending-item__name">${sl.label}</div>
@@ -78,26 +98,47 @@ async function renderSpending() {
         </div>`;
     }).join('');
 
-    if (breakdownEl) breakdownEl.innerHTML = barHTML;
+    if (breakdownEl) {
+      breakdownEl.innerHTML = barHTML;
+      /* drill-down: a category row jumps to the Transactions list, pre-filtered
+         to that category + type over the same period */
+      breakdownEl.querySelectorAll('.spending-item[data-cat]').forEach(row => {
+        const go = () => {
+          const params = new URLSearchParams({ type: mode });
+          if (row.dataset.cat) params.set('category', row.dataset.cat);
+          if (from) params.set('from', from);
+          if (to)   params.set('to', to);
+          window.location.href = `accounts.html?${params.toString()}`;
+        };
+        row.addEventListener('click', go);
+        row.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+        });
+      });
+    }
   } else {
+    /* Clear the donut so last period's slices don't show behind the empty state */
+    clearCanvas('categoryCanvas');
     catEmpty?.removeAttribute('hidden');
-    if (breakdownEl) breakdownEl.innerHTML = `<div class="empty-state">No ${isIncome ? 'income' : 'expenses'} this month.</div>`;
+    if (breakdownEl) breakdownEl.innerHTML = `<div class="empty-state">No ${isIncome ? 'income' : 'expenses'} this period.</div>`;
   }
 
-  /* Monthly trend bar chart for the selected year */
-  const year = parseInt(document.getElementById('trendYear')?.value || new Date().getFullYear());
-  const monthly = SummaryEngine.getMonthlyRollup(allTx, year);
+  /* Trend bar chart — buckets within the selected range */
+  const buckets = PeriodEngine.buckets(period.mode, period.offset, allTx);
   const trendEmpty = document.getElementById('trendChartEmpty');
   if (trendEmpty) trendEmpty.querySelector('span').textContent = isIncome ? 'No income data yet.' : 'No expense data yet.';
-  const hasData = monthly.some(m => (isIncome ? m.income : m.expense) > 0);
+  const hasData = buckets.some(b => (isIncome ? b.income : b.expense) > 0);
   if (hasData) {
     trendEmpty?.setAttribute('hidden', '');
-    const bars = monthly.map(m => isIncome
-      ? ({ label: m.label, income: m.income, expense: 0 })
-      : ({ label: m.label, income: 0, expense: m.expense }));
-    if (year === new Date().getFullYear()) bars[new Date().getMonth()].highlight = true;
+    const bars = buckets.map(b => ({
+      label: b.label,
+      income:  isIncome ? b.income  : 0,
+      expense: isIncome ? 0         : b.expense,
+      highlight: b.highlight,
+    }));
     Charts.drawBarChart('trendCanvas', bars);
   } else {
+    clearCanvas('trendCanvas');
     trendEmpty?.removeAttribute('hidden');
   }
 }
@@ -105,14 +146,6 @@ async function renderSpending() {
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
-
-  /* Populate year options */
-  const yearSel = document.getElementById('trendYear');
-  if (yearSel) {
-    const currentYear = new Date().getFullYear();
-    yearSel.innerHTML = [currentYear, currentYear - 1, currentYear - 2]
-      .map(y => `<option value="${y}">${y}</option>`).join('');
-  }
 
   try {
     await renderSpending();
@@ -122,11 +155,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /* Spending / Income toggle */
-  document.querySelectorAll('.seg-btn').forEach(btn => {
+  document.querySelectorAll('#modeToggle .seg-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (btn.dataset.mode === mode) return;
       mode = btn.dataset.mode;
-      document.querySelectorAll('.seg-btn').forEach(b => {
+      document.querySelectorAll('#modeToggle .seg-btn').forEach(b => {
         const on = b === btn;
         b.classList.toggle('active', on);
         b.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -135,17 +168,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  document.getElementById('monthNavPrev')?.addEventListener('click', async () => {
-    currentMonth.month--;
-    if (currentMonth.month < 1) { currentMonth.month = 12; currentMonth.year--; }
+  /* Range toggle (Week / Month / Year / All) — reset to the current period */
+  document.querySelectorAll('#rangeToggle .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.range === period.mode) return;
+      period.mode = btn.dataset.range;
+      period.offset = 0;
+      try { localStorage.setItem(RANGE_KEY, period.mode); } catch (_) {}
+      renderSpending().catch(console.error);
+    });
+  });
+
+  document.getElementById('periodPrev')?.addEventListener('click', async () => {
+    if (!PeriodEngine.canPrev(period.mode, period.offset)) return;
+    period.offset--;
     await renderSpending();
   });
 
-  document.getElementById('monthNavNext')?.addEventListener('click', async () => {
-    currentMonth.month++;
-    if (currentMonth.month > 12) { currentMonth.month = 1; currentMonth.year++; }
+  document.getElementById('periodNext')?.addEventListener('click', async () => {
+    if (!PeriodEngine.canNext(period.mode, period.offset)) return;
+    period.offset++;
     await renderSpending();
   });
-
-  document.getElementById('trendYear')?.addEventListener('change', () => renderSpending().catch(console.error));
 });

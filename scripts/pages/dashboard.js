@@ -4,7 +4,11 @@
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-let currentMonthView = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+let overview = { mode: 'month', offset: 0 };   /* Overview chart range (week|month|year|all) */
+try {
+  const _ovr = localStorage.getItem('pf_overview_range');
+  if (_ovr && typeof PeriodEngine !== 'undefined' && PeriodEngine.MODES.includes(_ovr)) overview.mode = _ovr;
+} catch (_) {}
 let _dashboardReady = false;
 
 function showSkeletons() {
@@ -22,26 +26,6 @@ function showSkeletons() {
       </div>
       <div class="skeleton skeleton-text" style="width:60px"></div>
     </div>`).join('');
-}
-
-function getWeeklyRollup(transactions, year, month) {
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const prefix = `${year}-${String(month).padStart(2, '0')}-`;
-  const weeks = [
-    { label: 'Week 1', start: 1,  end: 7,             income: 0, expense: 0 },
-    { label: 'Week 2', start: 8,  end: 14,             income: 0, expense: 0 },
-    { label: 'Week 3', start: 15, end: 21,             income: 0, expense: 0 },
-    { label: 'Week 4', start: 22, end: daysInMonth,    income: 0, expense: 0 },
-  ];
-  transactions.forEach(t => {
-    if (!t.date.startsWith(prefix)) return;
-    const day = parseInt(t.date.slice(8));
-    const wk  = weeks.find(w => day >= w.start && day <= w.end);
-    if (!wk) return;
-    if (t.type === 'income')  wk.income  += t.amount;
-    if (t.type === 'expense') wk.expense += t.amount;
-  });
-  return weeks;
 }
 
 function getMonthTransactions(allTx, year, month) {
@@ -136,8 +120,7 @@ async function initDashboard() {
   _lastDashData = { allTx, accounts, subs };
   await renderBalanceChart();
 
-  /* Monthly overview — daily bars for current month view */
-  updateMonthNav();
+  /* Overview — income/expense buckets for the selected range */
   await renderMonthlyChart(allTx);
 
   renderAccounts(accounts, balanceMap, allTx);
@@ -145,6 +128,7 @@ async function initDashboard() {
   /* net-worth goal starts from cash; renderCrypto upgrades it to cash+crypto */
   renderNwGoal(totalBalance);
   renderUpcomingBills(subs);
+  renderBudgetWatch(monthTx, thisMonthPrefix.slice(0, 7)).catch(console.error);
   /* crypto folds into net worth (not the cash balance); non-blocking so a
      wallet/network hiccup never breaks the rest of the dashboard */
   renderCrypto(totalBalance).catch(console.error);
@@ -335,6 +319,54 @@ function renderUpcomingBills(subs) {
     `<span class="bills-foot__sep">·</span><span>${u.count} active</span>`;
 }
 
+/* ---- Over-budget watch -----------------------------------------------------
+   Lists expense categories past their monthly limit this month. Reuses the
+   bill-row markup for a consistent look; hidden when nothing is over. */
+async function renderBudgetWatch(monthTx, monthKey) {
+  const card = document.getElementById('budgetWatch');
+  const list = document.getElementById('budgetWatchList');
+  const foot = document.getElementById('budgetWatchFoot');
+  if (!card || !list) return;
+
+  let budgets = {};
+  try { await BudgetStore.load(); budgets = BudgetStore.getMonth(monthKey); } catch (_) {}
+  const budgetedIds = Object.keys(budgets).filter(id => budgets[id] > 0);
+  if (!budgetedIds.length) { card.hidden = true; return; }
+
+  const spent = {};
+  monthTx.filter(t => t.type === 'expense').forEach(t => {
+    spent[t.categoryId] = (spent[t.categoryId] || 0) + t.amount;
+  });
+
+  const cats = await CategoryStore.getAll();
+  const catMap = Object.fromEntries(cats.map(c => [c.id, c]));
+  const over = budgetedIds
+    .map(id => ({ id, cat: catMap[id], limit: budgets[id], spent: spent[id] || 0 }))
+    .filter(x => x.spent > x.limit)
+    .sort((a, b) => (b.spent - b.limit) - (a.spent - a.limit));
+
+  if (!over.length) { card.hidden = true; return; }
+  card.hidden = false;
+
+  list.innerHTML = over.slice(0, 5).map(x => {
+    const pct = Math.round((x.spent / x.limit) * 100);
+    return `
+      <div class="bill-row">
+        <span class="bill-row__dot" style="--dot:var(--color-expense)"></span>
+        <div class="bill-row__id">
+          <div class="bill-row__name">${escapeHTML(x.cat?.name || 'Uncategorized')}</div>
+          <div class="bill-row__due bill-row__due--over">${pct}% · ${formatCurrency(x.spent)} of ${formatCurrency(x.limit)}</div>
+        </div>
+        <div class="bill-row__amt font-display" style="color:var(--color-expense)">+${formatCurrency(x.spent - x.limit)}</div>
+      </div>`;
+  }).join('');
+
+  const totalOver = over.reduce((s, x) => s + (x.spent - x.limit), 0);
+  if (foot) foot.innerHTML =
+    `<span>${over.length} over budget</span>` +
+    `<span class="bills-foot__sep">·</span><span>${formatCurrency(totalOver)} over</span>`;
+}
+
 /* ---- Net-worth savings goal ------------------------------------------------
    A simple progress ring toward a target net worth (cash + crypto). The target
    is a per-device convenience (localStorage), mirroring the shift goal. The
@@ -351,6 +383,8 @@ function setNwGoal(target) {
   const t = Math.max(0, Number(target) || 0);
   try { if (t > 0) localStorage.setItem(NW_GOAL_KEY, String(t)); else localStorage.removeItem(NW_GOAL_KEY); }
   catch (_) {}
+  /* sync cross-device (mirrors the balance-mode pref) — fire and forget */
+  try { SettingsStore.setUiPref({ nwGoal: t }); } catch (_) {}
   return t;
 }
 function renderNwGoal(netWorth) {
@@ -596,26 +630,32 @@ function renderForecast(allTx, accounts, subs) {
   return fc.points.slice(1).map(p => ({ label: p.label, balance: p.balance, lower: p.lower, upper: p.upper }));
 }
 
-function updateMonthNav() {
-  const label = document.getElementById('monthNavLabel');
-  if (label) label.textContent = `${MONTH_NAMES[currentMonthView.month - 1]} ${currentMonthView.year}`;
+/* Sync the overview range toggle, period label and prev/next bounds */
+function syncOverviewControls(label) {
+  const el = document.getElementById('monthNavLabel');
+  if (el) el.textContent = label;
+  document.querySelectorAll('#ovRangeToggle .seg-btn').forEach(b => {
+    const on = b.dataset.range === overview.mode;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  const prev = document.getElementById('monthNavPrev');
+  const next = document.getElementById('monthNavNext');
+  if (prev) prev.disabled = !PeriodEngine.canPrev(overview.mode, overview.offset);
+  if (next) next.disabled = !PeriodEngine.canNext(overview.mode, overview.offset);
 }
 
 async function renderMonthlyChart(allTx) {
-  const { year, month } = currentMonthView;
-  const weekly = getWeeklyRollup(allTx, year, month);
-  const now = new Date();
-  if (year === now.getFullYear() && month === now.getMonth() + 1) {
-    const day = now.getDate();
-    weekly.forEach(w => { w.highlight = day >= w.start && day <= w.end; });
-  }
+  const { label } = PeriodEngine.range(overview.mode, overview.offset, allTx);
+  syncOverviewControls(label);
+  const buckets = PeriodEngine.buckets(overview.mode, overview.offset, allTx);
   const monthlyEmpty    = document.getElementById('monthlyChartEmpty');
   const monthlySkeleton = document.getElementById('monthlyChartSkeleton');
   monthlySkeleton?.setAttribute('hidden', '');
-  const hasData = weekly.some(w => w.income > 0 || w.expense > 0);
+  const hasData = buckets.some(w => w.income > 0 || w.expense > 0);
   if (hasData) {
     monthlyEmpty?.setAttribute('hidden', '');
-    Charts.drawBarChart('monthlyCanvas', weekly);
+    Charts.drawBarChart('monthlyCanvas', buckets);
   } else {
     /* Clear any bars left from a previous month, otherwise switching to a
        month with no data shows the old chart behind the empty state. */
@@ -777,12 +817,19 @@ async function renderRecentTransactions(txs) {
   }
   const cats = await Promise.all(txs.map(t => CategoryStore.getById(t.categoryId)));
   el.innerHTML = txs.map((t, i) => txItemHTML(t, cats[i])).join('');
+  /* tap a recent row to edit it; return here (dashboard) when done */
+  el.querySelectorAll('.tx-item[data-id]').forEach(item => {
+    item.style.cursor = 'pointer';
+    item.addEventListener('click', () => {
+      window.location.href = `pages/add-transaction.html?id=${item.dataset.id}&from=${encodeURIComponent('../index.html')}`;
+    });
+  });
 }
 
 function txItemHTML(t, cat) {
   const sign = t.type === 'income' ? '+' : t.type === 'expense' ? '−' : '↔';
   return `
-    <div class="tx-item">
+    <div class="tx-item" data-id="${t.id}">
       <div class="tx-icon tx-icon--${t.type}">${categoryIconHTML(cat, 18)}</div>
       <div class="tx-info">
         <div class="tx-name">${escapeHTML(t.note) || cat?.name || 'Transaction'}</div>
@@ -845,18 +892,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('nwGoalClear')?.addEventListener('click', clearNwGoal);
 
   document.getElementById('monthNavPrev')?.addEventListener('click', async () => {
-    currentMonthView.month--;
-    if (currentMonthView.month < 1) { currentMonthView.month = 12; currentMonthView.year--; }
-    updateMonthNav();
-    const allTx = await TransactionStore.getAll();
-    await renderMonthlyChart(allTx);
+    if (!PeriodEngine.canPrev(overview.mode, overview.offset)) return;
+    overview.offset--;
+    await renderMonthlyChart(await TransactionStore.getAll());
   });
 
   document.getElementById('monthNavNext')?.addEventListener('click', async () => {
-    currentMonthView.month++;
-    if (currentMonthView.month > 12) { currentMonthView.month = 1; currentMonthView.year++; }
-    updateMonthNav();
-    const allTx = await TransactionStore.getAll();
-    await renderMonthlyChart(allTx);
+    if (!PeriodEngine.canNext(overview.mode, overview.offset)) return;
+    overview.offset++;
+    await renderMonthlyChart(await TransactionStore.getAll());
+  });
+
+  document.querySelectorAll('#ovRangeToggle .seg-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (btn.dataset.range === overview.mode) return;
+      overview.mode = btn.dataset.range;
+      overview.offset = 0;
+      try { localStorage.setItem('pf_overview_range', overview.mode); } catch (_) {}
+      await renderMonthlyChart(await TransactionStore.getAll());
+    });
   });
 });

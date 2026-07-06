@@ -16,9 +16,91 @@ const PAGE_SIZE    = 20;
 let _catMap = {};
 let _accMap = {};
 
+/* bulk-select state */
+let selectMode = false;
+const selectedIds = new Set();
+let _allFiltered = [];   /* last rendered filtered set, for bulk snapshots */
+
 async function initTransactions() {
   await populateFilters();
+  syncControlsFromFilters();
   await Promise.all([renderTransactions(), renderStats()]);
+  saveView();
+}
+
+/* Persist the current view (filters, sort, range, page depth) for this tab so
+   editing a transaction and coming back doesn't reset everything. */
+const VIEW_KEY = 'pf_tx_view';
+function saveView() {
+  try {
+    sessionStorage.setItem(VIEW_KEY, JSON.stringify({
+      filters: currentFilters, sort: currentSort, range: currentRange, count: displayedCount,
+    }));
+  } catch (_) {}
+}
+function restoreView() {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(VIEW_KEY) || 'null');
+    if (!v) return;
+    if (v.filters) currentFilters = { search: '', categoryId: '', accountId: '', type: '', from: '', to: '', ...v.filters };
+    if (v.sort)  currentSort  = v.sort;
+    if (v.range) currentRange = v.range;
+    if (v.count) displayedCount = v.count;
+  } catch (_) {}
+}
+
+/* Seed filters from URL params (used by the Cash-Flow drill-down:
+   ?category=&type=&from=&to=&search=). */
+function applyUrlFilters() {
+  const p = new URLSearchParams(location.search);
+  const cat = p.get('category'), type = p.get('type');
+  const from = p.get('from'), to = p.get('to'), search = p.get('search');
+  if (cat)    currentFilters.categoryId = cat;
+  if (type)   currentFilters.type       = type;
+  if (from)   currentFilters.from        = from;
+  if (to)     currentFilters.to          = to;
+  if (search) currentFilters.search      = search;
+}
+
+/* Reflect currentFilters into the toolbar controls (after populateFilters
+   has built the option lists). */
+function syncControlsFromFilters() {
+  const catSel = document.getElementById('filterCategory');
+  const accSel = document.getElementById('filterAccount');
+  if (catSel) catSel.value = currentFilters.categoryId || '';
+  if (accSel) accSel.value = currentFilters.accountId || '';
+  const searchEl = document.getElementById('searchInput');
+  if (searchEl) searchEl.value = currentFilters.search || '';
+  const sortSel = document.getElementById('txSort');
+  if (sortSel && currentSort) sortSel.value = currentSort;
+  document.querySelectorAll('#txTypeTabs .seg-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.type === (currentFilters.type || '')));
+  if (currentFilters.from || currentFilters.to) {
+    currentRange = 'custom';
+    const rangeSel = document.getElementById('txRange');
+    if (rangeSel) rangeSel.value = 'custom';
+    const cw = document.getElementById('txCustomDates');
+    if (cw) cw.hidden = false;
+    const f = document.getElementById('filterFrom'); if (f) f.value = currentFilters.from || '';
+    const t = document.getElementById('filterTo');   if (t) t.value = currentFilters.to   || '';
+  }
+}
+
+/* Client-side text search across note, category, account, tags and amount —
+   the server query only matches the note, so richer matching happens here. */
+function matchesSearch(t, term) {
+  const q = (term || '').trim().toLowerCase();
+  if (!q) return true;
+  const cat   = _catMap[t.categoryId];
+  const acc   = _accMap[t.accountId];
+  const toAcc = _accMap[t.toAccountId];
+  const hay = [
+    t.note, cat?.name, acc?.name, toAcc?.name,
+    ...(Array.isArray(t.tags) ? t.tags : []),
+    t.amount != null ? String(t.amount) : '',
+    t.amount != null ? Number(t.amount).toFixed(2) : '',
+  ].filter(Boolean).join(' ').toLowerCase();
+  return hay.includes(q);
 }
 
 async function populateFilters() {
@@ -31,6 +113,9 @@ async function populateFilters() {
     cats.map(c => `<option value="${c.id}">${c.icon} ${escapeHTML(c.name)}</option>`).join('');
   if (accSel) accSel.innerHTML = `<option value="">All accounts</option>` +
     accounts.map(a => `<option value="${a.id}">${escapeHTML(a.name)}</option>`).join('');
+  const bulkCat = document.getElementById('bulkCategory');
+  if (bulkCat) bulkCat.innerHTML = `<option value="">Recategorize…</option>` +
+    cats.map(c => `<option value="${c.id}">${c.icon || ''} ${escapeHTML(c.name)}</option>`).join('');
 }
 
 /* ---- query + client-side sort ---- */
@@ -45,12 +130,15 @@ function sortTxs(txs) {
 }
 
 async function getFiltered() {
-  return sortTxs(await TransactionStore.query(currentFilters));
+  const { search, ...rest } = currentFilters;
+  const txs = await TransactionStore.query(rest);
+  return sortTxs(txs.filter(t => matchesSearch(t, search)));
 }
 
 /* ---- stats (reflect the active filters) ---- */
 async function renderStats() {
-  const txs    = await TransactionStore.query(currentFilters);
+  const { search, ...rest } = currentFilters;
+  const txs    = (await TransactionStore.query(rest)).filter(t => matchesSearch(t, search));
   const totals = SummaryEngine.getTotals(txs);
   const net    = totals.income - totals.expense;
   setText('statIncome',  formatCurrency(totals.income));
@@ -86,6 +174,7 @@ async function renderTransactions() {
   el.innerHTML = txSkeleton();
 
   const all  = await getFiltered();
+  _allFiltered = all;
   const page = all.slice(0, displayedCount);
 
   if (!all.length) {
@@ -136,16 +225,22 @@ function txItemFullHTML(t, cat, acc, showDate = false) {
     meta = `${escapeHTML(cat?.name) || 'Uncategorized'} · ${escapeHTML(acc?.name) || 'No account'}`;
   }
   if (showDate) meta = `${formatDateShort(t.date)} · ${meta}`;
-  const tag = (t.tags && t.tags.length) ? `<span class="tx-tag">${escapeHTML(t.tags[0])}</span>` : '';
+  const tag = (t.tags && t.tags.length)
+    ? t.tags.map(tg => `<span class="tx-tag">${escapeHTML(tg)}</span>`).join('')
+    : '';
+  const checkbox = selectMode
+    ? `<input type="checkbox" class="tx-select" data-id="${t.id}" ${selectedIds.has(t.id) ? 'checked' : ''} style="margin-right:6px;flex-shrink:0;width:16px;height:16px;">`
+    : '';
   return `
-    <div class="tx-item" data-id="${t.id}">
+    <div class="tx-item${selectMode && selectedIds.has(t.id) ? ' tx-item--selected' : ''}" data-id="${t.id}"${selectMode ? ' style="cursor:pointer;"' : ''}>
+      ${checkbox}
       <div class="tx-icon tx-icon--${t.type}">${categoryIconHTML(cat, 18)}</div>
       <div class="tx-info">
         <div class="tx-name">${escapeHTML(t.note) || escapeHTML(cat?.name) || (t.type === 'transfer' ? 'Transfer' : 'Transaction')}${tag}</div>
         <div class="tx-meta">${meta}</div>
       </div>
       <div class="tx-amount tx-amount--${t.type}">${sign}${formatCurrency(t.amount)}</div>
-      <div class="tx-actions">
+      <div class="tx-actions"${selectMode ? ' style="display:none;"' : ''}>
         <button class="tx-action-btn" data-action="edit" data-id="${t.id}" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
         <button class="tx-action-btn tx-action-btn--delete" data-action="delete" data-id="${t.id}" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
       </div>
@@ -165,10 +260,29 @@ function renderLoadMore(total) {
   document.getElementById('loadMoreBtn')?.addEventListener('click', async () => {
     displayedCount += PAGE_SIZE;
     await renderTransactions();
+    saveView();
   });
 }
 
 function attachTxEvents() {
+  if (selectMode) {
+    document.querySelectorAll('.tx-list-full .tx-item[data-id]').forEach(item => {
+      const id = item.dataset.id;
+      const set = checked => {
+        if (checked) selectedIds.add(id); else selectedIds.delete(id);
+        item.style.background = checked ? 'var(--color-surface-2)' : '';
+        const cb = item.querySelector('.tx-select'); if (cb) cb.checked = checked;
+        updateBulkBar();
+      };
+      item.addEventListener('click', e => {
+        if (e.target.closest('.tx-select')) return;   /* checkbox handles itself */
+        set(!selectedIds.has(id));
+      });
+      item.querySelector('.tx-select')?.addEventListener('change', e => set(e.target.checked));
+      if (selectedIds.has(id)) item.style.background = 'var(--color-surface-2)';
+    });
+    return;
+  }
   document.querySelectorAll('[data-action="edit"]').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); window.location.href = `add-transaction.html?id=${btn.dataset.id}`; });
   });
@@ -189,11 +303,106 @@ function openDeleteModal(id) {
   if (!modal || !confirmBtn) return;
   modal.classList.add('open');
   confirmBtn.onclick = async () => {
+    /* snapshot the row so the delete can be undone */
+    let snapshot = null;
+    try {
+      const t = await TransactionStore.getById(id);
+      if (t) snapshot = {
+        amount: t.amount, date: t.date, note: t.note, type: t.type,
+        accountId: t.accountId, toAccountId: t.toAccountId || null,
+        categoryId: t.categoryId, tags: Array.isArray(t.tags) ? t.tags : [],
+      };
+    } catch (_) {}
     await TransactionStore.delete(id);
     modal.classList.remove('open');
     await Promise.all([renderTransactions(), renderStats()]);
-    showToast('Transaction deleted', 'success');
+    if (snapshot && typeof showUndoToast === 'function') {
+      showUndoToast('Transaction deleted', async () => {
+        try {
+          await TransactionStore.add(snapshot);
+          await Promise.all([renderTransactions(), renderStats()]);
+          showToast('Transaction restored', 'success');
+        } catch (err) { showToast(err.message || 'Failed to restore', 'error'); }
+      });
+    } else {
+      showToast('Transaction deleted', 'success');
+    }
   };
+}
+
+/* ---- bulk select / recategorize / delete ---- */
+function toggleSelectMode(on) {
+  selectMode = on;
+  selectedIds.clear();
+  const bar = document.getElementById('txBulkbar');
+  if (bar) bar.hidden = !on;
+  const btn = document.getElementById('selectModeBtn');
+  if (btn) { btn.classList.toggle('active', on); btn.textContent = on ? 'Selecting…' : 'Select'; }
+  const all = document.getElementById('bulkSelectAll');
+  if (all) all.checked = false;
+  updateBulkBar();
+  renderTransactions();
+}
+
+function updateBulkBar() {
+  const n = selectedIds.size;
+  setText('bulkCount', `${n} selected`);
+  const del = document.getElementById('bulkDelete');
+  const rec = document.getElementById('bulkCategory');
+  if (del) del.disabled = n === 0;
+  if (rec) rec.disabled = n === 0;
+}
+
+function selectAllVisible(checked) {
+  document.querySelectorAll('.tx-list-full .tx-item[data-id]').forEach(item => {
+    const id = item.dataset.id;
+    if (checked) selectedIds.add(id); else selectedIds.delete(id);
+    item.style.background = checked ? 'var(--color-surface-2)' : '';
+    const cb = item.querySelector('.tx-select'); if (cb) cb.checked = checked;
+  });
+  updateBulkBar();
+}
+
+async function refreshAfterBulk() {
+  await Promise.all([renderTransactions(), renderStats()]);
+  updateBulkBar();
+}
+
+async function bulkDelete() {
+  const ids = [...selectedIds];
+  if (!ids.length) return;
+  const ok = window.confirmDialog
+    ? await window.confirmDialog(`Delete ${ids.length} transaction${ids.length === 1 ? '' : 's'}? This can be undone.`, { confirmText: 'Delete' })
+    : true;
+  if (!ok) return;
+  /* snapshot from the in-memory set so undo can re-add them */
+  const snaps = ids
+    .map(id => _allFiltered.find(t => t.id === id))
+    .filter(Boolean)
+    .map(t => ({ amount: t.amount, date: t.date, note: t.note, type: t.type,
+      accountId: t.accountId, toAccountId: t.toAccountId || null,
+      categoryId: t.categoryId, tags: Array.isArray(t.tags) ? t.tags : [] }));
+  for (const id of ids) { try { await TransactionStore.delete(id); } catch (_) {} }
+  selectedIds.clear();
+  await refreshAfterBulk();
+  if (snaps.length && typeof showUndoToast === 'function') {
+    showUndoToast(`${snaps.length} deleted`, async () => {
+      for (const s of snaps) { try { await TransactionStore.add(s); } catch (_) {} }
+      await refreshAfterBulk();
+      showToast('Restored', 'success');
+    });
+  } else {
+    showToast(`${ids.length} deleted`, 'success');
+  }
+}
+
+async function bulkRecategorize(categoryId) {
+  const ids = [...selectedIds];
+  if (!ids.length || !categoryId) return;
+  for (const id of ids) { try { await TransactionStore.update(id, { categoryId }); } catch (_) {} }
+  selectedIds.clear();
+  await refreshAfterBulk();
+  showToast(`Recategorized ${ids.length}`, 'success');
 }
 
 /* ---- date-range presets ---- */
@@ -218,13 +427,16 @@ function applyRange(range) {
   }
 }
 
-function refresh() { displayedCount = PAGE_SIZE; renderTransactions(); renderStats(); }
+function refresh() { displayedCount = PAGE_SIZE; renderTransactions(); renderStats(); saveView(); }
 
 function setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; }
 
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
+  /* a fresh drill-down (URL params) wins; otherwise restore this tab's last view */
+  if (/[?&](category|type|from|to|search)=/.test(location.search)) applyUrlFilters();
+  else restoreView();
   try {
     await initTransactions();
   } catch (err) {
@@ -289,4 +501,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('closeDeleteModal')?.addEventListener('click', () => document.getElementById('deleteModal')?.classList.remove('open'));
   document.getElementById('cancelDelete')?.addEventListener('click',     () => document.getElementById('deleteModal')?.classList.remove('open'));
+
+  /* bulk select / recategorize / delete */
+  document.getElementById('selectModeBtn')?.addEventListener('click', () => toggleSelectMode(!selectMode));
+  document.getElementById('bulkCancel')?.addEventListener('click', () => toggleSelectMode(false));
+  document.getElementById('bulkDelete')?.addEventListener('click', bulkDelete);
+  document.getElementById('bulkSelectAll')?.addEventListener('change', e => selectAllVisible(e.target.checked));
+  document.getElementById('bulkCategory')?.addEventListener('change', e => { const v = e.target.value; e.target.value = ''; bulkRecategorize(v); });
 });

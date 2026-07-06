@@ -37,25 +37,39 @@ function monthlyEquiv(sub) {
   return sub.amount * (FREQ_FACTOR[sub.frequency] || 1);
 }
 
-/* ---- auto-log due subscriptions ---- */
+/* ---- auto-log due subscriptions ----
+   Catch up: log every missed occurrence from nextDue through today in one
+   pass (not one-per-visit), then persist the advanced next_due once. */
 async function autoLogDue() {
+  const today = todayISO();
   const due = (await SubscriptionStore.getDue()).filter(s => s.autoLog !== false);
   if (!due.length) return [];
   const logged = [];
   for (const sub of due) {
-    try {
-      await TransactionStore.add({
-        date:       sub.nextDue,
-        amount:     sub.amount,
-        type:       'expense',
-        categoryId: sub.categoryId || null,
-        accountId:  sub.accountId  || null,
-        note:       sub.name,
-        tags:       ['subscription'],
-      });
-      await SubscriptionStore.advanceNext(sub.id);
-      logged.push(sub.name);
-    } catch (_) {}
+    let cursor = sub.nextDue;
+    let count  = 0;
+    const MAX  = 120;   /* safety cap against a malformed-frequency date loop */
+    while (cursor && cursor <= today && count < MAX) {
+      try {
+        await TransactionStore.add({
+          date:       cursor,
+          amount:     sub.amount,
+          type:       'expense',
+          categoryId: sub.categoryId || null,
+          accountId:  sub.accountId  || null,
+          note:       sub.name,
+          tags:       ['subscription'],
+        });
+      } catch (_) { break; }
+      count++;
+      const next = advanceDate(cursor, sub.frequency);
+      if (!next || next <= cursor) { cursor = next || cursor; break; }   /* can't advance → stop */
+      cursor = next;
+    }
+    if (count > 0) {
+      try { await SubscriptionStore.setNextDue(sub.id, cursor); } catch (_) {}
+      logged.push(count > 1 ? `${sub.name} ×${count}` : sub.name);
+    }
   }
   return logged;
 }

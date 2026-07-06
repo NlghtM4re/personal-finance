@@ -164,3 +164,45 @@ function animateValue(el, endValue, formatter, duration = 550) {
   requestAnimationFrame(tick);
 }
 
+/* --- Toast with an Undo action (reuses the .toast container styles) ---
+   Shows `message` with an Undo button; clicking it runs onUndo. Auto-dismisses
+   after `ms`. Used for reversible deletes. */
+function showUndoToast(message, onUndo, ms = 6000) {
+  const container = document.getElementById('toastContainer') || (() => {
+    const el = document.createElement('div');
+    el.id = 'toastContainer'; el.className = 'toast-container';
+    document.body.appendChild(el);
+    return el;
+  })();
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.style.display = 'flex';
+  toast.style.alignItems = 'center';
+  toast.style.gap = '12px';
+  const label = document.createElement('span');
+  label.textContent = message;
+  label.style.flex = '1';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn--ghost btn--sm';
+  btn.textContent = 'Undo';
+  btn.style.flexShrink = '0';
+  toast.append(label, btn);
+  container.appendChild(toast);
+
+  let settled = false;
+  const remove = () => {
+    if (settled) return; settled = true;
+    toast.classList.add('toast--dismissing');
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+    setTimeout(() => toast.remove(), 400);
+  };
+  btn.addEventListener('click', async e => {
+    e.stopPropagation();
+    if (settled) return; settled = true;
+    toast.remove();
+    try { await onUndo(); } catch (_) {}
+  });
+  setTimeout(remove, ms);
+}
+

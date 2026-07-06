@@ -166,8 +166,153 @@ const SummaryEngine = {
   },
 };
 
+/* ============================================================
+   PeriodEngine — shared week / month / year / all-time ranges
+   Used by any panel that pages through time (Cash Flow, Dashboard
+   overview). Keeps range math, labels, paging bounds and bar-chart
+   bucketing in ONE place so every panel behaves identically.
+
+   A period is { mode, offset }: mode ∈ 'week'|'month'|'year'|'all',
+   offset 0 = current period, -1 = previous, +1 = next. Forward paging
+   is capped at the current period (offset 0) so panels can never sail
+   into empty future ranges; 'all' has no paging at all.
+   ============================================================ */
+const PeriodEngine = {
+  MODES: ['week', 'month', 'year', 'all'],
+  LABELS: { week: 'Week', month: 'Month', year: 'Year', all: 'All' },
+
+  _ymd: ymd,
+
+  /* Monday-based start of the week containing d (local midnight) */
+  _weekStart(d) {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const dow = (x.getDay() + 6) % 7;      /* 0 = Monday … 6 = Sunday */
+    x.setDate(x.getDate() - dow);
+    return x;
+  },
+
+  /* Inclusive { from, to, label } ISO date strings for a period.
+     `allTx` is only needed for 'all' (to find the earliest date). */
+  range(mode, offset, allTx = []) {
+    const now = new Date();
+    if (mode === 'week') {
+      const start = this._weekStart(now);
+      start.setDate(start.getDate() + offset * 7);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      const opt = { month: 'short', day: 'numeric' };
+      return {
+        from: this._ymd(start),
+        to: this._ymd(end),
+        label: `${start.toLocaleDateString('en-US', opt)} – ${end.toLocaleDateString('en-US', opt)}`,
+      };
+    }
+    if (mode === 'year') {
+      const y = now.getFullYear() + offset;
+      return { from: `${y}-01-01`, to: `${y}-12-31`, label: String(y) };
+    }
+    if (mode === 'all') {
+      const dates = allTx.map(t => t.date).filter(Boolean).sort();
+      return { from: dates[0] || this._ymd(now), to: this._ymd(now), label: 'All time' };
+    }
+    /* month (default) */
+    const d    = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const from = new Date(d.getFullYear(), d.getMonth(), 1);
+    const to   = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return {
+      from: this._ymd(from),
+      to: this._ymd(to),
+      label: d.toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+    };
+  },
+
+  /* Paging bounds. Forward is capped at the current period; 'all' is static. */
+  canNext(mode, offset) { return mode !== 'all' && offset < 0; },
+  canPrev(mode, _offset) { return mode !== 'all'; },
+
+  /* Transactions inside an inclusive [from, to] window (ISO strings sort lexically) */
+  filter(allTx, from, to) {
+    return allTx.filter(t => t.date >= from && t.date <= to);
+  },
+
+  /* Bar-chart buckets for a period: an array of { label, income, expense,
+     highlight? }. week → 7 days, month → 4 weeks, year → 12 months,
+     all → one bucket per year of history. `highlight` marks the bucket
+     containing today (only when viewing the current period). */
+  buckets(mode, offset, allTx) {
+    const now = new Date();
+
+    if (mode === 'week') {
+      const start = this._weekStart(now);
+      start.setDate(start.getDate() + offset * 7);
+      const todayKey = this._ymd(now);
+      const days = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        days.push({ key: this._ymd(d), label: d.toLocaleDateString('en-US', { weekday: 'short' }), income: 0, expense: 0 });
+      }
+      const map = Object.fromEntries(days.map(d => [d.key, d]));
+      allTx.forEach(t => {
+        const b = map[t.date];
+        if (!b) return;
+        if (t.type === 'income')  b.income  += t.amount;
+        if (t.type === 'expense') b.expense += t.amount;
+      });
+      days.forEach(d => { if (d.key === todayKey) d.highlight = true; });
+      return days;
+    }
+
+    if (mode === 'year') {
+      const year = now.getFullYear() + offset;
+      const months = SummaryEngine.getMonthlyRollup(allTx, year);
+      if (year === now.getFullYear()) months[now.getMonth()].highlight = true;
+      return months;
+    }
+
+    if (mode === 'all') {
+      const years = {};
+      allTx.forEach(t => {
+        const y = (t.date || '').slice(0, 4);
+        if (!y) return;
+        if (!years[y]) years[y] = { label: y, income: 0, expense: 0 };
+        if (t.type === 'income')  years[y].income  += t.amount;
+        if (t.type === 'expense') years[y].expense += t.amount;
+      });
+      const cy = String(now.getFullYear());
+      return Object.keys(years).sort().map(k => ({ ...years[k], highlight: k === cy }));
+    }
+
+    /* month → weeks of the month */
+    const dt    = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const year  = dt.getFullYear();
+    const month = dt.getMonth() + 1;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const prefix = `${year}-${String(month).padStart(2, '0')}-`;
+    const weeks = [
+      { label: 'Week 1', start: 1,  end: 7,           income: 0, expense: 0 },
+      { label: 'Week 2', start: 8,  end: 14,          income: 0, expense: 0 },
+      { label: 'Week 3', start: 15, end: 21,          income: 0, expense: 0 },
+      { label: 'Week 4', start: 22, end: daysInMonth, income: 0, expense: 0 },
+    ];
+    allTx.forEach(t => {
+      if (!t.date.startsWith(prefix)) return;
+      const day = parseInt(t.date.slice(8));
+      const wk  = weeks.find(w => day >= w.start && day <= w.end);
+      if (!wk) return;
+      if (t.type === 'income')  wk.income  += t.amount;
+      if (t.type === 'expense') wk.expense += t.amount;
+    });
+    if (year === now.getFullYear() && month === now.getMonth() + 1) {
+      const day = now.getDate();
+      weeks.forEach(w => { w.highlight = day >= w.start && day <= w.end; });
+    }
+    return weeks;
+  },
+};
+
 /* Export for Node-based unit tests. Harmless in the browser, where there is
-   no `module` and `SummaryEngine` stays a global. */
+   no `module` and both engines stay globals. */
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { SummaryEngine };
+  module.exports = { SummaryEngine, PeriodEngine };
 }
