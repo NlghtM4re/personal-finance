@@ -45,6 +45,50 @@
 
     <main class="main-content">
 
+      <!-- FIRST RUN: shown only when the account has zero data (dashboard.js) -->
+      <section class="term first-run" id="firstRunCard" hidden aria-label="Getting started">
+        <div class="first-run__head">
+          <div>
+            <div class="term-label">Getting started</div>
+            <h2 class="first-run__title">Welcome to Flow</h2>
+            <p class="first-run__sub">Three steps and the dashboard comes alive. This card disappears once you have data.</p>
+          </div>
+          <button type="button" class="btn btn--ghost btn--sm" id="firstRunDismiss">Skip for now</button>
+        </div>
+        <ol class="first-run__steps">
+          <li>
+            <a href="pages/accounts.html" class="first-run__step">
+              <span class="first-run__num font-display">01</span>
+              <span class="first-run__step-body">
+                <strong>Add an account</strong>
+                <span>Chequing, cash, savings — with its current balance.</span>
+              </span>
+              <span class="first-run__arrow">→</span>
+            </a>
+          </li>
+          <li>
+            <a href="pages/add-transaction.html" class="first-run__step">
+              <span class="first-run__num font-display">02</span>
+              <span class="first-run__step-body">
+                <strong>Log a transaction</strong>
+                <span>Any recent income or expense — it takes seconds.</span>
+              </span>
+              <span class="first-run__arrow">→</span>
+            </a>
+          </li>
+          <li>
+            <a href="pages/settings.html" class="first-run__step">
+              <span class="first-run__num font-display">03</span>
+              <span class="first-run__step-body">
+                <strong>Pick your currency</strong>
+                <span>Defaults to CAD — change it in Settings if you need to.</span>
+              </span>
+              <span class="first-run__arrow">→</span>
+            </a>
+          </li>
+        </ol>
+      </section>
+
       <!-- STAT BAR (terminal): horizontal hairline cells -->
       <div class="term dash-statbar">
         <div class="statbar__cell statbar__cell--balance">

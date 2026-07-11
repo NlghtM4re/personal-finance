@@ -33,8 +33,8 @@ function activeJob() {
 }
 
 /* Hourly rate to show/estimate with: the active job's rate, then the saved
-   default, then $17 as a last resort. */
-function jobRate() { return (activeJob()?.rate) || ShiftStore.getDefaultRate() || 17; }
+   default. 0 means "not set yet" — callers prompt instead of guessing. */
+function jobRate() { return (activeJob()?.rate) || ShiftStore.getDefaultRate() || 0; }
 
 const iso = d => isoLocal(d);
 const todayISO = () => iso(new Date());
@@ -303,7 +303,11 @@ function renderQuickChips(selected) {
 
 function renderQuickMeta() {
   const el = document.getElementById('qlMeta');
-  if (el) el.textContent = `at ${formatCurrency(jobRate())}/h · added unlogged — tap a shift to log it`;
+  if (!el) return;
+  const rate = jobRate();
+  el.textContent = rate > 0
+    ? `at ${formatCurrency(rate)}/h · added unlogged — tap a shift to log it`
+    : 'set an hourly rate on your job to estimate pay';
 }
 
 async function quickLog(e) {
@@ -313,7 +317,13 @@ async function quickLog(e) {
   const job = activeJob();
   if (!job) { showToast('Add a job first', 'error'); openJobModal(); return; }
   localStorage.setItem('pf_quick_job', job.id);   /* remember the pick on this device */
-  const rate = job.rate || ShiftStore.getDefaultRate() || 17;
+  const rate = job.rate || ShiftStore.getDefaultRate() || 0;
+  if (rate <= 0) {
+    /* never invent a rate — ask once, it sticks on the job from then on */
+    showToast('Set an hourly rate for this job first', 'error');
+    openJobModal(job.id);
+    return;
+  }
   ShiftStore.setDefaultRate(rate);
   const data = {
     date: _qlDate || todayISO(), hours: hoursVal, rate, payMode: 'hourly', tips: 0,

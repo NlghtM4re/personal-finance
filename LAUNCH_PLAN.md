@@ -24,15 +24,17 @@ unchecked item. `[user]` = needs an action only the account owner can do.
 
 ## Phase 2 — First-run UX (new-user experience)
 
-- [ ] De-personalize Hours Tracker: remove the $17/h hardcode in
-      `scripts/components/quick-log.js` — prompt for rate on first quick-log,
-      persist as the user's default
-- [ ] First-run onboarding: new account with zero data gets a guided
-      "create your first account + pick currency" step (skippable)
-- [ ] Empty-state copy pass: every page renders a helpful next-step message
-      with no data (not a blank chart)
-- [ ] Verify: walk through the app as a brand-new user (fresh profile) in the
-      preview — no personal defaults visible, no dead-end blank screens
+- [x] De-personalize Hours Tracker: `$17/h` fallback removed from
+      `scripts/pages/shifts.js` (`jobRate()`, `quickLog()`, quick-log meta) —
+      a missing rate now prompts "Set an hourly rate for this job" and opens
+      the job modal instead of inventing a number
+- [x] First-run onboarding: dashboard "Welcome to Flow" card (`#firstRunCard`)
+      shown only with 0 accounts + 0 transactions, dismissable, 3 linked steps
+      (account → transaction → currency); auto-hides once data exists
+- [x] Empty-state audit: dashboard widgets, insights, budget onboarding,
+      shifts, spending, transactions, accounts, crypto all have empty states
+- [x] Verify (2026-07-11): card rendered desktop + mobile in preview (Flow
+      style holds), 142/142 tests green
 
 ## Phase 3 — Legal & trust
 

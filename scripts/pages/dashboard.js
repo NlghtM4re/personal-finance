@@ -41,6 +41,15 @@ async function initDashboard() {
     SubscriptionStore.getAll().catch(() => []),
   ]);
 
+  /* First-run card: only for a truly empty account, until dismissed.
+     Disappears on its own the moment any account or transaction exists. */
+  const firstRun = document.getElementById('firstRunCard');
+  if (firstRun) {
+    const showFirstRun = !accounts.length && !allTx.length &&
+                         !localStorage.getItem('pf_dismiss_firstrun');
+    firstRun.hidden = !showFirstRun;
+  }
+
   const now = new Date();
   const thisMonthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-`;
   const monthTx = allTx.filter(t => t.date.startsWith(thisMonthPrefix));
@@ -866,6 +875,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   } finally {
     window.hideAppLoader?.();   /* data rendered (or errored) — fade the boot screen out */
   }
+
+  /* First-run card dismiss — remembered on this device */
+  document.getElementById('firstRunDismiss')?.addEventListener('click', () => {
+    try { localStorage.setItem('pf_dismiss_firstrun', '1'); } catch (_) {}
+    const card = document.getElementById('firstRunCard');
+    if (card) card.hidden = true;
+  });
 
   /* Quick-log hours widget — refresh the dashboard after a shift is logged. */
   QuickLog?.init({ onLogged: () => initDashboard() }).catch(console.error);

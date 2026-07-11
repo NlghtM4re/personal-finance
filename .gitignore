@@ -25,6 +25,9 @@ desktop.ini
 # Vercel
 .vercel/
 
+# Knowledge graph output (regenerable, large)
+graphify-out/
+
 # Temp
 *.tmp
 *.bak
