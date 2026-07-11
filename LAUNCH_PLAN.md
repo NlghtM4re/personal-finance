@@ -59,6 +59,10 @@ unchecked item. `[user]` = needs an action only the account owner can do.
 
 ## Phase 5 — Public face
 
-- [ ] Landing page (separate from login): what it is, screenshots, sign-up CTA
-- [ ] OG/social meta + SEO basics on landing
-- [ ] Update PRODUCT.md positioning from "solo user" to public audience
+- [x] Landing page `welcome.html`: hero, 6 feature blocks, trust section,
+      legal footer, sign-up CTA; linked from login ("What is Flow?")
+- [x] OG/social meta + meta description on the landing page
+- [x] PRODUCT.md Users section rewritten for a public audience (no hardcoded
+      personal defaults rule added)
+- [ ] `[user]` Optional: screenshots on the landing page, custom domain,
+      swap `/` to the landing for logged-out visitors

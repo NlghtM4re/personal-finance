@@ -6,7 +6,7 @@ product
 
 ## Users
 
-Solo user managing personal finances. Opens the app daily or weekly to log transactions, check balances, and review spending against budgets. Technically comfortable — expects a tool, not a tutorial. Primary tasks: add a transaction, check the balance, see where money went this month.
+Public audience (since July 2026; originally built for one person). Anyone managing personal finances who wants a tool, not a coach: they open the app daily or weekly to log transactions, check balances, and review spending against budgets. Assume a *new* user knows nothing about the app — first-run onboarding, empty states, and prompts must carry them — but never condescend to the experienced one: after setup, the interface gets out of the way. No user-specific defaults may be hardcoded (rates, employers, schedules); personal context lives in per-user settings. Primary tasks: add a transaction, check the balance, see where money went this month.
 
 ## Product Purpose
 
