@@ -28,6 +28,8 @@
     money:         '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>',
     more:          '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
     menu:          '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>',
+    /* half-filled circle — the black/white theme switch */
+    theme:         '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor" stroke="none"/>',
   };
 
   /* ---- nav config — hrefs are root-relative ----
@@ -97,8 +99,12 @@
       <div class="topbar-title"${titleId}>${title}</div>
       <div class="topbar-actions">
         <a href="${resolve(insights.href)}" class="topbar-icon-btn${isActive(insights) ? ' topbar-icon-btn--active' : ''}" aria-label="Insights" title="Insights">${I(ICONS.insights, 17)}</a>
+        <button type="button" class="topbar-icon-btn" id="themeToggle" aria-label="Switch between black and white theme" title="Black / white theme">${I(ICONS.theme, 17)}</button>
         <a href="${resolve('pages/settings.html')}" class="topbar-icon-btn${CURRENT === 'settings' ? ' topbar-icon-btn--active' : ''}" aria-label="Settings" title="Settings">${I(ICONS.settings, 17)}</a>
       </div>`;
+    document.getElementById('themeToggle')?.addEventListener('click', () => {
+      if (typeof PFTheme !== 'undefined') PFTheme.toggle();
+    });
   }
 
   /* ---- bottom nav: Dashboard · Transactions · [+] · Money · More ---- */

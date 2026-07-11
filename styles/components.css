@@ -63,13 +63,13 @@
 
 .btn--primary {
   background: var(--color-primary);
-  color: #0a0a0a;
+  color: var(--color-primary-contrast);
   font-weight: 600;
 }
 .btn--primary:hover {
-  background: #e6e6ea;
+  background: var(--color-primary-hover);
   text-decoration: none;
-  color: #0a0a0a;
+  color: var(--color-primary-contrast);
 }
 
 .btn--secondary {

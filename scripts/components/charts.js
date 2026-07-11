@@ -30,15 +30,18 @@ const Charts = {
     return { ctx: s._ctx, w: s._w, h: s._h, canvas: s._canvas };
   },
 
-  /* Flow mono chart palette (single theme) */
-  _textColor()  { return '#62626c'; },
-  _textLight()  { return '#9a9aa4'; },
-  _textStrong() { return '#ffffff'; },
-  _gridColor()  { return 'rgba(255,255,255,0.07)'; },
-  _surface()    { return '#0d0d0f'; },
-  _lineColor()  { return '#ffffff'; },
-  _tooltipBg()      { return 'rgba(10,10,12,0.96)'; },
-  _tooltipBorder()  { return 'rgba(255,255,255,0.18)'; },
+  /* Flow mono chart palette — follows the black/white theme switch */
+  _isLight()    { return document.documentElement.dataset.theme === 'light'; },
+  _textColor()  { return this._isLight() ? '#71717a' : '#62626c'; },
+  _textLight()  { return this._isLight() ? '#8a8a94' : '#9a9aa4'; },
+  _textStrong() { return this._isLight() ? '#101014' : '#ffffff'; },
+  _gridColor()  { return this._isLight() ? 'rgba(0,0,0,0.08)'  : 'rgba(255,255,255,0.07)'; },
+  _surface()    { return this._isLight() ? '#ffffff' : '#0d0d0f'; },
+  _lineColor()  { return this._isLight() ? '#101014' : '#ffffff'; },
+  _tooltipBg()      { return this._isLight() ? 'rgba(255,255,255,0.97)' : 'rgba(10,10,12,0.96)'; },
+  _tooltipBorder()  { return this._isLight() ? 'rgba(0,0,0,0.18)'       : 'rgba(255,255,255,0.18)'; },
+  /* monochrome ink at a given alpha — white on black, black on white */
+  _mono(a)          { return this._isLight() ? `rgba(0,0,0,${a})` : `rgba(255,255,255,${a})`; },
 
   _reducedMotion() {
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -153,8 +156,8 @@ const Charts = {
     /* Gradient fill — white fading up from the baseline (historical only) */
     const lastHist = splitIdx - 1;
     const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
-    grad.addColorStop(0, 'rgba(255,255,255,0.13)');
-    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    grad.addColorStop(0, this._mono(0.13));
+    grad.addColorStop(1, this._mono(0));
     ctx.beginPath();
     ctx.moveTo(toX(0), toY(values[0]));
     for (let i = 1; i <= lastHist; i++) ctx.lineTo(toX(i), toY(values[i]));
@@ -179,13 +182,13 @@ const Charts = {
       for (let i = splitIdx; i < all.length; i++) ctx.lineTo(toX(i), toY(all[i].upper ?? all[i].balance));
       for (let i = all.length - 1; i >= splitIdx; i--) ctx.lineTo(toX(i), toY(all[i].lower ?? all[i].balance));
       ctx.closePath();
-      ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fill();
+      ctx.fillStyle = this._mono(0.06); ctx.fill();
 
       /* dashed projection line */
       ctx.save();
       ctx.setLineDash([5, 4]);
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2;
+      ctx.strokeStyle = this._mono(0.6); ctx.lineWidth = 2;
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       ctx.moveTo(toX(lastHist), toY(values[lastHist]));
       for (let i = splitIdx; i < all.length; i++) ctx.lineTo(toX(i), toY(values[i]));
@@ -195,7 +198,7 @@ const Charts = {
       /* "now" divider */
       ctx.save();
       ctx.setLineDash([3, 3]);
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = this._mono(0.18); ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(toX(lastHist), pad.top); ctx.lineTo(toX(lastHist), pad.top + ch); ctx.stroke();
       ctx.restore();
     }
@@ -206,7 +209,7 @@ const Charts = {
     if (hi >= 0 && hi < all.length) {
       const hx = toX(hi), hy = toY(values[hi]);
 
-      ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = this._mono(0.25); ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.moveTo(hx, pad.top); ctx.lineTo(hx, pad.top + ch); ctx.stroke();
       ctx.setLineDash([]);

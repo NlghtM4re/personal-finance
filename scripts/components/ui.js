@@ -2,6 +2,30 @@
    ui.js — Theme, sidebar, nav, page transitions, shortcuts
    ============================================================ */
 
+/* --- Theme (black / white switch in the topbar) ---
+   Applied at parse time so the page paints in the right theme.
+   Device-local (pf_theme) + best-effort cross-device sync. */
+const PFTheme = {
+  current() { return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'; },
+  apply(theme) {
+    if (theme === 'light') document.documentElement.dataset.theme = 'light';
+    else delete document.documentElement.dataset.theme;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = theme === 'light' ? '#f5f5f7' : '#000000';
+  },
+  toggle() {
+    const next = this.current() === 'light' ? 'dark' : 'light';
+    try { localStorage.setItem('pf_theme', next); } catch (_) {}
+    if (typeof SettingsStore !== 'undefined' && SettingsStore.setUiPref) {
+      try { SettingsStore.setUiPref({ theme: next }); } catch (_) {}
+    }
+    /* reload so the canvas charts repaint with the new palette
+       (CSS flips instantly, but canvases are already drawn) */
+    window.location.reload();
+  },
+};
+try { PFTheme.apply(localStorage.getItem('pf_theme') === 'light' ? 'light' : 'dark'); } catch (_) {}
+
 let _sidebarOpen = false;
 let _sidebar, _overlay;
 
