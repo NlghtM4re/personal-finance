@@ -49,8 +49,11 @@ unchecked item. `[user]` = needs an action only the account owner can do.
 
 ## Phase 4 — Ops & reliability
 
-- [ ] GitHub Actions CI: `npm test` on push/PR
-- [ ] Client error reporting (lightweight — window.onerror → endpoint or Sentry)
+- [x] GitHub Actions CI: `.github/workflows/ci.yml` — `npm test` on push/PR
+- [x] Client error reporting: uncaught errors/rejections POST to
+      `api/log-error.js` → Vercel function logs (throttled, no user data,
+      localhost excluded). Debug overlay flipped to OPT-IN (`pf_debug=1`)
+      so public users never see dev toasts
 - [x] Feedback link in Settings (About section, done in Phase 3)
 - [ ] `[user]` Enable Vercel Analytics on the project
 

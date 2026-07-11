@@ -1,17 +1,45 @@
 /* ============================================================
-   error-overlay.js — on-screen console error reporter.
-   Surfaces console.error / console.warn, uncaught errors and
-   unhandled promise rejections as dismissible toasts in the
-   bottom-left corner, so problems on the live site are visible
-   without opening DevTools. Load this FIRST on every page.
-   Toggle off by setting localStorage 'pf_debug' to '0'.
+   error-overlay.js — error visibility, two audiences.
+   1) DEBUG OVERLAY (developers): surfaces console.error/warn,
+      uncaught errors and unhandled rejections as dismissible
+      toasts. OPT-IN — set localStorage 'pf_debug' to '1'.
+      (Public users should never see dev noise.)
+   2) SILENT REPORTING (production): uncaught errors and
+      unhandled rejections are POSTed, throttled and fire-and-
+      forget, to /api/log-error so they land in the host's
+      function logs. Skipped on localhost. No user data — just
+      message, script location, page path, and user agent.
+   Load this FIRST on every page.
    ============================================================ */
 (function () {
   'use strict';
   if (window.__pfErrorOverlay) return;
   window.__pfErrorOverlay = true;
 
-  try { if (localStorage.getItem('pf_debug') === '0') return; } catch (_) {}
+  let DEBUG = false;
+  try { DEBUG = localStorage.getItem('pf_debug') === '1'; } catch (_) {}
+
+  /* ---- silent production reporting (max 5/page, localhost excluded) ---- */
+  const IS_LOCAL = /^(localhost|127\.|::1|\[::1\])/.test(location.hostname);
+  let reported = 0;
+  function report(message, source) {
+    if (IS_LOCAL || reported >= 5) return;
+    reported++;
+    try {
+      const body = JSON.stringify({
+        message: String(message || '').slice(0, 500),
+        source:  String(source || '').slice(0, 200),
+        page:    location.pathname,
+        ua:      navigator.userAgent.slice(0, 200),
+      });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/log-error', new Blob([body], { type: 'application/json' }));
+      } else {
+        fetch('/api/log-error', { method: 'POST', body, keepalive: true,
+          headers: { 'content-type': 'application/json' } }).catch(() => {});
+      }
+    } catch (_) {}
+  }
 
   /* self-inject styles so the overlay works on every page, even ones that
      don't link the shared stylesheet (e.g. login.html). */
@@ -101,24 +129,29 @@
     else document.addEventListener('DOMContentLoaded', run, { once: true });
   }
 
-  /* wrap console.error / console.warn (keep originals working) */
-  ['error', 'warn'].forEach((level) => {
-    const orig = console[level] ? console[level].bind(console) : function () {};
-    console[level] = function (...args) {
-      orig(...args);
-      try { show(level, args.map(fmt).join(' ')); } catch (_) {}
-    };
-  });
+  /* wrap console.error / console.warn (debug overlay only, originals kept) */
+  if (DEBUG) {
+    ['error', 'warn'].forEach((level) => {
+      const orig = console[level] ? console[level].bind(console) : function () {};
+      console[level] = function (...args) {
+        orig(...args);
+        try { show(level, args.map(fmt).join(' ')); } catch (_) {}
+      };
+    });
+  }
 
   window.addEventListener('error', (e) => {
     if (e && e.message) {
       const where = e.filename ? ` (${String(e.filename).split('/').pop()}:${e.lineno || 0})` : '';
-      show('error', e.message + where);
+      if (DEBUG) show('error', e.message + where);
+      report(e.message, where);
     }
   });
 
   window.addEventListener('unhandledrejection', (e) => {
     const r = e && e.reason;
-    show('error', 'Unhandled rejection: ' + (r && r.message ? r.message : fmt(r)));
+    const msg = 'Unhandled rejection: ' + (r && r.message ? r.message : fmt(r));
+    if (DEBUG) show('error', msg);
+    report(msg, r && r.stack ? String(r.stack).split('\n')[1] : '');
   });
 })();
