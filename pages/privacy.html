@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+  <title>Flow — Privacy Policy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+  <style>
+    .legal-wrap { max-width: 720px; margin: 0 auto; padding: 48px 20px 80px; }
+    .legal-back { color: var(--color-text-muted); text-decoration: none; font-size: .8125rem; font-family: var(--font-display); }
+    .legal-back:hover { color: var(--color-text); }
+    .legal-wrap h1 { font-size: 1.75rem; margin: 18px 0 4px; }
+    .legal-updated { color: var(--color-text-light); font-size: .75rem; font-family: var(--font-display); margin-bottom: 32px; }
+    .legal-wrap h2 { font-size: 1.0625rem; margin: 32px 0 10px; padding-top: 18px; border-top: 1px solid var(--color-border); }
+    .legal-wrap p, .legal-wrap li { font-size: .875rem; line-height: 1.65; color: var(--color-text-muted); }
+    .legal-wrap strong { color: var(--color-text); }
+    .legal-wrap ul { padding-left: 20px; margin: 8px 0; }
+    .legal-wrap a { color: var(--color-text); }
+  </style>
+</head>
+<body>
+  <div class="legal-wrap">
+    <a class="legal-back" href="../login.html">← Back</a>
+    <h1>Privacy Policy</h1>
+    <div class="legal-updated">Last updated · 2026-07-11</div>
+
+    <p><strong>The short version:</strong> your financial data belongs to you. We store it so the
+    app works across your devices, we can't browse it, we don't sell it, and you can export or
+    permanently delete all of it yourself at any time from Settings.</p>
+
+    <h2>What we collect</h2>
+    <ul>
+      <li><strong>Account:</strong> your email address and a password (stored hashed by our
+        authentication provider — we never see the password itself).</li>
+      <li><strong>Financial records you enter:</strong> accounts, transactions, budgets,
+        subscriptions, work shifts, and settings. This data exists because you typed it in.</li>
+      <li><strong>Crypto public addresses (optional):</strong> if you use the crypto feature, the
+        public wallet addresses you paste. <strong>Never private keys or seed phrases</strong> —
+        the app actively refuses them.</li>
+    </ul>
+    <p>There is no advertising, no tracking pixels, and no sale or sharing of your data with
+    third parties for their own use.</p>
+
+    <h2>Where it lives</h2>
+    <ul>
+      <li><strong>Supabase</strong> (database &amp; authentication): stores your data, isolated
+        per account with row-level security — one user can never read another's rows.</li>
+      <li><strong>Vercel</strong> (hosting): serves the app itself.</li>
+      <li><strong>Price &amp; balance services:</strong> crypto prices come from CoinGecko;
+        wallet balances are looked up via public blockchain APIs (Blockstream, publicnode).
+        These services receive only the public address being queried — never your identity,
+        email, or financial records.</li>
+    </ul>
+
+    <h2>Your controls</h2>
+    <ul>
+      <li><strong>Export:</strong> download all transactions as CSV from Settings, anytime.</li>
+      <li><strong>Delete:</strong> Settings → delete all data permanently removes your records.</li>
+      <li><strong>Sign out</strong> on any device from Settings.</li>
+    </ul>
+
+    <h2>Cookies &amp; local storage</h2>
+    <p>The app uses browser local storage for your session and device preferences (theme,
+    default job, dismissed hints). No third-party cookies.</p>
+
+    <h2>Not financial advice</h2>
+    <p>Flow is a record-keeping tool. Nothing it shows — including forecasts, insights, and
+    budget suggestions — is financial, investment, tax, or legal advice.</p>
+
+    <h2>Contact</h2>
+    <p>Questions, concerns, or a security issue to report:
+    <a href="mailto:mile.duplessisgaming@gmail.com">mile.duplessisgaming@gmail.com</a>.</p>
+
+    <h2>Changes</h2>
+    <p>If this policy changes materially, the "last updated" date above changes with it and
+    significant changes will be called out on the login page.</p>
+  </div>
+</body>
+</html>

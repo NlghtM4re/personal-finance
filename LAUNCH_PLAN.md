@@ -38,17 +38,20 @@ unchecked item. `[user]` = needs an action only the account owner can do.
 
 ## Phase 3 — Legal & trust
 
-- [ ] `pages/privacy.html` + `pages/terms.html` (Flow style), linked from
-      login page footer + Settings
-- [ ] Crypto page: user-facing trust copy — "public addresses only, read-only,
-      never keys or seeds"
-- [ ] Security/abuse contact (mailto in footer or SECURITY.md)
+- [x] `pages/privacy.html` + `pages/terms.html` (Flow style, unauthenticated),
+      linked from login footer + Settings → About
+- [x] Crypto page trust copy: existing read-only/never-keys note extended with
+      "holds nothing and can never move your funds"
+- [x] Contact: mailto rows in Settings → About (feedback + security) and in
+      both legal pages
+- Note: contact address is the personal Gmail — consider a dedicated
+      support address before wide launch
 
 ## Phase 4 — Ops & reliability
 
 - [ ] GitHub Actions CI: `npm test` on push/PR
 - [ ] Client error reporting (lightweight — window.onerror → endpoint or Sentry)
-- [ ] Feedback link in Settings
+- [x] Feedback link in Settings (About section, done in Phase 3)
 - [ ] `[user]` Enable Vercel Analytics on the project
 
 ## Phase 5 — Public face
