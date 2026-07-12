@@ -28,8 +28,9 @@
     money:         '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/>',
     more:          '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
     menu:          '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>',
-    /* half-filled circle — the black/white theme switch */
-    theme:         '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor" stroke="none"/>',
+    /* theme switch — the button shows the mode it switches TO */
+    sun:           '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+    moon:          '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
   };
 
   /* ---- nav config — hrefs are root-relative ----
@@ -93,13 +94,15 @@
     const title   = document.body.dataset.title || document.title.split('—')[0].trim();
     const titleId = document.body.dataset.titleId ? ` id="${document.body.dataset.titleId}"` : '';
     const insights = NAV_ITEMS.find(n => n.id === 'insights');
+    /* light active → show a moon (tap for dark); dark active → show a sun */
+    const themeIsLight = document.documentElement.dataset.theme === 'light';
     el.innerHTML = `
       <button class="menu-btn" id="menuBtn" aria-label="Open menu">${I(ICONS.menu, 20)}</button>
       <a class="topbar-logo" href="${resolve('index.html')}">Flow</a>
       <div class="topbar-title"${titleId}>${title}</div>
       <div class="topbar-actions">
         <a href="${resolve(insights.href)}" class="topbar-icon-btn${isActive(insights) ? ' topbar-icon-btn--active' : ''}" aria-label="Insights" title="Insights">${I(ICONS.insights, 17)}</a>
-        <button type="button" class="topbar-icon-btn" id="themeToggle" aria-label="Switch between black and white theme" title="Black / white theme">${I(ICONS.theme, 17)}</button>
+        <button type="button" class="topbar-icon-btn" id="themeToggle" aria-label="${themeIsLight ? 'Switch to dark theme' : 'Switch to light theme'}" title="${themeIsLight ? 'Switch to dark theme' : 'Switch to light theme'}">${I(themeIsLight ? ICONS.moon : ICONS.sun, 17)}</button>
         <a href="${resolve('pages/settings.html')}" class="topbar-icon-btn${CURRENT === 'settings' ? ' topbar-icon-btn--active' : ''}" aria-label="Settings" title="Settings">${I(ICONS.settings, 17)}</a>
       </div>`;
     document.getElementById('themeToggle')?.addEventListener('click', () => {
