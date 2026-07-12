@@ -227,6 +227,19 @@ async function confirmPaid() {
 /* ============================================================
    PAYOUT HISTORY
    ============================================================ */
+/* The transactions that back a payout: each linked day's own income entry plus
+   the payout's own row. Legacy payouts (settled before the one-transaction
+   change) have one entry per day; new ones already have exactly one. */
+function payoutTxIds(p) {
+  const ids = new Set();
+  (p.shiftIds || []).forEach(id => {
+    const sh = _shifts.find(x => x.id === id);
+    if (sh && sh.txId) ids.add(sh.txId);
+  });
+  if (p.txId) ids.add(p.txId);
+  return [...ids];
+}
+
 function renderPayouts() {
   const panel = document.getElementById('payoutsPanel');
   const list = document.getElementById('payoutsList');
@@ -238,12 +251,27 @@ function renderPayouts() {
   document.getElementById('payoutsTotal').textContent =
     totalBonus > 0.005 ? `+${formatCurrency(totalBonus)} over estimate · all-time` : '';
 
+  /* offer a one-click cleanup for older payouts still split across day-entries */
+  const legacy = _payouts.filter(p => payoutTxIds(p).length > 1);
+  const banner = document.getElementById('payoutsMergeBanner');
+  if (banner) {
+    banner.hidden = legacy.length === 0;
+    const txt = document.getElementById('payoutsMergeText');
+    if (txt) txt.textContent = legacy.length === 1
+      ? '1 payout is split across a transaction per day.'
+      : `${legacy.length} payouts are split across a transaction per day.`;
+  }
+
   list.innerHTML = _payouts.map(p => {
     const days = p.shiftIds.length;
     const bonus = p.bonus > 0.005
       ? `<span class="payout__bonus payout__bonus--up">+${formatCurrency(p.bonus)}</span>`
       : p.bonus < -0.005
       ? `<span class="payout__bonus payout__bonus--down">${formatCurrency(p.bonus)}</span>`
+      : '';
+    const nTx = payoutTxIds(p).length;
+    const merge = nTx > 1
+      ? `<button type="button" class="btn btn--ghost btn--sm payout-merge" data-id="${p.id}" title="Combine this payout's ${nTx} day-transactions into one">Merge</button>`
       : '';
     return `<div class="payout-row" data-id="${p.id}">
       <div class="payout-row__main">
@@ -254,11 +282,74 @@ function renderPayouts() {
         <div class="payout-row__actual">${formatCurrency(p.actual)}</div>
         ${bonus}
       </div>
+      ${merge}
       <button type="button" class="btn btn--ghost btn--sm payout-undo" data-id="${p.id}">Undo</button>
     </div>`;
   }).join('');
   list.querySelectorAll('.payout-undo').forEach(b =>
     b.addEventListener('click', () => undoPayout(b.dataset.id)));
+  list.querySelectorAll('.payout-merge').forEach(b =>
+    b.addEventListener('click', () => mergePayout(b.dataset.id)));
+}
+
+/* Fold a payout's per-day transactions into a single payday transaction.
+   Balance-preserving: the first entry is repurposed to the summed amount and
+   the rest are deleted, so the ledger total never moves. The payout then owns
+   that one transaction (like a freshly-settled payout), so Undo still works. */
+async function mergePayoutData(p, { silent = false } = {}) {
+  const txIds = payoutTxIds(p);
+  if (txIds.length <= 1) return false;
+  const txs = (await Promise.all(txIds.map(t => TransactionStore.getById(t)))).filter(Boolean);
+  if (!txs.length) return false;
+
+  const total = Math.round(txs.reduce((sum, t) => sum + Math.abs(t.amount), 0) * 100) / 100;
+  const keep = txs[0];
+  const days = (p.shiftIds || []).length;
+  const jd = ShiftStore.getJobDefaults();
+  const ref = _shifts.find(x => (p.shiftIds || []).includes(x.id) && x.employer) || {};
+  const note = (ref.employer || keep.note || jd.employer || 'Shift pay') + (days > 1 ? ` · ${days} days` : '');
+
+  /* repurpose the first entry as the single payday deposit */
+  await TransactionStore.update(keep.id, { amount: total, date: p.date, note, tags: ['shift', 'payout'] });
+  /* delete the remaining day-entries (now folded into `keep`) */
+  for (const t of txs.slice(1)) { try { await TransactionStore.delete(t.id); } catch (_) {} }
+  /* unlink every day from its old per-day entry — they now read "paid" */
+  for (const sid of (p.shiftIds || [])) {
+    const sh = _shifts.find(x => x.id === sid);
+    if (sh && sh.txId) { try { await ShiftStore.update(sid, { txId: null }); } catch (_) {} }
+  }
+  /* point the payout at the surviving single transaction */
+  await PayoutStore.update(p.id, { txId: keep.id });
+  if (!silent) showToast('Merged into one transaction', 'success');
+  return true;
+}
+
+async function mergePayout(id) {
+  const p = _payouts.find(x => x.id === id);
+  if (!p) return;
+  const n = payoutTxIds(p).length;
+  if (n <= 1) { showToast('Already a single transaction', 'success'); return; }
+  if (!await confirmDialog(`Combine this payout's ${n} day-entries into one transaction? Your balance won't change.`, { confirmText: 'Merge' })) return;
+  try {
+    await mergePayoutData(p);
+    await renderPage();
+  } catch (err) {
+    showToast(err.message || 'Failed to merge', 'error');
+  }
+}
+
+async function mergeAllPayouts() {
+  const legacy = _payouts.filter(p => payoutTxIds(p).length > 1);
+  if (!legacy.length) return;
+  if (!await confirmDialog(`Combine ${legacy.length} older payout${legacy.length === 1 ? '' : 's'} so each becomes a single transaction? Your balance won't change.`, { confirmText: 'Merge all' })) return;
+  try {
+    let done = 0;
+    for (const p of legacy) { if (await mergePayoutData(p, { silent: true })) done++; }
+    await renderPage();
+    showToast(`Merged ${done} payout${done === 1 ? '' : 's'} into single transactions`, 'success');
+  } catch (err) {
+    showToast(err.message || 'Failed to merge', 'error');
+  }
 }
 
 async function undoPayout(id) {
@@ -1054,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('paidConfirm')?.addEventListener('click', confirmPaid);
   document.getElementById('paidCancel')?.addEventListener('click', closePaidModal);
   document.getElementById('paidBackdrop')?.addEventListener('click', closePaidModal);
+  document.getElementById('payoutsMergeAll')?.addEventListener('click', mergeAllPayouts);
 
   /* jobs */
   document.getElementById('addJobBtn')?.addEventListener('click', () => openJobModal());

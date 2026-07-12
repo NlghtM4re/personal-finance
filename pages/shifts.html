@@ -45,6 +45,9 @@
     .payout__bonus { font-size: .75rem; font-family: var(--font-display); }
     .payout__bonus--up { color: var(--color-income); }
     .payout__bonus--down { color: var(--color-expense); }
+    .payouts-merge { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      padding: 11px 14px; border-bottom: 1px solid var(--color-border-light);
+      font-size: .75rem; color: var(--color-text-muted); background: var(--color-surface-2); }
 
     /* Mark-as-paid modal */
     .pf-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -327,6 +330,10 @@
             <span class="term-label" id="payoutsTotal"></span>
           </div>
           <div class="term__body term__body--flush">
+            <div id="payoutsMergeBanner" class="payouts-merge" hidden>
+              <span id="payoutsMergeText"></span>
+              <button type="button" class="btn btn--sm" id="payoutsMergeAll">Merge into single transactions</button>
+            </div>
             <div id="payoutsList"></div>
           </div>
         </section>

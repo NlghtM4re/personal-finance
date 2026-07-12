@@ -1142,6 +1142,17 @@ const PayoutStore = {
     return payoutToCamel(data);
   },
 
+  async update(id, patch) {
+    if (await this._detect() === 'local') {
+      const list = this._local();
+      const i = list.findIndex(p => p.id === id);
+      if (i >= 0) { list[i] = { ...list[i], ...patch }; this._persistLocal(list); }
+      return;
+    }
+    const { error } = await sb.from('shift_payouts').update(payoutToRow(patch)).eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
   async remove(id) {
     if (await this._detect() === 'local') {
       this._persistLocal(this._local().filter(p => p.id !== id));
