@@ -6,12 +6,17 @@ unchecked item. `[user]` = needs an action only the account owner can do.
 
 ## Phase 1 — Multi-tenant hardening
 
-- [x] RLS policies exist for all 8 tables in `supabase-schema.sql` (accounts,
+- [x] RLS policies exist for all tables in `supabase-schema.sql` (accounts,
       transactions, user_settings, subscriptions, crypto_wallets, shifts,
       shift_payouts, jobs — all `auth.uid() = user_id`)
 - [x] RLS **live-audit script** written: `supabase-verify-rls.sql`
-- [ ] `[user]` Run `supabase-verify-rls.sql` in the prod SQL editor — queries
-      2 & 3 must return zero rows
+- [x] `[user]` Ran `supabase-verify-rls.sql` in prod (2026-07-11): **9/9 tables**
+      `rls_enabled=true`, each with one `own …` policy — accounts, crypto_wallets,
+      jobs, recurring_rules, shift_payouts, shifts, subscriptions, transactions,
+      user_settings. Clean pass (failure/non-uid scans empty)
+- [ ] `[user]` Security Advisor: `public.rls_auto_enable()` is a SECURITY DEFINER
+      fn callable by anon/authenticated via RPC — revoke EXECUTE (see chat / the
+      inspect+fix SQL); not in repo, so it's an untracked DB object
 - [x] Auth lifecycle complete in `login.html`: signup confirmation, resend,
       forgot password, recovery view (verified 2026-07-11)
 - [x] CoinGecko proxy (`api/crypto.js`) has in-memory + CDN cache → shared
