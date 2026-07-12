@@ -183,33 +183,30 @@ async function confirmPaid() {
   btn.disabled = true;
   const jd = ShiftStore.getJobDefaults();
   try {
-    /* Log any still-"unlogged" days in this batch as income before settling.
-       Quick-logged days start unlogged, so without this their base pay would
-       never hit the balance — only the bonus would. Each freshly-logged day is
-       linked (txId) so its badge flips to "income" too. Days already logged are
-       skipped, so the per-day entries sum to exactly the estimate. */
-    for (const id of _paidContext.shiftIds) {
-      const sh = _shifts.find(x => x.id === id);
-      if (!sh || sh.txId) continue;
-      const pay = ShiftEngine.pay(sh);
-      if (pay <= 0) continue;
-      const dayTxId = (await TransactionStore.add({
-        date: sh.date, amount: pay, type: 'income',
-        categoryId: sh.categoryId || null,
-        accountId: sh.accountId || jd.accountId || null,
-        note: sh.employer || 'Shift', tags: ['shift'],
-      })).id;
-      await ShiftStore.update(id, { txId: dayTxId });
-    }
+    /* Consolidate the whole payout into ONE income transaction (the payday
+       deposit), instead of one row per day. Days already logged as income keep
+       their own entry — their pay is already in the balance — so this single
+       row only needs to cover the still-unlogged base pay plus the rounding
+       bonus, which makes the balance equal the real cash. The payout owns the
+       row (its txId), so an Undo removes exactly this one transaction. */
+    const unlogged = _paidContext.shiftIds
+      .map(id => _shifts.find(x => x.id === id))
+      .filter(sh => sh && !sh.txId);
+    const basePay = unlogged.reduce((sum, sh) => sum + ShiftEngine.pay(sh), 0);
+    const bonus = (addBonus && s.bonus > 0.005) ? s.bonus : 0;
+    const amount = Math.round((basePay + bonus) * 100) / 100;
 
-    /* Top up the balance so it equals the real cash: the per-day entries now
-       cover the full estimate, so only the rounding bonus needs an extra row. */
     let txId = null;
-    if (addBonus && s.bonus > 0.005) {
+    if (amount > 0.005) {
+      const ref = unlogged.find(sh => sh.employer) || unlogged[0] || {};
+      const days = unlogged.length;
       txId = (await TransactionStore.add({
-        date: todayISO(), amount: s.bonus, type: 'income',
-        accountId: jd.accountId || null,
-        note: 'Pay bonus', tags: ['shift', 'bonus'],
+        date: todayISO(), amount, type: 'income',
+        categoryId: ref.categoryId || null,
+        accountId: ref.accountId || jd.accountId || null,
+        note: (ref.employer || jd.employer || 'Shift pay') +
+              (days > 1 ? ` · ${days} days` : ''),
+        tags: bonus > 0 ? ['shift', 'payout', 'bonus'] : ['shift', 'payout'],
       })).id;
     }
     await PayoutStore.add({
@@ -267,7 +264,7 @@ function renderPayouts() {
 async function undoPayout(id) {
   const p = _payouts.find(x => x.id === id);
   if (!p) return;
-  if (!await confirmDialog('Undo this payout? Those days go back to unpaid' + (p.txId ? ' and the bonus income entry is removed.' : '.'), { confirmText: 'Undo' })) return;
+  if (!await confirmDialog('Undo this payout? Those days go back to unpaid' + (p.txId ? ' and the payout income entry is removed.' : '.'), { confirmText: 'Undo' })) return;
   try {
     if (p.txId) { try { await TransactionStore.delete(p.txId); } catch (_) {} }
     await PayoutStore.remove(id);
@@ -607,7 +604,9 @@ function shiftRowHTML(s) {
         <div class="shift-row__hours">${hours > 0 ? hours.toFixed(2) + ' h' : '—'}</div>
         <div class="shift-row__pay">${pay > 0 ? '+' + formatCurrency(pay) : '—'}</div>
       </div>
-      ${s.txId
+      ${s.paid
+        ? `<span class="shift-row__badge shift-row__badge--paid" title="Settled in a payout — see Payouts below">paid</span>`
+        : s.txId
         ? `<button type="button" class="shift-row__badge shift-toggle" data-id="${s.id}" title="Logged as income — tap to mark unlogged">income</button>`
         : `<button type="button" class="shift-row__badge shift-row__badge--off shift-toggle" data-id="${s.id}" title="Not logged — tap to log as income">unlogged</button>`}
       <button type="button" class="btn btn--ghost btn--sm shift-edit" data-id="${s.id}">Edit</button>
@@ -620,6 +619,7 @@ function shiftRowHTML(s) {
 async function toggleLogged(id) {
   const s = _shifts.find(x => x.id === id);
   if (!s) return;
+  if (s.paid) { showToast('This day is settled in a payout — undo the payout to change it', 'error'); return; }
   try {
     if (s.txId) {
       try { await TransactionStore.delete(s.txId); } catch (_) {}

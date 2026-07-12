@@ -1135,6 +1135,9 @@
 .shift-row__badge:hover { border-color: var(--color-income); }
 .shift-row__badge--off { color: var(--color-text-muted); }
 .shift-row__badge--off:hover { border-color: var(--color-text); color: var(--color-text); }
+/* settled in a payout — non-interactive status, not a toggle */
+.shift-row__badge--paid { color: var(--color-text-muted); cursor: default; }
+.shift-row__badge--paid:hover { border-color: var(--color-border); color: var(--color-text-muted); }
 
 /* ── Hours Tracker: presets ─────────────────────────────────── */
 .hours-preset { display: inline-flex; align-items: stretch; border: 1px solid var(--color-border); background: var(--color-surface); }
