@@ -56,8 +56,11 @@
   const IN_PAGES = window.location.pathname.includes('/pages/');
 
   function resolve(href) {
+    /* the dashboard lives at the site root ("/"), not "/index.html" — cleaner,
+       professional URL and works from any depth */
+    if (href === 'index.html') return '/';
     if (!IN_PAGES) return href;
-    return href === 'index.html' ? '../index.html' : href.replace('pages/', '');
+    return href.replace('pages/', '');
   }
 
   /* current page filename, tolerant of clean URLs (".html" stripped) */

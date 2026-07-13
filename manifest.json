@@ -2,7 +2,7 @@
   "name": "Flow — Personal Finance",
   "short_name": "Flow",
   "description": "Track accounts, spending, budgets and subscriptions.",
-  "start_url": "/index.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

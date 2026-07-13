@@ -830,7 +830,7 @@ async function renderRecentTransactions(txs) {
   el.querySelectorAll('.tx-item[data-id]').forEach(item => {
     item.style.cursor = 'pointer';
     item.addEventListener('click', () => {
-      window.location.href = `pages/add-transaction.html?id=${item.dataset.id}&from=${encodeURIComponent('../index.html')}`;
+      window.location.href = `pages/add-transaction.html?id=${item.dataset.id}&from=${encodeURIComponent('/')}`;
     });
   });
 }

@@ -359,7 +359,7 @@
     (async () => {
       if (isRecovery) return;
       const { data: { session } } = await sb.auth.getSession();
-      if (session) window.location.replace('index.html');
+      if (session) window.location.replace('/');
     })();
 
     let isSignUp = false;
@@ -437,7 +437,7 @@
           const { error } = await sb.auth.signInWithPassword({ email, password });
           if (error) throw error;
           showInfo('Signing in…');
-          window.location.replace('index.html');
+          window.location.replace('/');
         }
       } catch (err) {
         const msg = err.message.includes('Invalid login')
@@ -561,7 +561,7 @@
         if (error) throw error;
         history.replaceState(null, '', window.location.pathname);   // drop the recovery hash
         btn.innerHTML = '<span>Password updated ✓</span>';
-        setTimeout(() => window.location.replace('index.html'), 900);
+        setTimeout(() => window.location.replace('/'), 900);
       } catch (err) {
         errEl.textContent = err.message || 'Could not update the password. The link may have expired — request a new one.';
         errEl.classList.add('show');
