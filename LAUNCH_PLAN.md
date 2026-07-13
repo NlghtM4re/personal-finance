@@ -6,8 +6,9 @@ unchecked item. `[user]` = needs an action only the account owner can do.
 
 ## ⚠ Go-public blockers (as of 2026-07-13) — all `[user]`, Supabase-side
 
-- [ ] **Lock down `public.rls_auto_enable()`** — SECURITY DEFINER fn callable by
-      anon/authenticated. Run `supabase-fix-security-definer.sql` (revoke execute).
+- [x] **Lock down `public.rls_auto_enable()`** — DONE 2026-07-13: revoke ran in
+      prod; verified anon + authenticated RPC calls now return 42501 "permission
+      denied for function rls_auto_enable" (was executable before).
 - [ ] **Enforce email confirmation** — Supabase → Auth → confirm-email ON, so
       signups can't impersonate an address.
 - [ ] **Paid tier + backups** — free tier pauses on inactivity and has no PITR;
