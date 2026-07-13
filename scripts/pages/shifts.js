@@ -186,15 +186,22 @@ async function confirmPaid() {
     /* Consolidate the whole payout into ONE income transaction (the payday
        deposit), instead of one row per day. Days already logged as income keep
        their own entry — their pay is already in the balance — so this single
-       row only needs to cover the still-unlogged base pay plus the rounding
-       bonus, which makes the balance equal the real cash. The payout owns the
-       row (its txId), so an Undo removes exactly this one transaction. */
+       row only covers the still-unlogged days. The payout owns the row (its
+       txId), so an Undo removes exactly this one transaction. */
     const unlogged = _paidContext.shiftIds
       .map(id => _shifts.find(x => x.id === id))
       .filter(sh => sh && !sh.txId);
     const basePay = unlogged.reduce((sum, sh) => sum + ShiftEngine.pay(sh), 0);
-    const bonus = (addBonus && s.bonus > 0.005) ? s.bonus : 0;
-    const amount = Math.round((basePay + bonus) * 100) / 100;
+    /* pay from days already logged as income (already counted in the balance) */
+    const loggedPay = Math.max(0, Math.round((_paidContext.estimated - basePay) * 100) / 100);
+    /* With "match my balance" ticked, book the REAL cash for the unlogged days —
+       the actual amount minus whatever's already logged — so tax and other
+       deductions are reflected (and bonuses too). Unticked just books the
+       pre-tax estimate. Guard against going below zero. */
+    let amount = addBonus
+      ? Math.round((actual - loggedPay) * 100) / 100
+      : Math.round(basePay * 100) / 100;
+    if (amount < 0) amount = 0;
 
     let txId = null;
     if (amount > 0.005) {
@@ -206,7 +213,7 @@ async function confirmPaid() {
         accountId: ref.accountId || jd.accountId || null,
         note: (ref.employer || jd.employer || 'Shift pay') +
               (days > 1 ? ` · ${days} days` : ''),
-        tags: bonus > 0 ? ['shift', 'payout', 'bonus'] : ['shift', 'payout'],
+        tags: (addBonus && s.bonus > 0.005) ? ['shift', 'payout', 'bonus'] : ['shift', 'payout'],
       })).id;
     }
     await PayoutStore.add({
