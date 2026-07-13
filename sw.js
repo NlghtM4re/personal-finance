@@ -10,7 +10,7 @@
    Bump CACHE_VERSION when shipping changes to force a refresh.
    ============================================================ */
 
-const CACHE_VERSION = 'pf-v41';
+const CACHE_VERSION = 'pf-v42';
 
 const PRECACHE = [
   '/index.html',
@@ -90,13 +90,18 @@ self.addEventListener('fetch', event => {
   /* our serverless API (e.g. /api/crypto) returns live data — never cache */
   if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return;
 
-  /* page navigations: fresh when online, cached shell when offline */
+  /* page navigations: fresh when online, cached shell when offline.
+     Only cache clean 200s — never a redirect or error, or a stale bad
+     response (e.g. a proxy's .html→clean redirect) gets pinned and
+     served on every future load. */
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req)
         .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE_VERSION).then(c => c.put(req, copy));
+          if (res && res.ok && !res.redirected && res.type === 'basic') {
+            const copy = res.clone();
+            caches.open(CACHE_VERSION).then(c => c.put(req, copy));
+          }
           return res;
         })
         .catch(() =>
@@ -125,12 +130,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  /* other static assets: serve cache immediately, refresh it in the background */
+  /* other static assets: serve cache immediately, refresh it in the background.
+     Never cache a redirect (a proxy stripping .html would otherwise get pinned). */
   event.respondWith(
     caches.match(req).then(hit => {
       const refresh = fetch(req)
         .then(res => {
-          if (res && (res.ok || res.type === 'opaque')) {
+          if (res && !res.redirected && (res.ok || res.type === 'opaque')) {
             const copy = res.clone();
             caches.open(CACHE_VERSION).then(c => c.put(req, copy));
           }
