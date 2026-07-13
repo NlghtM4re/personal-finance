@@ -4,6 +4,18 @@ Goal: make the app usable by **new and average users**, not just its builder.
 Each phase ends with a verification pass and a commit. Resume from the first
 unchecked item. `[user]` = needs an action only the account owner can do.
 
+## ⚠ Go-public blockers (as of 2026-07-13) — all `[user]`, Supabase-side
+
+- [ ] **Lock down `public.rls_auto_enable()`** — SECURITY DEFINER fn callable by
+      anon/authenticated. Run `supabase-fix-security-definer.sql` (revoke execute).
+- [ ] **Enforce email confirmation** — Supabase → Auth → confirm-email ON, so
+      signups can't impersonate an address.
+- [ ] **Paid tier + backups** — free tier pauses on inactivity and has no PITR;
+      upgrade + enable backups before real users depend on their data.
+- Nice-to-have next: raise min password length; add a CSP header (needs testing
+      against Supabase/CDN/CoinGecko/Blockstream origins). Done in code 2026-07-13:
+      dashboard at `/`, HSTS + nosniff + frame-DENY + referrer + permissions headers.
+
 ## Phase 1 — Multi-tenant hardening
 
 - [x] RLS policies exist for all tables in `supabase-schema.sql` (accounts,
