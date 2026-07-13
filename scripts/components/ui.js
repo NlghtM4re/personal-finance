@@ -2,6 +2,23 @@
    ui.js — Theme, sidebar, nav, page transitions, shortcuts
    ============================================================ */
 
+/* Vercel Web Analytics + Speed Insights — injected at runtime, the same way
+   the @vercel/analytics package does it (this is a no-build static app, so the
+   "@vercel/analytics/next" React imports don't apply). Loads on every app page
+   that includes ui.js; the scripts only report on the Vercel deployment and
+   404 harmlessly elsewhere. */
+(function injectVercelInsights() {
+  if (window.__vercelInsights) return;
+  window.__vercelInsights = true;
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+  ['/_vercel/insights/script.js', '/_vercel/speed-insights/script.js'].forEach(src => {
+    const s = document.createElement('script');
+    s.defer = true; s.src = src;
+    (document.head || document.documentElement).appendChild(s);
+  });
+})();
+
 /* --- Theme (black / white switch in the topbar) ---
    Applied at parse time so the page paints in the right theme.
    Device-local (pf_theme) + best-effort cross-device sync. */
