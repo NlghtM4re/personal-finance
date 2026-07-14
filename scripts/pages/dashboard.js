@@ -241,53 +241,7 @@ async function renderBalanceChart() {
   Charts.drawLineChart('balanceCanvas', points, false, null);
 }
 
-/* ---- Net-worth milestones --------------------------------------------------
-   A one-shot flourish when net worth first crosses a "nice" round number. The
-   highest celebrated milestone is remembered so it never re-fires; the first
-   ever load only sets the baseline (we don't celebrate pre-existing wealth). */
-const NW_MILESTONES = [1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000];
-
-function highestMilestoneAtOrBelow(v) {
-  let m = 0;
-  for (const x of NW_MILESTONES) if (v >= x) m = x;
-  return m;
-}
-
-function checkNetWorthMilestone(netWorth) {
-  if (!Number.isFinite(netWorth)) return;
-  const KEY = 'pf_nw_milestone';
-  const reached = highestMilestoneAtOrBelow(netWorth);
-  const prev = parseFloat(localStorage.getItem(KEY));
-  if (!Number.isFinite(prev)) {            /* first run — baseline only, no celebration */
-    try { localStorage.setItem(KEY, String(reached)); } catch (_) {}
-    return;
-  }
-  if (reached === prev) return;
-  try { localStorage.setItem(KEY, String(reached)); } catch (_) {}
-  if (reached > prev) celebrateMilestone(reached);   /* dropping just lowers the bar */
-}
-
-function formatMoneyWhole(v) {
-  const currency = localStorage.getItem('pf_currency') || 'CAD';
-  const locale = (typeof CURRENCY_LOCALES !== 'undefined' && CURRENCY_LOCALES[currency]) || 'en-CA';
-  try { return new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(v); }
-  catch { return formatCurrency(v); }
-}
-
-function celebrateMilestone(amount) {
-  const el = document.createElement('div');
-  el.className = 'milestone-pop';
-  el.setAttribute('role', 'status');
-  el.innerHTML = `
-    <div class="milestone-pop__label">Net worth milestone</div>
-    <div class="milestone-pop__value font-display">${formatMoneyWhole(amount)}</div>
-    <div class="milestone-pop__sub">▲ crossed just now</div>`;
-  document.body.appendChild(el);
-  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduced) { setTimeout(() => el.remove(), 3000); return; }
-  el.addEventListener('animationend', e => { if (e.animationName === 'milestoneOut') el.remove(); });
-  setTimeout(() => el.classList.add('milestone-pop--out'), 2600);
-}
+/* Net-worth milestone celebration removed (2026-07) — no achievement pop-ups. */
 
 /* ---- Upcoming bills -------------------------------------------------------- */
 function billDueLabel(daysUntil) {
@@ -471,13 +425,13 @@ async function renderCrypto(bankBalance) {
     if (modeToggle) modeToggle.hidden = true;   /* no crypto → net worth == cash */
   };
   if (!section || !tilesEl) return;
-  if (typeof CryptoBalances === 'undefined') { checkNetWorthMilestone(bankBalance); return; }
+  if (typeof CryptoBalances === 'undefined') { return; }
 
   let snap;
   try { snap = await CryptoBalances.snapshot(); }
-  catch { section.hidden = true; hideStatCells(); checkNetWorthMilestone(bankBalance); return; }
+  catch { section.hidden = true; hideStatCells(); return; }
 
-  if (!snap.wallets.length) { section.hidden = true; hideStatCells(); checkNetWorthMilestone(bankBalance); return; }
+  if (!snap.wallets.length) { section.hidden = true; hideStatCells(); return; }
   section.hidden = false;
   _cryptoSnap = snap;
 
@@ -505,8 +459,7 @@ async function renderCrypto(bankBalance) {
     animateValue(document.getElementById('statCryptoTotal'), snap.total, v => formatCurrency(v) + suffix, 1400);
   }
 
-  /* milestone + goal use the real net worth (cash + crypto) */
-  checkNetWorthMilestone(bankBalance + snap.total);
+  /* goal uses the real net worth (cash + crypto) */
   renderNwGoal(bankBalance + snap.total);
 
   const btn = document.getElementById('cryptoRangeBtn');

@@ -92,7 +92,7 @@
 .rail-balance {
   font-size: clamp(1.5rem, 2.2vw, 2rem);
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text);
   line-height: 1.1;
   word-break: break-all;
 }
@@ -110,7 +110,7 @@
 .statbar__cell--nw .rail-mini__value,
 .statbar__cell--crypto .rail-mini__value {
   font-size: clamp(1.375rem, 1.9vw, 1.75rem);
-  color: #ffffff;
+  color: var(--color-text);
   line-height: 1.1;
   letter-spacing: -0.04em;
   word-break: break-all;
@@ -122,8 +122,8 @@
   justify-content: center;
   gap: 6px;
   padding: 12px 22px;
-  background: #ffffff;
-  color: #0a0a0a;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
   font-weight: 600;
   font-size: 0.8125rem;
   text-decoration: none;
@@ -441,7 +441,7 @@
   transition: color var(--transition), border-color var(--transition), background var(--transition);
 }
 .ql-day:hover:not(.ql-day--disabled) { color: var(--color-text); border-color: var(--color-text-muted); }
-.ql-day.selected { color: #fff; border-color: var(--color-primary); background: var(--color-primary-light); }
+.ql-day.selected { color: var(--color-primary); border-color: var(--color-primary); background: var(--color-primary-light); }
 .ql-day--disabled { opacity: 0.35; cursor: default; }
 .ql-day__dow { font-size: 0.5625rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .ql-day__num { font-family: var(--font-display); font-size: 0.8125rem; font-weight: 600; }
@@ -518,7 +518,7 @@
 }
 .seg-btn:last-child { border-right: none; }
 .seg-btn:hover { color: var(--color-text); }
-.seg-btn.active { background: #ffffff; color: #0a0a0a; }
+.seg-btn.active { background: var(--color-primary); color: var(--color-primary-contrast); }
 
 /* Spending/Income: donut + ranked breakdown in one balanced panel */
 .cat-overview__body {
@@ -622,7 +622,7 @@
   margin-bottom: 12px;
   line-height: 0;
 }
-.summary-card--balance .summary-card__icon { background: rgba(255,255,255,.08); color: var(--color-text); }
+.summary-card--balance .summary-card__icon { background: var(--color-primary-light); color: var(--color-text); }
 .summary-card--income  .summary-card__icon { background: rgba(0,209,143,.16);  color: var(--color-income); }
 .summary-card--expense .summary-card__icon { background: rgba(255,92,122,.16); color: var(--color-expense); }
 .summary-card--savings .summary-card__icon { background: rgba(212,166,74,.16); color: var(--color-transfer); }
@@ -761,7 +761,7 @@
 .nw-goal__ring { flex-shrink: 0; width: 54px; height: 54px; line-height: 0; }
 .nw-goal__ring svg { width: 54px; height: 54px; }
 .nw-goal__info { min-width: 0; }
-.nw-goal__pct { font-size: 1.75rem; font-weight: 600; color: #ffffff; letter-spacing: -0.04em; line-height: 1; }
+.nw-goal__pct { font-size: 1.75rem; font-weight: 600; color: var(--color-text); letter-spacing: -0.04em; line-height: 1; }
 .nw-goal__detail { font-size: 0.8125rem; color: var(--color-text); margin-top: 3px; }
 .nw-goal__of { color: var(--color-text-muted); }
 .nw-goal__pace { font-size: 0.75rem; margin-top: 4px; color: var(--color-text-muted); }
