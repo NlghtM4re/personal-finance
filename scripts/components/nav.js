@@ -56,11 +56,13 @@
   const IN_PAGES = window.location.pathname.includes('/pages/');
 
   function resolve(href) {
-    /* the dashboard lives at the site root ("/"), not "/index.html" — cleaner,
-       professional URL and works from any depth */
+    /* Clean URLs (cleanUrls:true): no ".html" suffix. The dashboard lives at
+       the site root ("/"); other pages keep their path minus the extension.
+       Emitting clean links avoids a 301 redirect hop on every navigation. */
     if (href === 'index.html') return '/';
-    if (!IN_PAGES) return href;
-    return href.replace('pages/', '');
+    const clean = href.replace(/\.html$/, '');
+    if (!IN_PAGES) return clean;             /* e.g. "pages/accounts" */
+    return clean.replace('pages/', '');      /* e.g. "accounts" */
   }
 
   /* current page filename, tolerant of clean URLs (".html" stripped) */

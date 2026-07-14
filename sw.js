@@ -10,21 +10,25 @@
    Bump CACHE_VERSION when shipping changes to force a refresh.
    ============================================================ */
 
-const CACHE_VERSION = 'pf-v45';
+const CACHE_VERSION = 'pf-v46';
 
+/* Clean URLs (vercel.json cleanUrls:true / serve.json): pages are served
+   without the ".html" suffix, and "/" serves the dashboard. Precache the
+   clean paths so install fetches a direct 200 (a ".html" path would 301 to
+   the clean URL and fail to cache). */
 const PRECACHE = [
-  '/index.html',
-  '/login.html',
+  '/',
+  '/login',
   '/manifest.json',
-  '/pages/accounts.html',
-  '/pages/add-transaction.html',
-  '/pages/budget.html',
-  '/pages/settings.html',
-  '/pages/spending.html',
-  '/pages/subscriptions.html',
-  '/pages/crypto.html',
-  '/pages/insights.html',
-  '/pages/shifts.html',
+  '/pages/accounts',
+  '/pages/add-transaction',
+  '/pages/budget',
+  '/pages/settings',
+  '/pages/spending',
+  '/pages/subscriptions',
+  '/pages/crypto',
+  '/pages/insights',
+  '/pages/shifts',
   '/styles/main.css',
   '/styles/layout.css',
   '/styles/components.css',
@@ -105,7 +109,7 @@ self.addEventListener('fetch', event => {
           return res;
         })
         .catch(() =>
-          caches.match(req).then(hit => hit || caches.match('/index.html'))
+          caches.match(req).then(hit => hit || caches.match('/'))
         )
     );
     return;
