@@ -266,18 +266,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  /* CSV import */
-  document.getElementById('importCsvInput')?.addEventListener('change', async e => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const { imported, skipped } = await CSVService.import(file);
-      showToast(`Imported ${imported} transaction${imported !== 1 ? 's' : ''}${skipped ? ` (${skipped} skipped)` : ''}`, 'success');
-    } catch (err) {
-      showToast(err.message || 'Import failed', 'error');
-    }
-    e.target.value = '';
-  });
+  /* CSV import now lives on its own guided page (pages/import.html), linked
+     from the Import row above — it handles arbitrary bank CSVs, not just our
+     own export format. */
 
   /* Custom categories */
   await renderCustomCats();

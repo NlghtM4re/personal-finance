@@ -197,16 +197,15 @@
               </div>
             </button>
             <div class="settings-divider"></div>
-            <label class="settings-row settings-row--btn" id="importCsvLabel" style="cursor:pointer;">
+            <a href="import.html" class="settings-row settings-row--btn" id="importCsvLabel">
               <span class="settings-row__icon settings-row__icon--muted">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </span>
               <div class="settings-row__info">
                 <div class="settings-row__title">Import transactions</div>
-                <div class="settings-row__sub">Import from a CSV file (date, type, amount, note, category, account)</div>
+                <div class="settings-row__sub">Import a CSV from your bank — auto-detects columns, guesses categories &amp; skips duplicates</div>
               </div>
-              <input type="file" id="importCsvInput" accept=".csv" style="display:none;" />
-            </label>
+            </a>
             <div class="settings-divider"></div>
             <a href="recurring.html" class="settings-row settings-row--btn">
               <span class="settings-row__icon settings-row__icon--muted">

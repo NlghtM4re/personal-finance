@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+  <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+  <title>Flow — Import Transactions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+  <link rel="stylesheet" href="../styles/layout.css" />
+  <link rel="stylesheet" href="../styles/components.css" />
+  <link rel="stylesheet" href="../styles/pages.css" />
+  <style>
+    /* Import wizard — scoped to this page. */
+    .imp-steps { display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
+    .imp-step { display:flex; align-items:center; gap:8px; font-size:.8125rem; color:var(--color-text-muted); }
+    .imp-step__num { width:22px; height:22px; border-radius:50%; display:grid; place-items:center;
+      border:1px solid var(--color-border); font-size:.75rem; font-weight:600; }
+    .imp-step.is-active { color:var(--color-text); }
+    .imp-step.is-active .imp-step__num { background:var(--color-text); color:var(--color-bg); border-color:var(--color-text); }
+    .imp-step.is-done .imp-step__num { border-color:var(--color-income); color:var(--color-income); }
+    .imp-step__sep { flex:1; min-width:12px; height:1px; background:var(--color-border); }
+
+    .imp-map-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:640px){ .imp-map-grid { grid-template-columns:1fr; } }
+
+    .imp-summary { display:flex; gap:16px; flex-wrap:wrap; margin:4px 0 16px; }
+    .imp-stat { }
+    .imp-stat__num { font-family:'JetBrains Mono',monospace; font-size:1.25rem; font-weight:700; }
+    .imp-stat__lbl { font-size:.75rem; color:var(--color-text-muted); }
+
+    .imp-table-wrap { overflow-x:auto; border:1px solid var(--color-border); border-radius:12px; }
+    table.imp-table { width:100%; border-collapse:collapse; font-size:.8125rem; }
+    .imp-table th, .imp-table td { padding:8px 10px; text-align:left; white-space:nowrap; border-bottom:1px solid var(--color-border); }
+    .imp-table th { position:sticky; top:0; background:var(--color-surface); font-weight:600; color:var(--color-text-muted); font-size:.75rem; }
+    .imp-table tr:last-child td { border-bottom:none; }
+    .imp-table tr.is-dup td { opacity:.5; }
+    .imp-table td.imp-amt { font-family:'JetBrains Mono',monospace; text-align:right; }
+    .imp-table td.imp-amt--exp { color:var(--color-expense); }
+    .imp-table td.imp-amt--inc { color:var(--color-income); }
+    .imp-cat-select { max-width:150px; padding:4px 6px; font-size:.75rem; }
+    .imp-dup-badge { display:inline-block; font-size:.6875rem; padding:1px 6px; border-radius:6px;
+      background:var(--color-border); color:var(--color-text-muted); margin-left:6px; }
+    .imp-note { font-size:.8125rem; color:var(--color-text-muted); line-height:1.6; }
+    .imp-hidden { display:none !important; }
+  </style>
+</head>
+<body data-title="Import Transactions">
+
+  <div id="app-loader" role="status" aria-label="Loading">
+    <div class="app-loader__card">
+      <div class="app-loader__mark">Flow</div>
+      <div class="app-loader__bar"></div>
+    </div>
+  </div>
+  <script>
+    window.hideAppLoader = function () {
+      var el = document.getElementById('app-loader');
+      if (el) el.classList.add('is-hidden');
+    };
+    window.addEventListener('load', function () {
+      requestAnimationFrame(function () { setTimeout(window.hideAppLoader, 120); });
+    });
+    setTimeout(function () { window.hideAppLoader(); }, 6000);
+  </script>
+
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="overlay" id="overlay"></div>
+
+  <div class="main-wrapper">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="main-content">
+      <div class="form-page">
+
+        <!-- progress -->
+        <div class="imp-steps" aria-hidden="true">
+          <div class="imp-step is-active" data-step-ind="1"><span class="imp-step__num">1</span> File</div>
+          <span class="imp-step__sep"></span>
+          <div class="imp-step" data-step-ind="2"><span class="imp-step__num">2</span> Columns</div>
+          <span class="imp-step__sep"></span>
+          <div class="imp-step" data-step-ind="3"><span class="imp-step__num">3</span> Review</div>
+        </div>
+
+        <!-- STEP 1 — choose file + account -->
+        <section class="card form-card" id="step1">
+          <h2 class="form-section-title" style="margin-bottom:6px;">Import from your bank</h2>
+          <p class="imp-note" style="margin-bottom:18px;">
+            Export a CSV of transactions from your bank or credit-card site, then load it here.
+            Nothing is saved until you review it on the last step.
+          </p>
+
+          <div class="form-group" style="margin-bottom:16px;">
+            <label class="form-label" for="impAccount">Add these to account</label>
+            <select id="impAccount" class="form-control"></select>
+            <div class="imp-note" id="impNoAccount" style="display:none;margin-top:6px;color:var(--color-expense);">
+              You have no accounts yet — create one first in Accounts.
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:20px;">
+            <label class="form-label" for="impFile">CSV file</label>
+            <input type="file" id="impFile" accept=".csv,text/csv" class="form-control" />
+            <div class="imp-note" id="impFileName" style="margin-top:6px;"></div>
+          </div>
+
+          <div class="form-actions" style="display:flex;gap:10px;">
+            <a href="settings.html" class="btn btn--ghost" style="flex:1;justify-content:center;">Cancel</a>
+            <button type="button" class="btn btn--primary" id="impLoadBtn" style="flex:1;" disabled>Load file</button>
+          </div>
+        </section>
+
+        <!-- STEP 2 — column mapping -->
+        <section class="card form-card imp-hidden" id="step2">
+          <h2 class="form-section-title" style="margin-bottom:6px;">Match the columns</h2>
+          <p class="imp-note" id="impDetectNote" style="margin-bottom:18px;"></p>
+
+          <div class="imp-map-grid" style="margin-bottom:16px;">
+            <div class="form-group">
+              <label class="form-label" for="mapDate">Date column</label>
+              <select id="mapDate" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="mapDesc">Description column</label>
+              <select id="mapDesc" class="form-control"></select>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">How are amounts stored?</label>
+            <div class="type-toggle" role="tablist" style="max-width:100%;">
+              <button type="button" class="type-btn active" data-amode="signed">One amount column</button>
+              <button type="button" class="type-btn" data-amode="debitcredit">Separate debit / credit</button>
+            </div>
+          </div>
+
+          <!-- signed -->
+          <div id="mapSignedWrap" class="imp-map-grid" style="margin-bottom:14px;">
+            <div class="form-group">
+              <label class="form-label" for="mapAmount">Amount column</label>
+              <select id="mapAmount" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="mapSign">Expenses appear as</label>
+              <select id="mapSign" class="form-control">
+                <option value="neg">Negative numbers (−4.50)</option>
+                <option value="pos">Positive numbers (4.50)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- debit/credit -->
+          <div id="mapDCWrap" class="imp-map-grid imp-hidden" style="margin-bottom:14px;">
+            <div class="form-group">
+              <label class="form-label" for="mapDebit">Debit (money out)</label>
+              <select id="mapDebit" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="mapCredit">Credit (money in)</label>
+              <select id="mapCredit" class="form-control"></select>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:20px;max-width:280px;">
+            <label class="form-label" for="mapDateFmt">Date format</label>
+            <select id="mapDateFmt" class="form-control">
+              <option value="auto">Auto-detect</option>
+              <option value="mdy">Month / Day / Year</option>
+              <option value="dmy">Day / Month / Year</option>
+            </select>
+          </div>
+
+          <div class="form-actions" style="display:flex;gap:10px;">
+            <button type="button" class="btn btn--ghost" id="impBackTo1" style="flex:1;justify-content:center;">Back</button>
+            <button type="button" class="btn btn--primary" id="impToReview" style="flex:1;">Preview rows</button>
+          </div>
+        </section>
+
+        <!-- STEP 3 — review -->
+        <section class="card form-card imp-hidden" id="step3">
+          <h2 class="form-section-title" style="margin-bottom:12px;">Review &amp; import</h2>
+
+          <div class="imp-summary">
+            <div class="imp-stat"><div class="imp-stat__num" id="sumImport">0</div><div class="imp-stat__lbl">to import</div></div>
+            <div class="imp-stat"><div class="imp-stat__num" id="sumDup">0</div><div class="imp-stat__lbl">likely duplicates</div></div>
+            <div class="imp-stat"><div class="imp-stat__num" id="sumSkip">0</div><div class="imp-stat__lbl">unreadable</div></div>
+          </div>
+
+          <p class="imp-note" id="impReviewNote" style="margin-bottom:12px;"></p>
+
+          <div class="imp-table-wrap" style="max-height:52vh;overflow-y:auto;margin-bottom:8px;">
+            <table class="imp-table">
+              <thead>
+                <tr>
+                  <th style="width:34px;"><input type="checkbox" id="impCheckAll" checked title="Select all" /></th>
+                  <th>Date</th><th>Description</th><th style="text-align:right;">Amount</th><th>Category</th>
+                </tr>
+              </thead>
+              <tbody id="impRows"></tbody>
+            </table>
+          </div>
+          <div class="imp-note" id="impMoreRows" style="margin-bottom:16px;"></div>
+
+          <div class="form-actions" style="display:flex;gap:10px;">
+            <button type="button" class="btn btn--ghost" id="impBackTo2" style="flex:1;justify-content:center;">Back</button>
+            <button type="button" class="btn btn--primary" id="impCommit" style="flex:2;">Import selected</button>
+          </div>
+        </section>
+
+        <!-- DONE -->
+        <section class="card form-card imp-hidden" id="stepDone" style="text-align:center;">
+          <div class="save-success" style="justify-content:center;margin-bottom:16px;">
+            <div class="save-success__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <span class="save-success__label" id="impDoneMsg">Imported!</span>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a href="transactions.html" class="btn btn--primary" style="flex:1;justify-content:center;">View transactions</a>
+            <button type="button" class="btn btn--ghost" id="impAnother" style="flex:1;">Import another file</button>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../scripts/components/error-overlay.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../scripts/data/supabase.js"></script>
+  <script src="../scripts/data/store.js"></script>
+  <script src="../scripts/components/icons.js"></script>
+  <script src="../scripts/engine/summary.js"></script>
+  <script src="../scripts/engine/insights.js"></script>
+  <script src="../scripts/components/nav.js"></script>
+  <script src="../scripts/components/ui.js"></script>
+  <script src="../scripts/components/dialog.js"></script>
+  <script src="../scripts/pages/import.js"></script>
+</body>
+</html>

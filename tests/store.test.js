@@ -76,6 +76,91 @@ test('CSVService._parse', async (t) => {
   });
 });
 
+/* ---- bank-import helpers: splitRows / parseAmount / parseDate / autoDetect ---- */
+test('CSVService.splitRows', async (t) => {
+  await t.test('separates the header from the data rows', () => {
+    const { header, rows } = CSVService.splitRows('Date,Amount\n2026-06-01,-4.50');
+    assert.deepEqual(header, ['Date', 'Amount']);
+    assert.deepEqual(rows, [['2026-06-01', '-4.50']]);
+  });
+  await t.test('empty text yields empty header and rows', () => {
+    assert.deepEqual(CSVService.splitRows(''), { header: [], rows: [] });
+  });
+});
+
+test('CSVService.parseAmount', async (t) => {
+  await t.test('plain and signed decimals', () => {
+    assert.equal(CSVService.parseAmount('4.50'), 4.5);
+    assert.equal(CSVService.parseAmount('-4.50'), -4.5);
+  });
+  await t.test('strips currency symbols and thousands separators', () => {
+    assert.equal(CSVService.parseAmount('$1,234.56'), 1234.56);
+    assert.equal(CSVService.parseAmount('CA$ 2,000'), 2000);
+  });
+  await t.test('accounting parentheses mean negative', () => {
+    assert.equal(CSVService.parseAmount('(4.50)'), -4.5);
+  });
+  await t.test('trailing minus means negative', () => {
+    assert.equal(CSVService.parseAmount('4.50-'), -4.5);
+  });
+  await t.test('European 1.234,56 grouping', () => {
+    assert.equal(CSVService.parseAmount('1.234,56'), 1234.56);
+  });
+  await t.test('comma as a decimal separator', () => {
+    assert.equal(CSVService.parseAmount('12,50'), 12.5);
+  });
+  await t.test('blank / non-numeric yields NaN', () => {
+    assert.ok(Number.isNaN(CSVService.parseAmount('')));
+    assert.ok(Number.isNaN(CSVService.parseAmount('n/a')));
+  });
+});
+
+test('CSVService.parseDate', async (t) => {
+  await t.test('ISO passes through', () => {
+    assert.equal(CSVService.parseDate('2026-06-09'), '2026-06-09');
+    assert.equal(CSVService.parseDate('2026/6/9'), '2026-06-09');
+  });
+  await t.test('MM/DD/YYYY by default, DD/MM with dayFirst', () => {
+    assert.equal(CSVService.parseDate('03/04/2026'), '2026-03-04');
+    assert.equal(CSVService.parseDate('03/04/2026', true), '2026-04-03');
+  });
+  await t.test('a part over 12 disambiguates regardless of the hint', () => {
+    assert.equal(CSVService.parseDate('25/12/2026'), '2026-12-25');
+    assert.equal(CSVService.parseDate('12/25/2026', true), '2026-12-25');
+  });
+  await t.test('2-digit year expands into the 2000s', () => {
+    assert.equal(CSVService.parseDate('01/02/26'), '2026-01-02');
+  });
+  await t.test('a named month parses', () => {
+    assert.equal(CSVService.parseDate('Jan 5, 2026'), '2026-01-05');
+  });
+  await t.test('junk yields an empty string', () => {
+    assert.equal(CSVService.parseDate('not a date'), '');
+    assert.equal(CSVService.parseDate(''), '');
+  });
+});
+
+test('CSVService.autoDetect', async (t) => {
+  await t.test('detects a single signed-amount layout', () => {
+    const m = CSVService.autoDetect(['Date', 'Description', 'Amount', 'Balance']);
+    assert.equal(m.dateIdx, 0);
+    assert.equal(m.descIdx, 1);
+    assert.equal(m.amountIdx, 2);
+    assert.equal(m.mode, 'signed');
+  });
+  await t.test('detects separate debit / credit columns', () => {
+    const m = CSVService.autoDetect(['Posted Date', 'Details', 'Debit', 'Credit']);
+    assert.equal(m.debitIdx, 2);
+    assert.equal(m.creditIdx, 3);
+    assert.equal(m.mode, 'debitcredit');
+  });
+  await t.test('our own export is recognised as typed', () => {
+    const m = CSVService.autoDetect(CSVService.HEADERS);
+    assert.equal(m.mode, 'typed');
+    assert.ok(m.typeIdx >= 0 && m.amountIdx >= 0);
+  });
+});
+
 /* ---- isoLocal: LOCAL calendar date (the UTC day-shift bug fix) ---- */
 test('isoLocal', async (t) => {
   await t.test('reads the local calendar fields, never the UTC day', () => {

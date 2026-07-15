@@ -112,6 +112,32 @@ const TransactionStore = {
     return txToCamel(row);
   },
 
+  /* Insert many at once — used by the CSV importer so a 200-row statement is a
+     couple of round-trips, not 200. Chunked to stay under payload limits. */
+  async bulkAdd(list) {
+    if (!Array.isArray(list) || !list.length) return [];
+    const uid = await userId();
+    const rows = list.map(data => ({
+      user_id:       uid,
+      date:          data.date || todayISO(),
+      amount:        Math.abs(Number(data.amount)),
+      type:          data.type || 'expense',
+      category_id:   data.categoryId  || null,
+      account_id:    data.accountId   || null,
+      to_account_id: data.toAccountId || null,
+      note:          data.note        || '',
+      tags:          data.tags        || [],
+    }));
+    const out = [];
+    const CHUNK = 500;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const { data: got, error } = await sb.from('transactions').insert(rows.slice(i, i + CHUNK)).select();
+      if (error) throw new Error(error.message);
+      out.push(...(got || []).map(txToCamel));
+    }
+    return out;
+  },
+
   async update(id, data) {
     const patch = {};
     if (data.date        !== undefined) patch.date          = data.date;
@@ -1285,6 +1311,99 @@ const CSVService = {
     }
     if (field !== '' || row.length) { pushField(); pushRow(); }
     return rows;
+  },
+
+  /* ---- Bank / generic CSV import helpers (pure, testable) ------------------
+     A real bank statement rarely matches our own export headers, so the import
+     wizard parses arbitrary CSVs: auto-detect columns, parse messy amounts and
+     dates, and infer income/expense from sign. These helpers stay DOM- and
+     network-free; the wizard (scripts/pages/import.js) drives them. */
+
+  /* Split a CSV file's text into { header:[], rows:[[]] }. */
+  splitRows(text) {
+    const records = this._parse(text);
+    if (!records.length) return { header: [], rows: [] };
+    return { header: records[0].map(h => (h || '').trim()), rows: records.slice(1) };
+  },
+
+  /* Parse a money cell into a signed Number. Handles "$1,234.56", "(4.50)"
+     (accounting negative), a trailing minus "4.50-", and EU "1.234,56".
+     Returns NaN when there's no number. */
+  parseAmount(raw) {
+    if (raw == null) return NaN;
+    let s = String(raw).trim();
+    if (!s) return NaN;
+    let neg = false;
+    if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }   /* (4.50) → −4.50 */
+    if (/-\s*$/.test(s)) neg = true;                              /* "4.50-"        */
+    if (/^\s*-/.test(s)) neg = true;
+    s = s.replace(/[^0-9.,]/g, '');                              /* drop symbols/spaces/signs */
+    if (!s) return NaN;
+    const hasComma = s.indexOf(',') > -1, hasDot = s.indexOf('.') > -1;
+    if (hasComma && hasDot) {
+      /* whichever separator is last is the decimal one */
+      s = s.lastIndexOf(',') > s.lastIndexOf('.')
+        ? s.replace(/\./g, '').replace(',', '.')   /* 1.234,56 → 1234.56 */
+        : s.replace(/,/g, '');                      /* 1,234.56 → 1234.56 */
+    } else if (hasComma) {
+      s = /,\d{2}$/.test(s) ? s.replace(',', '.') : s.replace(/,/g, '');
+    }
+    const n = parseFloat(s);
+    if (isNaN(n)) return NaN;
+    return neg ? -n : n;
+  },
+
+  /* Parse a date cell into an ISO "YYYY-MM-DD" string, or '' if unparseable.
+     `dayFirst`: how to read ambiguous numeric dates (e.g. 03/04/2026) —
+     true → DD/MM, false → MM/DD. Unambiguous dates (a part > 12, or ISO,
+     or a named month) ignore the hint. */
+  parseDate(raw, dayFirst = false) {
+    if (!raw) return '';
+    const s = String(raw).trim();
+    const pad = n => String(n).padStart(2, '0');
+    let m;
+    /* ISO-ish: YYYY-MM-DD / YYYY/MM/DD */
+    if ((m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/))) {
+      return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
+    }
+    /* numeric D/M/Y or M/D/Y (2- or 4-digit year) */
+    if ((m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/))) {
+      let a = +m[1], b = +m[2];
+      const y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
+      let mm, dd;
+      if (a > 12)      { dd = a; mm = b; }      /* first part can't be a month */
+      else if (b > 12) { mm = a; dd = b; }      /* second part can't be a month */
+      else             { if (dayFirst) { dd = a; mm = b; } else { mm = a; dd = b; } }
+      if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return '';
+      return `${y}-${pad(mm)}-${pad(dd)}`;
+    }
+    /* named month, e.g. "01 Jan 2026" / "Jan 1, 2026" */
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return isoLocal(d);
+    return '';
+  },
+
+  /* Guess which columns hold what, from the header row. Returns 0-based
+     indexes (−1 when absent) plus a `mode`:
+       'debitcredit' — separate money-out / money-in columns
+       'signed'      — one amount column (sign = direction)
+       'typed'       — our own export (explicit `type` column) */
+  autoDetect(header) {
+    const h = header.map(x => String(x).toLowerCase().trim());
+    const find = (...keys) => {
+      for (const k of keys) { const i = h.findIndex(c => c.includes(k)); if (i >= 0) return i; }
+      return -1;
+    };
+    const dateIdx   = find('date', 'posted', 'time');
+    const descIdx   = find('description', 'details', 'narrative', 'memo', 'payee', 'merchant', 'name', 'reference', 'note', 'transaction');
+    const debitIdx  = find('debit', 'withdrawal', 'money out', 'paid out', 'outflow', 'spent');
+    const creditIdx = find('credit', 'deposit', 'money in', 'paid in', 'inflow', 'received');
+    const amountIdx = find('amount', 'value');
+    const typeIdx   = find('type');
+    let mode = 'signed';
+    if (typeIdx >= 0 && amountIdx >= 0)          mode = 'typed';
+    else if (debitIdx >= 0 || creditIdx >= 0)    mode = 'debitcredit';
+    return { dateIdx, descIdx, amountIdx, debitIdx, creditIdx, typeIdx, mode };
   },
 
   async import(file) {
