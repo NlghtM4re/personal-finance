@@ -412,14 +412,40 @@ const SettingsStore = {
      breaking the other settings saves. */
   /* Write a single jsonb column on its own — isolated from _save so a
      pre-migration DB (missing column) degrades to local-only rather than
-     breaking the other settings. Caches the value only on success. */
+     breaking the other settings. Caches the value only on success.
+
+     NB: supabase-js does NOT throw on a DB error — it resolves with { error }.
+     So we must inspect `error`, not rely on try/catch. If the column is missing
+     (a DB that predates the v6 job_defaults / ui_prefs / shift_* settings), the
+     write can't persist and the setting won't sync across devices; we surface
+     that once instead of silently losing it, and we do NOT cache a value the
+     server never accepted. */
   async _putColumn(column, value) {
     const uid = await userId();
     if (!uid) return;
+    let error;
     try {
-      await sb.from('user_settings').upsert({ user_id: uid, [column]: value }, { onConflict: 'user_id' });
-      if (this._cache) this._cache[column] = value;
-    } catch (_) { /* pre-migration / offline: the localStorage mirror still applied */ }
+      ({ error } = await sb.from('user_settings').upsert({ user_id: uid, [column]: value }, { onConflict: 'user_id' }));
+    } catch (e) { error = e; }   /* genuine network/exception path */
+    if (error) { this._warnSyncFailed(column, error); return; }
+    if (this._cache) this._cache[column] = value;
+  },
+
+  /* One warning per column per session — a missing column (Postgres 42703 /
+     PostgREST PGRST204 "could not find column") means the DB needs the latest
+     supabase-schema.sql. Kept to the console so end users aren't alarmed. */
+  _warnSyncFailed(column, error) {
+    try {
+      const seen = (this._warnedCols || (this._warnedCols = new Set()));
+      if (seen.has(column)) return;
+      seen.add(column);
+    } catch (_) {}
+    const msg = (error && (error.message || error.details || error.code)) || error;
+    console.warn(
+      `[settings] "${column}" could not be saved to Supabase, so it won't sync across devices ` +
+      `(it stays only on this device). This usually means the database is missing the "${column}" ` +
+      `column — run the ALTER TABLE statements in supabase-schema.sql. Cause:`, msg,
+    );
   },
 
   async getJobSettings() {
