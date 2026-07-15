@@ -279,30 +279,95 @@
 /* ════════════════════════════════════════════════════════════
    TRANSACTIONS PAGE (served from accounts.html) — terminal grid
    ════════════════════════════════════════════════════════════ */
-.tx-page { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.tx-top { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 10px; align-items: stretch; }
-.tx-accounts, .tx-networth { display: flex; flex-direction: column; }
-.tx-accounts .accounts-grid {
-  display: flex; flex-direction: column; padding: 2px 14px;
-  max-height: 232px; overflow-y: auto;
+/* Full-width single column — the transaction history is the main content;
+   accounts + stats sit as slim strips on top. */
+.tx-page { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+/* Accounts — collapsible: a one-line summary that opens a horizontal card drawer.
+   Collapsed by default so the transaction history starts right below and there's
+   never an empty band, whatever the account count. */
+.accounts-panel { border: 1px solid var(--color-border); background: var(--color-surface); }
+.accounts-summary {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 11px 14px; background: none; border: none; cursor: pointer;
+  color: var(--color-text); font-family: inherit; text-align: left;
+  transition: background var(--transition);
+}
+.accounts-summary:hover { background: var(--color-surface-2); }
+.accounts-summary__left { display: flex; align-items: center; gap: 8px; font-size: 0.8125rem; min-width: 0; }
+.accounts-summary__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-income); flex-shrink: 0; }
+.accounts-summary__count { color: var(--color-text-muted); font-weight: 500; }
+.accounts-summary__sep { color: var(--color-text-muted); }
+.accounts-summary__total {
+  font-family: var(--font-display); font-feature-settings: 'tnum' 1;
+  font-weight: 700; letter-spacing: -0.02em;
+}
+.accounts-summary__chevron { color: var(--color-text-muted); flex-shrink: 0; transition: transform 0.2s ease; }
+.accounts-panel.is-open .accounts-summary__chevron { transform: rotate(180deg); }
+
+.accounts-drawer {
+  display: flex; gap: 10px; overflow-x: auto;
+  padding: 12px 14px 14px; border-top: 1px solid var(--color-border);
   scrollbar-width: thin; scrollbar-color: var(--color-border) transparent;
 }
-.tx-accounts .accounts-grid::-webkit-scrollbar { width: 4px; }
-.tx-accounts .accounts-grid::-webkit-scrollbar-thumb { background: var(--color-border); }
+.accounts-drawer[hidden] { display: none; }   /* beat display:flex when collapsed */
+.accounts-drawer::-webkit-scrollbar { height: 4px; }
+.accounts-drawer::-webkit-scrollbar-thumb { background: var(--color-border); }
+
+.acc-card {
+  flex: 0 0 auto; width: 156px;
+  display: flex; flex-direction: column;
+  padding: 12px 13px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+.acc-card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.acc-card__avatar {
+  width: 30px; height: 30px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.875rem; font-weight: 700; letter-spacing: -0.01em; flex-shrink: 0;
+}
+.acc-card__actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--transition); }
+.acc-card:hover .acc-card__actions { opacity: 1; }
+.acc-card__name {
+  font-size: 0.8125rem; font-weight: 600; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.acc-card__balance {
+  font-family: var(--font-display); font-feature-settings: 'tnum' 1;
+  font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.02em; margin-top: 3px;
+}
+.acc-card__type {
+  font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 600; color: var(--color-text-muted); margin-top: 4px;
+}
+.acc-card--add {
+  cursor: pointer; align-items: center; justify-content: center; gap: 8px;
+  color: var(--color-text-muted); border-style: dashed;
+  transition: color var(--transition), border-color var(--transition);
+}
+.acc-card--add:hover { color: var(--color-primary); border-color: var(--color-primary); }
+.acc-card__add-icon { display: flex; }
+.acc-card--add span { font-size: 0.75rem; font-weight: 600; }
 
 /* Filtered stat bar */
 .tx-statbar {
   display: grid; grid-template-columns: repeat(4, 1fr);
   background: var(--color-border); border: 1px solid var(--color-border); gap: 1px;
 }
-.tx-stat { background: var(--color-surface); padding: 12px 16px; min-width: 0; }
+.tx-stat {
+  background: var(--color-surface); padding: 9px 14px; min-width: 0;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+}
 .tx-stat__label {
   font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.12em;
   font-weight: 600; color: var(--color-text-muted); font-family: var(--font-display);
 }
 .tx-stat__value {
-  font-family: var(--font-display); font-size: 1.25rem; font-weight: 600;
-  letter-spacing: -0.03em; color: var(--color-text); margin-top: 5px;
+  font-family: var(--font-display); font-size: 1.0625rem; font-weight: 600;
+  letter-spacing: -0.03em; color: var(--color-text); margin-top: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .tx-stat__value--income  { color: var(--color-income); }
 .tx-stat__value--expense { color: var(--color-expense); }
@@ -318,9 +383,21 @@
 
 /* List panel — scrolls within the page */
 .tx-listpanel .tx-list-full {
-  max-height: max(420px, calc(100vh - 360px)); overflow-y: auto;
+  overflow-y: auto;
   scrollbar-width: thin; scrollbar-color: var(--color-border) transparent;
   padding: 0 14px;
+}
+
+/* Desktop: the activity list fills the viewport so as many rows as possible are
+   visible without scrolling the PAGE — only the list scrolls, internally. The
+   whole tx-page is capped to the viewport height (minus the sticky topbar and
+   the main-content padding), and the list panel flex-grows into the leftover
+   space. Expanding the accounts drawer just shrinks the list a little. */
+@media (min-width: 861px) {
+  .tx-page { height: calc(100vh - var(--topbar-height, 56px) - 48px); }
+  .tx-listpanel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .tx-listpanel .term__body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .tx-listpanel .tx-list-full { flex: 1 1 auto; min-height: 0; }
 }
 .tx-listpanel .tx-list-full::-webkit-scrollbar { width: 4px; }
 .tx-listpanel .tx-list-full::-webkit-scrollbar-thumb { background: var(--color-border); }
@@ -708,7 +785,8 @@
 }
 
 @media (max-width: 860px) {
-  .tx-top { grid-template-columns: 1fr; }
+  /* one natural page scroll on mobile — no nested scroll box */
+  .tx-listpanel .tx-list-full { max-height: none; }
   .tx-typetabs { width: 100%; }
   .tx-typetabs .seg-btn { flex: 1; padding: 9px 8px; }
 }

@@ -47,48 +47,21 @@
     <main class="main-content">
       <div class="tx-page">
 
-        <!-- ── Accounts + Net worth ─────────────────────────────── -->
-        <div class="tx-top">
-          <section class="term tx-accounts">
-            <div class="term__head">
-              <span class="term__title">Accounts</span>
-              <button class="btn btn--ghost btn--sm" id="newAccountBtn">+ New account</button>
-            </div>
-            <div class="term__body term__body--flush">
-              <div class="accounts-grid" id="accountsGrid"><div class="spinner"></div></div>
-            </div>
-          </section>
+        <!-- ── Accounts: collapsible summary → cards drawer ─────── -->
+        <section class="accounts-panel" id="accountsPanel">
+          <button type="button" class="accounts-summary" id="accountsSummary" aria-expanded="false" aria-controls="accountsGrid">
+            <span class="accounts-summary__left">
+              <span class="accounts-summary__dot"></span>
+              <span class="accounts-summary__count" id="accountsSummaryCount">— accounts</span>
+              <span class="accounts-summary__sep">·</span>
+              <span class="accounts-summary__total" id="accountsSummaryTotal">—</span>
+            </span>
+            <svg class="accounts-summary__chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="accounts-drawer" id="accountsGrid" hidden><div class="spinner"></div></div>
+        </section>
 
-          <section class="term tx-networth">
-            <div class="term__head">
-              <span class="term__title">Net worth</span>
-              <span class="term-label"><span id="accCount">—</span> accounts</span>
-            </div>
-            <div class="term__body">
-              <div class="acc-nw-value" id="accNetWorth">—</div>
-              <div class="acc-nw-crypto" id="accNwCrypto" style="display:none"></div>
-              <div class="acc-nw-bar-track"><div class="acc-nw-bar-fill" id="accNwBarFill"></div></div>
-              <div class="acc-stats-row">
-                <div class="acc-stat-item">
-                  <div class="acc-stat-dot acc-stat-dot--income"></div>
-                  <div>
-                    <div class="acc-stat-label">Assets</div>
-                    <div class="acc-stat-value acc-stat-value--income" id="accTotalAssets">—</div>
-                  </div>
-                </div>
-                <div class="acc-stat-item">
-                  <div class="acc-stat-dot acc-stat-dot--expense"></div>
-                  <div>
-                    <div class="acc-stat-label">Debts</div>
-                    <div class="acc-stat-value acc-stat-value--expense" id="accTotalDebts">—</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <!-- ── Filtered stat bar ────────────────────────────────── -->
+        <!-- ── Filtered stat bar (slim) ─────────────────────────── -->
         <div class="tx-statbar">
           <div class="tx-stat">
             <div class="tx-stat__label">Income</div>
@@ -279,7 +252,6 @@
   <script src="../scripts/data/supabase.js"></script>
   <script src="../scripts/data/store.js"></script>
   <script src="../scripts/components/icons.js"></script>
-  <script src="../scripts/data/crypto.js"></script>
   <script src="../scripts/engine/summary.js"></script>
   <script src="../scripts/components/nav.js"></script>
   <script src="../scripts/components/ui.js"></script>

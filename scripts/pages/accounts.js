@@ -21,47 +21,6 @@ async function loadAccountsWithBalances() {
 async function initAccounts() {
   const data = await loadAccountsWithBalances();
   await renderAccountsGrid(data);
-  renderAccountSummary(data, 0);   // cash-only first, instant
-  /* fold crypto holdings into net worth (assets), not the cash balances */
-  if (typeof CryptoBalances !== 'undefined') {
-    CryptoBalances.snapshot()
-      .then(snap => { if (snap.wallets.length) renderAccountSummary(data, snap.total); })
-      .catch(() => {});
-  }
-}
-
-function renderAccountSummary({ accounts, balanceMap }, cryptoTotal = 0) {
-  const withBal = accounts.map(a => ({ ...a, bal: balanceMap[a.id] ?? 0 }));
-
-  const debtTypes = new Set(['credit']);
-  const assets = withBal.filter(a => !debtTypes.has(a.type));
-  const debts  = withBal.filter(a =>  debtTypes.has(a.type));
-
-  const cashAssets  = assets.reduce((s, a) => s + Math.max(0, a.bal), 0);
-  const totalAssets = cashAssets + cryptoTotal;
-  const totalDebts  = debts.reduce((s, a)  => s + Math.abs(Math.min(0, a.bal)), 0);
-  const netWorth    = totalAssets - totalDebts;
-
-  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  setText('accTotalAssets', formatCurrency(totalAssets));
-  setText('accTotalDebts',  formatCurrency(totalDebts));
-  setText('accCount',       String(accounts.length));
-  setText('accNetWorth',    (netWorth >= 0 ? '+' : '') + formatCurrency(netWorth));
-
-  const nwEl = document.getElementById('accNetWorth');
-  if (nwEl) nwEl.style.color = netWorth >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
-
-  const cryptoEl = document.getElementById('accNwCrypto');
-  if (cryptoEl) {
-    if (cryptoTotal > 0) { cryptoEl.style.display = ''; cryptoEl.textContent = `incl. ${formatCurrency(cryptoTotal)} crypto`; }
-    else cryptoEl.style.display = 'none';
-  }
-
-  const barFill = document.getElementById('accNwBarFill');
-  if (barFill) {
-    const total = totalAssets + totalDebts;
-    barFill.style.width = total > 0 ? `${((totalAssets / total) * 100).toFixed(1)}%` : '100%';
-  }
 }
 
 const TYPE_LABEL = { bank: 'Bank', cash: 'Cash', savings: 'Savings', investment: 'Investment', credit: 'Credit', other: 'Other' };
@@ -70,49 +29,40 @@ async function renderAccountsGrid(data) {
   const el = document.getElementById('accountsGrid');
   if (!el) return;
 
-  el.innerHTML = [1, 2].map(() => `
-    <div class="acc-row">
-      <div class="acc-row__avatar skeleton" style="width:38px;height:38px;border-radius:10px;flex-shrink:0;"></div>
-      <div class="acc-row__info">
-        <div class="skeleton skeleton-text" style="width:60%;"></div>
-        <div class="skeleton skeleton-text" style="width:35%;margin-top:4px;"></div>
-      </div>
-      <div class="skeleton skeleton-text" style="width:60px;margin-left:auto;"></div>
+  el.innerHTML = [1, 2, 3].map(() => `
+    <div class="acc-card">
+      <div class="acc-card__avatar skeleton" style="width:30px;height:30px;border-radius:8px;"></div>
+      <div class="skeleton skeleton-text" style="width:70%;margin-top:10px;"></div>
+      <div class="skeleton skeleton-text" style="width:50%;margin-top:8px;height:16px;"></div>
     </div>`).join('');
 
   const { accounts, balanceMap } = data || await loadAccountsWithBalances();
 
-  if (!accounts.length) {
-    el.innerHTML = `<div class="empty-state" style="padding:24px 0;">No accounts yet.</div>`;
-  } else {
-    el.innerHTML = accounts.map(a => {
-      const bal    = balanceMap[a.id] ?? 0;
-      const letter = escapeHTML(a.name.charAt(0).toUpperCase());
-      return `
-        <div class="acc-row" data-id="${a.id}">
-          <div class="acc-row__avatar" style="background:${a.color}22;color:${a.color}">${letter}</div>
-          <div class="acc-row__info">
-            <div class="acc-row__name">${escapeHTML(a.name)}</div>
-            <div class="acc-row__type">${TYPE_LABEL[a.type] || 'Account'}</div>
+  const cards = accounts.map(a => {
+    const bal    = balanceMap[a.id] ?? 0;
+    const letter = escapeHTML(a.name.charAt(0).toUpperCase());
+    return `
+      <div class="acc-card" data-id="${a.id}">
+        <div class="acc-card__head">
+          <div class="acc-card__avatar" style="background:${a.color}22;color:${a.color}">${letter}</div>
+          <div class="acc-card__actions">
+            <button class="tx-action-btn" data-action="edit-acc" data-id="${a.id}" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="tx-action-btn tx-action-btn--delete" data-action="delete-acc" data-id="${a.id}" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
           </div>
-          <div class="acc-row__right">
-            <div class="acc-row__balance" style="color:${bal >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}">${formatCurrency(bal)}</div>
-            <div class="acc-row__actions">
-              <button class="tx-action-btn" data-action="edit-acc" data-id="${a.id}" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-              <button class="tx-action-btn tx-action-btn--delete" data-action="delete-acc" data-id="${a.id}" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-            </div>
-          </div>
-        </div>`;
-    }).join('');
-  }
+        </div>
+        <div class="acc-card__name" title="${escapeHTML(a.name)}">${escapeHTML(a.name)}</div>
+        <div class="acc-card__balance" style="color:${bal >= 0 ? 'var(--color-income)' : 'var(--color-expense)'}">${formatCurrency(bal)}</div>
+        <div class="acc-card__type">${TYPE_LABEL[a.type] || 'Account'}</div>
+      </div>`;
+  }).join('');
 
-  el.insertAdjacentHTML('beforeend', `
-    <button class="acc-row acc-row--add" id="addAccountCard">
-      <div class="acc-row__add-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+  el.innerHTML = cards + `
+    <button class="acc-card acc-card--add" id="addAccountCard">
+      <div class="acc-card__add-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       </div>
-      <span>New Account</span>
-    </button>`);
+      <span>New account</span>
+    </button>`;
 
   document.getElementById('addAccountCard')?.addEventListener('click', () => openAccountModal(null));
   el.querySelectorAll('[data-action="edit-acc"]').forEach(btn => {
@@ -121,6 +71,48 @@ async function renderAccountsGrid(data) {
   el.querySelectorAll('[data-action="delete-acc"]').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); deleteAccount(btn.dataset.id); });
   });
+
+  updateAccountsSummary(accounts, balanceMap);
+}
+
+/* ---- Collapsible accounts summary bar ----
+   A one-line "N accounts · $total" header; the cards live in a drawer that
+   opens on demand so the transaction history starts right below. */
+const ACCOUNTS_OPEN_KEY = 'pf_accounts_open';
+
+function setAccountsOpen(open, persist = true) {
+  const panel  = document.getElementById('accountsPanel');
+  const drawer = document.getElementById('accountsGrid');
+  const btn    = document.getElementById('accountsSummary');
+  if (!panel || !drawer) return;
+  panel.classList.toggle('is-open', open);
+  drawer.hidden = !open;
+  btn?.setAttribute('aria-expanded', String(open));
+  if (persist) { try { localStorage.setItem(ACCOUNTS_OPEN_KEY, open ? '1' : '0'); } catch (_) {} }
+}
+
+function setupAccountsToggle() {
+  const btn    = document.getElementById('accountsSummary');
+  const drawer = document.getElementById('accountsGrid');
+  if (!btn || !drawer) return;
+  let open = false;
+  try { open = localStorage.getItem(ACCOUNTS_OPEN_KEY) === '1'; } catch (_) {}
+  setAccountsOpen(open, false);                    /* collapsed by default */
+  btn.addEventListener('click', () => setAccountsOpen(drawer.hidden));
+}
+
+function updateAccountsSummary(accounts, balanceMap) {
+  const countEl = document.getElementById('accountsSummaryCount');
+  const totalEl = document.getElementById('accountsSummaryTotal');
+  const n = accounts.length;
+  if (countEl) countEl.textContent = `${n} account${n === 1 ? '' : 's'}`;
+  if (totalEl) {
+    const total = accounts.reduce((s, a) => s + (balanceMap[a.id] ?? 0), 0);
+    totalEl.textContent = formatCurrency(total);
+    totalEl.style.color = total >= 0 ? 'var(--color-income)' : 'var(--color-expense)';
+  }
+  /* no accounts yet → open so the "New account" card is reachable */
+  if (n === 0) setAccountsOpen(true, false);
 }
 
 async function openAccountModal(id) {
@@ -203,6 +195,7 @@ function capitalize(str)   { return str ? str[0].toUpperCase() + str.slice(1) : 
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await SupaAuth.requireAuth();
   if (!user) return;
+  setupAccountsToggle();          /* apply saved collapsed/expanded state before data loads */
   try {
     await initAccounts();
   } catch (err) {
