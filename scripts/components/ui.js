@@ -36,9 +36,15 @@ const PFTheme = {
     if (typeof SettingsStore !== 'undefined' && SettingsStore.setUiPref) {
       try { SettingsStore.setUiPref({ theme: next }); } catch (_) {}
     }
-    /* reload so the canvas charts repaint with the new palette
-       (CSS flips instantly, but canvases are already drawn) */
-    window.location.reload();
+    this.apply(next);   /* flip the CSS variables instantly (no flash) */
+    /* Canvas charts are painted imperatively and won't repaint on a CSS-var
+       change, so reload only on pages that actually have one — and give the
+       toggle's moon⇄sun animation a beat to play first. Plain pages switch
+       live with no reload at all. */
+    if (document.querySelector('canvas')) {
+      setTimeout(() => window.location.reload(), 300);
+    }
+    return next;
   },
 };
 try { PFTheme.apply(localStorage.getItem('pf_theme') === 'light' ? 'light' : 'dark'); } catch (_) {}

@@ -178,6 +178,25 @@ body.page-exit .main-wrapper {
 .topbar-icon-btn:hover { background: var(--color-surface-2); color: var(--color-text); text-decoration: none; }
 .topbar-icon-btn--active { color: var(--color-text); background: var(--color-surface-2); }
 
+/* Theme toggle: moon (light theme, tap for dark) ⇄ sun (dark theme, tap for
+   light) cross-fade + rotate on click. Both icons are stacked; data-theme-btn
+   picks which is shown. */
+.theme-toggle { position: relative; }
+.theme-toggle__icon {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  transition: transform .32s cubic-bezier(.4, 0, .2, 1), opacity .28s ease;
+}
+/* dark theme active → show the sun */
+.theme-toggle .theme-toggle__icon--sun  { transform: rotate(0)      scale(1);  opacity: 1; }
+.theme-toggle .theme-toggle__icon--moon { transform: rotate(-90deg) scale(.4); opacity: 0; }
+/* light theme active → show the moon */
+.theme-toggle[data-theme-btn="light"] .theme-toggle__icon--sun  { transform: rotate(90deg) scale(.4); opacity: 0; }
+.theme-toggle[data-theme-btn="light"] .theme-toggle__icon--moon { transform: rotate(0)     scale(1);  opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle__icon { transition: opacity .15s ease; }
+}
+
 /* ---- Desktop topbar: logo (mobile fallback) ---- */
 .topbar-logo {
   display: none;

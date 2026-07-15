@@ -107,11 +107,21 @@
       <div class="topbar-title"${titleId}>${title}</div>
       <div class="topbar-actions">
         <a href="${resolve(insights.href)}" class="topbar-icon-btn${isActive(insights) ? ' topbar-icon-btn--active' : ''}" aria-label="Insights" title="Insights">${I(ICONS.insights, 17)}</a>
-        <button type="button" class="topbar-icon-btn" id="themeToggle" aria-label="${themeIsLight ? 'Switch to dark theme' : 'Switch to light theme'}" title="${themeIsLight ? 'Switch to dark theme' : 'Switch to light theme'}">${I(themeIsLight ? ICONS.moon : ICONS.sun, 17)}</button>
+        <button type="button" class="topbar-icon-btn theme-toggle" id="themeToggle" data-theme-btn="${themeIsLight ? 'light' : 'dark'}" aria-label="${themeIsLight ? 'Switch to dark theme' : 'Switch to light theme'}" title="${themeIsLight ? 'Switch to dark theme' : 'Switch to light theme'}">
+          <span class="theme-toggle__icon theme-toggle__icon--moon">${I(ICONS.moon, 17)}</span>
+          <span class="theme-toggle__icon theme-toggle__icon--sun">${I(ICONS.sun, 17)}</span>
+        </button>
         <a href="${resolve('pages/settings.html')}" class="topbar-icon-btn${CURRENT === 'settings' ? ' topbar-icon-btn--active' : ''}" aria-label="Settings" title="Settings">${I(ICONS.settings, 17)}</a>
       </div>`;
-    document.getElementById('themeToggle')?.addEventListener('click', () => {
-      if (typeof PFTheme !== 'undefined') PFTheme.toggle();
+    document.getElementById('themeToggle')?.addEventListener('click', (e) => {
+      if (typeof PFTheme === 'undefined') return;
+      const btn = e.currentTarget;
+      const next = PFTheme.toggle();                 /* flips CSS instantly, returns 'light'|'dark' */
+      const light = next === 'light';
+      btn.dataset.themeBtn = light ? 'light' : 'dark';   /* drives the moon⇄sun swap */
+      const label = light ? 'Switch to dark theme' : 'Switch to light theme';
+      btn.setAttribute('aria-label', label);
+      btn.setAttribute('title', label);
     });
   }
 
