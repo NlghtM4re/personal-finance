@@ -284,7 +284,7 @@ function attachTxEvents() {
     return;
   }
   document.querySelectorAll('[data-action="edit"]').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); window.location.href = `add-transaction.html?id=${btn.dataset.id}`; });
+    btn.addEventListener('click', e => { e.stopPropagation(); window.location.href = `add-transaction?id=${btn.dataset.id}`; });
   });
   document.querySelectorAll('[data-action="delete"]').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); openDeleteModal(btn.dataset.id); });
@@ -292,7 +292,7 @@ function attachTxEvents() {
   document.querySelectorAll('.tx-list-full .tx-item[data-id]').forEach(item => {
     item.addEventListener('click', e => {
       if (e.target.closest('.tx-actions')) return;
-      window.location.href = `add-transaction.html?id=${item.dataset.id}`;
+      window.location.href = `add-transaction?id=${item.dataset.id}`;
     });
   });
 }
