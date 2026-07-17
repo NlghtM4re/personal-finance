@@ -15,9 +15,14 @@ const Charts = {
   _setup(canvasId) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    /* No layout size = the panel is hidden (or not laid out yet). Sizing the
+       buffer to 0 wipes the bitmap and leaves the chart permanently blank once
+       it's shown again, so keep what we have and let the next draw — when it's
+       actually visible — measure properly. Callers all treat null as "skip". */
+    if (!w || !h) return null;
     const dpr = window.devicePixelRatio || 1;
-    const w   = canvas.offsetWidth;
-    const h   = canvas.offsetHeight;
     canvas.width  = w * dpr;
     canvas.height = h * dpr;
     const ctx = canvas.getContext('2d');
