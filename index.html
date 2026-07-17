@@ -120,19 +120,20 @@
         </a>
       </div>
 
-      <!-- BODY: main (tiles, duo, chart) + transactions feed -->
-      <section class="dash-body">
+      <!-- BODY: a configurable grid of panels. Order / grid / span / hidden are
+           driven by scripts/pages/dashboard-layout.js from the synced ui_prefs
+           config; each panel is tagged with data-panel. -->
+      <section class="dash-body" id="dashGrid">
 
-        <!-- MAIN: account tiles, allocation + month, big chart -->
-        <div class="dash-main">
+        <div class="dash-col">
 
-          <div class="term-cells dash-tiles" id="accountTiles">
+          <div class="term-cells dash-tiles dash-panel" data-panel="accounts" id="accountTiles">
             <div class="empty-state">No accounts yet. <a href="pages/accounts.html">Add one →</a></div>
           </div>
 
           <!-- Crypto holdings — counts toward net worth, not the cash balance.
                Hidden until at least one wallet exists. -->
-          <section class="dash-crypto" id="cryptoSection" hidden>
+          <section class="dash-crypto dash-panel" data-panel="crypto" id="cryptoSection" hidden>
             <div class="dash-crypto__head">
               <span class="term__title">Crypto</span>
               <div class="dash-crypto__head-right">
@@ -145,7 +146,7 @@
             <div class="term-cells dash-tiles" id="cryptoTiles"></div>
           </section>
 
-          <div class="term-cells dash-duo">
+          <div class="term-cells dash-duo dash-panel" data-panel="moneyDuo">
             <div class="cell">
               <div class="cell-head">
                 <span class="term__title">Allocation</span>
@@ -188,7 +189,7 @@
 
           <!-- Net-worth savings goal — progress toward a target (cash + crypto).
                Set/cleared inline; target stored per-device. -->
-          <div class="term nw-goal" id="nwGoalCard">
+          <div class="term nw-goal dash-panel" data-panel="nwGoal" id="nwGoalCard">
             <div class="term__head">
               <span class="term__title">Net-worth goal</span>
               <button type="button" class="btn btn--ghost btn--sm" id="nwGoalEditBtn">Set goal</button>
@@ -215,7 +216,7 @@
             </div>
           </div>
 
-          <div class="term">
+          <div class="term dash-panel" data-panel="balanceChart">
             <div class="term__head">
               <span class="term__title">Balance &amp; forecast</span>
               <div class="balance-head-controls">
@@ -265,13 +266,12 @@
             </div>
           </div>
 
-        </div>
+        </div><!-- /.dash-col -->
 
-        <!-- RIGHT: quick-log, transactions feed + monthly overview -->
-        <div class="dash-right">
+        <div class="dash-col">
 
           <!-- Quick-log hours — fast shift logging without leaving the dashboard -->
-          <div class="term dash-quicklog" id="quickLog">
+          <div class="term dash-quicklog dash-panel" data-panel="quickLog" id="quickLog">
             <div class="term__head">
               <span class="term__title">Log hours</span>
               <a href="pages/shifts.html" class="link--sm">Open tracker →</a>
@@ -307,7 +307,7 @@
 
           <!-- Over-budget watch — expense categories past their monthly limit.
                Hidden unless at least one category is over this month. -->
-          <div class="term dash-bills" id="budgetWatch" hidden>
+          <div class="term dash-bills dash-panel" data-panel="budgetWatch" id="budgetWatch" hidden>
             <div class="term__head">
               <span class="term__title">Over budget</span>
               <a href="pages/budget.html" class="link--sm">Budget</a>
@@ -320,7 +320,7 @@
 
           <!-- Upcoming bills — next recurring charges from subscriptions, with
                normalized monthly/annual cost. Hidden until a subscription exists. -->
-          <div class="term dash-bills" id="upcomingBills" hidden>
+          <div class="term dash-bills dash-panel" data-panel="upcomingBills" id="upcomingBills" hidden>
             <div class="term__head">
               <span class="term__title">Upcoming bills</span>
               <a href="pages/subscriptions.html" class="link--sm">Manage</a>
@@ -331,7 +331,7 @@
             </div>
           </div>
 
-          <div class="term dash-feed">
+          <div class="term dash-feed dash-panel" data-panel="transactions">
             <div class="term__head">
               <span class="term__title">Transactions</span>
               <a href="pages/accounts.html" class="link--sm">View all</a>
@@ -343,7 +343,7 @@
             </div>
           </div>
 
-          <div class="term">
+          <div class="term dash-panel" data-panel="overview">
             <div class="term__head term__head--stack">
               <div class="term__head-row">
                 <span class="term__title">Overview</span>
@@ -383,7 +383,7 @@
             </div>
           </div>
 
-        </div>
+        </div><!-- /.dash-col -->
 
       </section>
 
@@ -407,5 +407,6 @@
   <script src="scripts/components/nav.js"></script>
   <script src="scripts/components/ui.js"></script>
   <script src="scripts/pages/dashboard.js"></script>
+  <script src="scripts/pages/dashboard-layout.js"></script>
 </body>
 </html>

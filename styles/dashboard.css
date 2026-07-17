@@ -137,6 +137,21 @@
 /* ============================================================
    DASH BODY — main (1fr) + transactions feed
    ============================================================ */
+/* The dashboard has two layout families, chosen by data-design:
+
+   CLASSIC (default) — the original: two independent columns (wide main +
+     332px side) each stacking their own panels. Their seams don't line up
+     across the gutter; that's inherent to independent columns and is exactly
+     how the live site looks. Left untouched.
+
+   LOCKED TEMPLATES (focus/tracker/compact) — hand-authored grids of fixed
+     slots via grid-template-areas. Because every slot's position and size is
+     declared here, alignment is exact by construction: nothing reflows, so
+     nothing can go ragged. The user only swaps WHICH panel sits in a slot. */
+/* Classic is the UNSCOPED base: two independent columns, exactly as the
+   original. It must not depend on data-design or on this script running at
+   all — with no saved config (or no JS) the static markup renders the live
+   layout untouched. The locked templates below opt in via data-design. */
 .dash-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 332px;
@@ -145,17 +160,212 @@
      (the transactions feed grows to fill — see .dash-feed below) */
   align-items: stretch;
 }
-.dash-main,
-.dash-right {
+.dash-col {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
 }
+.dash-panel { min-width: 0; }
+.dash-panel.is-user-hidden { display: none; }
+
+/* ---- locked templates ---- */
+.dash-body[data-design="focus"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "a a"
+    "b c"
+    "d d";
+}
+.dash-body[data-design="tracker"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-areas:
+    "a a b"
+    "c d b"
+    "e e e";
+}
+.dash-body[data-design="compact"] {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-areas:
+    "a a b b c c"
+    "d d d e e e"
+    "f f f f f f";
+}
+/* Panels stretch to fill their row (so row bottoms line up), but their CONTENT
+   must keep its natural height — otherwise a short panel sharing a row with a
+   tall one balloons its innards: the account tiles were stretching from 88px
+   to 239px. Pin the inner grid/flow to the top and let the slack sit at the
+   bottom of the panel instead. Scoped to the locked templates; Classic's
+   columns are flex, where this never applied. */
+.dash-body[data-design] .dash-panel.term-cells { align-content: start; }
+.dash-body[data-design] .dash-panel.dash-crypto .dash-tiles { align-content: start; }
+
+.dash-panel[data-slot="a"] { grid-area: a; }
+.dash-panel[data-slot="b"] { grid-area: b; }
+.dash-panel[data-slot="c"] { grid-area: c; }
+.dash-panel[data-slot="d"] { grid-area: d; }
+.dash-panel[data-slot="e"] { grid-area: e; }
+.dash-panel[data-slot="f"] { grid-area: f; }
+/* a panel not placed in the current template simply isn't rendered */
+.dash-panel[data-slot="none"] { display: none; }
+
+/* slot picker (click a slot's chrome to swap what's in it) */
+.dash-slotmenu {
+  position: absolute; z-index: 40; margin-top: 4px;
+  min-width: 190px; padding: 4px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  display: flex; flex-direction: column; gap: 1px;
+  max-height: 260px; overflow-y: auto;
+}
+.dash-slotmenu[hidden] { display: none; }
+.dash-slotmenu__item {
+  text-align: left; padding: 7px 9px; font-size: .8125rem;
+  background: none; border: none; color: var(--color-text); cursor: pointer;
+  white-space: nowrap;
+}
+.dash-slotmenu__item:hover { background: var(--color-surface-2); }
+.dash-slotmenu__item.is-current { color: var(--color-text-muted); }
+
 @media (max-width: 1100px) {
+  /* unscoped, like the original — classic collapses to one column. The locked
+     templates carry higher specificity (data-design), so they keep their own
+     tracks until the 900px rule below collapses them. */
   .dash-body { grid-template-columns: 1fr; }
   .statbar__cell--balance { flex-basis: 100%; }
 }
+/* the locked templates collapse to a single column on narrow screens — the
+   slot ORDER is preserved, so the design still reads the same top-to-bottom */
+@media (max-width: 900px) {
+  .dash-body[data-design="focus"],
+  .dash-body[data-design="tracker"],
+  .dash-body[data-design="compact"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "a" "b" "c" "d" "e" "f";
+  }
+}
+
+/* ---- Customize toolbar — only shown while editing, so it's never in the way.
+   The trigger itself is a small icon in the topbar. ---- */
+.dash-toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; position: relative;
+  padding: 8px 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+.dash-toolbar[hidden] { display: none; }   /* beat display:flex */
+.dash-toolbar__label {
+  font-size: .6875rem; text-transform: uppercase; letter-spacing: .1em;
+  font-weight: 600; color: var(--color-text-muted);
+}
+.dash-toolbar__spacer { flex: 1 1 auto; }
+.dash-toolbar__hint { font-size: .6875rem; color: var(--color-text-muted); }
+@media (max-width: 900px) { .dash-toolbar__hint { display: none; } }
+.dash-gridpick .seg-btn { min-width: 34px; }
+
+.dash-addmenu {
+  position: absolute; top: 100%; right: 0; z-index: 30; margin-top: 6px;
+  min-width: 200px; padding: 6px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.dash-addmenu[hidden] { display: none; }
+.dash-addmenu__item {
+  text-align: left; padding: 8px 10px; font-size: .8125rem;
+  background: none; border: none; color: var(--color-text); cursor: pointer;
+}
+.dash-addmenu__item:hover { background: var(--color-surface-2); }
+.dash-addmenu__empty { padding: 8px 10px; font-size: .75rem; color: var(--color-text-muted); }
+
+/* ---- Edit mode ---- */
+.dash-body.is-editing .dash-panel { outline: 1px dashed var(--color-border); outline-offset: 2px; }
+.dash-panel__chrome {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  background: var(--color-surface-2); border-bottom: 1px solid var(--color-border);
+  grid-column: 1 / -1;   /* panels that are themselves grids (tiles, duo) */
+}
+.dash-panel__handle {
+  display: flex; padding: 2px; cursor: grab; color: var(--color-text-muted);
+  touch-action: none;    /* drag without the page scrolling under the finger */
+}
+.dash-panel__handle:active { cursor: grabbing; }
+.dash-panel__name {
+  flex: 1; font-size: .75rem; font-weight: 600; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* the slot's name doubles as the "swap what's here" picker */
+.dash-panel__name--btn {
+  background: none; border: 1px solid transparent; cursor: pointer;
+  text-align: left; padding: 2px 6px; font-family: inherit;
+}
+.dash-panel__name--btn:hover { border-color: var(--color-border); background: var(--color-surface); }
+.dash-panel__caret { color: var(--color-text-muted); font-size: .625rem; }
+
+/* the slot a dragged panel would swap with */
+.dash-panel.is-drop-target { outline: 2px solid var(--color-text); outline-offset: 2px; }
+
+/* Swap/rearrange motion (FLIP — see dashboard-layout.js). Panels glide from
+   their old position to the new one instead of teleporting. Translate-only:
+   the panel is already at its final size, so nothing stretches. */
+.dash-panel.is-flipping {
+  transition: transform 420ms cubic-bezier(.2, .8, .2, 1);
+  will-change: transform;
+  position: relative;
+  z-index: 2;                       /* glide over its neighbours, not under */
+  pointer-events: none;             /* don't fight the pointer mid-flight */
+}
+/* a panel that wasn't on screen before eases in rather than popping */
+@keyframes dashPanelIn {
+  from { opacity: 0; transform: scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+.dash-panel.is-entering { animation: dashPanelIn 260ms cubic-bezier(.2, .8, .2, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-panel.is-flipping { transition: none; }
+  .dash-panel.is-entering { animation: none; }
+}
+.dash-panel__btn {
+  background: none; border: 1px solid var(--color-border); color: var(--color-text-muted);
+  font-size: .6875rem; font-weight: 600; padding: 3px 7px; cursor: pointer;
+}
+.dash-panel__btn:hover { color: var(--color-text); }
+.dash-panel__btn--hide:hover { color: var(--color-expense); border-color: var(--color-expense); }
+
+/* The dragged panel follows the cursor via `transform`, NOT position:fixed.
+   `.main-wrapper` runs a keyframe animation whose fill-mode leaves a transform
+   on it, which makes it the containing block for fixed descendants — a fixed
+   panel would resolve its `left` against the sidebar-offset wrapper and jump
+   sideways. A transform is relative to the element's own box, so it's immune.
+   It also keeps the panel in its slot, so the grid never reflows mid-drag.
+   pointer-events:none lets elementFromPoint see the panel underneath. */
+.dash-panel.is-dragging {
+  position: relative;
+  z-index: 60;
+  pointer-events: none;
+  opacity: .92;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+  cursor: grabbing;
+}
+/* shown only when the user has hidden every panel — otherwise the dashboard
+   would be a blank page with no visible way back */
+.dash-empty {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 48px 16px; text-align: center;
+  border: 1px dashed var(--color-border);
+  background: var(--color-surface);
+}
+.dash-empty__title { font-size: .875rem; font-weight: 600; color: var(--color-text); }
+.dash-empty__sub   { font-size: .75rem; color: var(--color-text-muted); margin-bottom: 6px; }
+
+/* holds the dragged panel's slot (and its column's height) while it's lifted */
+.dash-placeholder {
+  flex: 0 0 auto;
+  border: 1px dashed var(--color-border);
+  background: var(--color-surface-2);
+  opacity: .6;
+}
+body.dash-dragging { user-select: none; }
 
 /* ============================================================
    ACCOUNT TILES — flush hairline cells
@@ -407,7 +617,10 @@
 
 /* Transactions feed grows to fill the right column so the Monthly overview
    below it lines up with the bottom of the left column's last card. */
-.dash-feed { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+/* Grows to absorb the column's slack (so both columns' bottoms line up), but
+   never below a readable list: panels are movable now, and in the *taller*
+   column `min-height: 0` let flex shrink this to a sliver. */
+.dash-feed { flex: 1 1 auto; min-height: 320px; display: flex; flex-direction: column; }
 .dash-feed .term__body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .dash-feed .transaction-list {
   flex: 1 1 0;
