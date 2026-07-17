@@ -4,6 +4,12 @@
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+/* How many rows the Transactions feed renders. It's deliberately more than fit
+   on screen: the panel grows to fill its column/slot, and the list scrolls
+   (.dash-feed .transaction-list is overflow-y:auto), so a fixed small number
+   left the panel half-empty in tall layouts. Extra rows just scroll. */
+const RECENT_TX_COUNT = 25;
+
 let overview = { mode: 'month', offset: 0 };   /* Overview chart range (week|month|year|all) */
 try {
   const _ovr = localStorage.getItem('pf_overview_range');
@@ -141,7 +147,7 @@ async function initDashboard() {
   /* crypto folds into net worth (not the cash balance); non-blocking so a
      wallet/network hiccup never breaks the rest of the dashboard */
   renderCrypto(totalBalance).catch(console.error);
-  await renderRecentTransactions(allTx.slice(0, 6));
+  await renderRecentTransactions(allTx.slice(0, RECENT_TX_COUNT));
 }
 
 /* ---- Balance vs. Net-worth chart -------------------------------------------
