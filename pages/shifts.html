@@ -17,8 +17,9 @@
   <link rel="stylesheet" href="../styles/pages.css" />
   <link rel="stylesheet" href="../styles/dashboard.css" />
   <style>
-    /* Unpaid / pay-period panel */
-    .hours-unpaid .unpaid { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    /* Unpaid / pay-period panel — amount on the left, Mark-as-paid button pushed
+       to the right edge of the (now half-width) panel */
+    .hours-unpaid .unpaid { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
     .unpaid__label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-muted); }
     .unpaid__amount { font-family: var(--font-display); font-size: 1.75rem; font-weight: 700; color: var(--color-text); line-height: 1.1; margin-top: 3px; }
     .unpaid__sub { font-size: .8125rem; color: var(--color-text-muted); margin-top: 4px; }
@@ -94,48 +95,78 @@
     <main class="main-content">
       <div class="hours-page">
 
-        <!-- ── Stat bar ─────────────────────────────────────────── -->
-        <div class="hours-statbar" id="hoursStatbar">
-          <div class="hours-stat">
-            <div class="hours-stat__label">This week
-              <span class="flow-pill flow-pill--flat" id="weekDelta" hidden></span>
+        <!-- ── Stat bar + Salary projection (one combined panel) ── -->
+        <div class="hours-statwrap">
+          <div class="hours-statbar" id="hoursStatbar">
+            <div class="hours-stat">
+              <div class="hours-stat__label">This week
+                <span class="flow-pill flow-pill--flat" id="weekDelta" hidden></span>
+              </div>
+              <div class="hours-stat__value" id="weekPay">—</div>
+              <div class="hours-stat__sub" id="weekHours">— h</div>
             </div>
-            <div class="hours-stat__value" id="weekPay">—</div>
-            <div class="hours-stat__sub" id="weekHours">— h</div>
+            <div class="hours-stat">
+              <div class="hours-stat__label">This month</div>
+              <div class="hours-stat__value" id="monthPay">—</div>
+              <div class="hours-stat__sub" id="monthHours">— h</div>
+            </div>
+            <div class="hours-stat">
+              <div class="hours-stat__label">Effective rate</div>
+              <div class="hours-stat__value" id="effRate">—</div>
+              <div class="hours-stat__sub" id="effRateSub">per hour · 30d</div>
+            </div>
+            <div class="hours-stat">
+              <div class="hours-stat__label">All-time</div>
+              <div class="hours-stat__value" id="totalPay">—</div>
+              <div class="hours-stat__sub" id="totalShifts">— shifts</div>
+            </div>
           </div>
-          <div class="hours-stat">
-            <div class="hours-stat__label">This month</div>
-            <div class="hours-stat__value" id="monthPay">—</div>
-            <div class="hours-stat__sub" id="monthHours">— h</div>
-          </div>
-          <div class="hours-stat">
-            <div class="hours-stat__label">Effective rate</div>
-            <div class="hours-stat__value" id="effRate">—</div>
-            <div class="hours-stat__sub" id="effRateSub">per hour · 30d</div>
-          </div>
-          <div class="hours-stat">
-            <div class="hours-stat__label">All-time</div>
-            <div class="hours-stat__value" id="totalPay">—</div>
-            <div class="hours-stat__sub" id="totalShifts">— shifts</div>
-          </div>
+
+          <!-- Salary projection — same stat cells, sitting right under the top
+               bar as a second row (hidden until there's enough logged to project) -->
+          <section class="hours-salary" id="salaryPanel" hidden>
+            <div class="hours-statbar hours-statbar--salary">
+              <div class="hours-stat">
+                <div class="hours-stat__label">Weekly</div>
+                <div class="hours-stat__value" id="salWeekly">—</div>
+              </div>
+              <div class="hours-stat">
+                <div class="hours-stat__label">Monthly</div>
+                <div class="hours-stat__value" id="salMonthly">—</div>
+              </div>
+              <div class="hours-stat">
+                <div class="hours-stat__label">Annual · brut</div>
+                <div class="hours-stat__value" id="salAnnual">—</div>
+              </div>
+              <div class="hours-stat">
+                <div class="hours-stat__label">Annual net</div>
+                <div class="hours-stat__value salary-cell__value--net" id="salActualNet">—</div>
+              </div>
+              <div class="hours-stat">
+                <div class="hours-stat__label" id="salActualDedLabel">Deductions</div>
+                <div class="hours-stat__value salary-cell__value--ded" id="salActualDed">—</div>
+              </div>
+            </div>
+            <div class="salary-note" id="salActualNote"></div>
+          </section>
         </div>
 
-        <!-- ── Unpaid / pay period ──────────────────────────────── -->
-        <section class="term hours-unpaid" id="unpaidPanel" hidden>
-          <div class="term__body">
-            <div class="unpaid">
-              <div class="unpaid__main">
-                <div class="unpaid__label">Unpaid so far</div>
-                <div class="unpaid__amount" id="unpaidAmount">—</div>
-                <div class="unpaid__sub" id="unpaidSub">—</div>
-              </div>
-              <button type="button" class="btn btn--primary" id="markPaidBtn">Mark as paid</button>
+        <!-- ── Earnings chart (last 10 weeks) — full width ──────── -->
+        <section class="term hours-chart" id="chartPanel">
+          <div class="term__head">
+            <span class="term__title">Earnings · last <span id="chartWeeks">10</span> weeks</span>
+            <div class="seg-toggle" id="chartMetricToggle">
+              <button type="button" class="seg-btn active" data-metric="pay">Pay</button>
+              <button type="button" class="seg-btn" data-metric="hours">Hours</button>
             </div>
+          </div>
+          <div class="term__body">
+            <div class="hours-bars" id="hoursBars"></div>
           </div>
         </section>
 
-        <!-- ── Goal + Quick log row ─────────────────────────────── -->
-        <div class="hours-row hours-row--two">
+        <!-- ── Weekly goal + Mark-as-paid (shared row) ──────────── -->
+        <div class="hours-row hours-row--pair">
 
           <!-- Weekly goal -->
           <section class="term hours-goal" id="goalPanel">
@@ -170,6 +201,38 @@
             </div>
           </section>
 
+          <!-- Unpaid / pay period -->
+          <section class="term hours-unpaid" id="unpaidPanel" hidden>
+            <div class="term__head">
+              <span class="term__title">Pay period</span>
+            </div>
+            <div class="term__body">
+              <div class="unpaid">
+                <div class="unpaid__main">
+                  <div class="unpaid__label">Unpaid so far</div>
+                  <div class="unpaid__amount" id="unpaidAmount">—</div>
+                  <div class="unpaid__sub" id="unpaidSub">—</div>
+                </div>
+                <button type="button" class="btn btn--primary" id="markPaidBtn">Mark as paid</button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ── By day of week + Quick log (shared row) ──────────── -->
+        <div class="hours-row hours-row--two">
+
+          <!-- By day of week -->
+          <section class="term" id="dowPanel">
+            <div class="term__head">
+              <span class="term__title">By day of week</span>
+              <span class="term-label" id="dowBest"></span>
+            </div>
+            <div class="term__body">
+              <div class="dow-grid" id="dowGrid"></div>
+            </div>
+          </section>
+
           <!-- Quick log -->
           <section class="term hours-quick" id="quickPanel">
             <div class="term__head">
@@ -198,45 +261,16 @@
           </section>
         </div>
 
-        <!-- ── Earnings chart ───────────────────────────────────── -->
-        <section class="term hours-chart" id="chartPanel">
+        <!-- ── Jobs (full width) ────────────────────────────────── -->
+        <section class="term" id="jobPanel">
           <div class="term__head">
-            <span class="term__title">Earnings · last <span id="chartWeeks">10</span> weeks</span>
-            <div class="seg-toggle" id="chartMetricToggle">
-              <button type="button" class="seg-btn active" data-metric="pay">Pay</button>
-              <button type="button" class="seg-btn" data-metric="hours">Hours</button>
-            </div>
+            <span class="term__title">Jobs</span>
+            <button type="button" class="btn btn--ghost btn--sm" id="addJobBtn">+ Add job</button>
           </div>
-          <div class="term__body">
-            <div class="hours-bars" id="hoursBars"></div>
+          <div class="term__body term__body--flush">
+            <div id="jobList"></div>
           </div>
         </section>
-
-        <!-- ── Breakdown duo ────────────────────────────────────── -->
-        <div class="hours-row hours-row--two">
-
-          <!-- By day of week -->
-          <section class="term" id="dowPanel">
-            <div class="term__head">
-              <span class="term__title">By day of week</span>
-              <span class="term-label" id="dowBest"></span>
-            </div>
-            <div class="term__body">
-              <div class="dow-grid" id="dowGrid"></div>
-            </div>
-          </section>
-
-          <!-- By job -->
-          <section class="term" id="jobPanel">
-            <div class="term__head">
-              <span class="term__title">Jobs</span>
-              <button type="button" class="btn btn--ghost btn--sm" id="addJobBtn">+ Add job</button>
-            </div>
-            <div class="term__body term__body--flush">
-              <div id="jobList"></div>
-            </div>
-          </section>
-        </div>
 
         <!-- ── Log-shift form ───────────────────────────────────── -->
         <section class="term shift-form-card" id="shiftFormCard" hidden>
@@ -323,33 +357,37 @@
           </div>
         </section>
 
-        <!-- ── Payout history ───────────────────────────────────── -->
-        <section class="term hours-payouts" id="payoutsPanel" hidden>
-          <div class="term__head">
-            <span class="term__title">Payouts</span>
-            <span class="term-label" id="payoutsTotal"></span>
-          </div>
-          <div class="term__body term__body--flush">
-            <div id="payoutsMergeBanner" class="payouts-merge" hidden>
-              <span id="payoutsMergeText"></span>
-              <button type="button" class="btn btn--sm" id="payoutsMergeAll">Merge into single transactions</button>
-            </div>
-            <div id="payoutsList"></div>
-          </div>
-        </section>
+        <!-- ── Payouts + Logged hours (shared row) ──────────────── -->
+        <div class="hours-row hours-row--pair hours-row--lists">
 
-        <!-- ── Logged hours ─────────────────────────────────────── -->
-        <section class="term hours-log">
-          <div class="term__head">
-            <span class="term__title">Logged hours</span>
-            <select id="employerFilter" class="hours-filter" hidden></select>
-          </div>
-          <div class="term__body term__body--flush">
-            <div id="shiftsList">
-              <div class="empty-state">Loading…</div>
+          <!-- Payout history -->
+          <section class="term hours-payouts" id="payoutsPanel" hidden>
+            <div class="term__head">
+              <span class="term__title">Payouts</span>
+              <span class="term-label" id="payoutsTotal"></span>
             </div>
-          </div>
-        </section>
+            <div class="term__body term__body--flush">
+              <div id="payoutsMergeBanner" class="payouts-merge" hidden>
+                <span id="payoutsMergeText"></span>
+                <button type="button" class="btn btn--sm" id="payoutsMergeAll">Merge into single transactions</button>
+              </div>
+              <div id="payoutsList"></div>
+            </div>
+          </section>
+
+          <!-- Logged hours -->
+          <section class="term hours-log">
+            <div class="term__head">
+              <span class="term__title">Logged hours</span>
+              <select id="employerFilter" class="hours-filter" hidden></select>
+            </div>
+            <div class="term__body term__body--flush">
+              <div id="shiftsList">
+                <div class="empty-state">Loading…</div>
+              </div>
+            </div>
+          </section>
+        </div>
 
       </div>
     </main>

@@ -394,10 +394,13 @@
    the main-content padding), and the list panel flex-grows into the leftover
    space. Expanding the accounts drawer just shrinks the list a little. */
 @media (min-width: 861px) {
-  .tx-page { height: calc(100vh - var(--topbar-height, 56px) - 48px); }
+  /* min-height (not height): the list flex-grows to fill a tall viewport, but
+     on a short one the whole page scrolls a little rather than squashing the
+     activity list to a few rows. */
+  .tx-page { min-height: calc(100vh - var(--topbar-height, 56px) - 48px); }
   .tx-listpanel { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
   .tx-listpanel .term__body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-  .tx-listpanel .tx-list-full { flex: 1 1 auto; min-height: 0; }
+  .tx-listpanel .tx-list-full { flex: 1 1 auto; min-height: 440px; }
 }
 .tx-listpanel .tx-list-full::-webkit-scrollbar { width: 4px; }
 .tx-listpanel .tx-list-full::-webkit-scrollbar-thumb { background: var(--color-border); }
@@ -1093,6 +1096,31 @@
 .hours-page { display: flex; flex-direction: column; gap: 10px; }
 .hours-row { display: grid; gap: 10px; }
 .hours-row--two { grid-template-columns: 1fr 1fr; }
+/* Weekly-goal + Mark-as-paid share this row. Flex (not the 1fr 1fr grid) so
+   that when the unpaid panel is hidden — no unpaid pay — the goal panel grows
+   to fill the whole width instead of being stranded at half with an empty gap
+   beside it. Wraps to a stack on narrow screens on its own. */
+.hours-row--pair { display: flex; flex-wrap: wrap; gap: 10px; }
+.hours-row--pair > * { flex: 1 1 300px; min-width: 0; }
+/* The list pair (Payouts + Logged hours) always matches heights: both panels
+   stretch to the taller one. This needs flex-wrap: NOWRAP — a wrapping flex row
+   sizes each item to its own content instead of stretching to the line, so the
+   panels would come out unequal. Cap the row so a long list doesn't drive it
+   tall, then let each panel's body flex to fill that shared height and scroll
+   its own overflow. Head stays pinned; only the list scrolls. (When Payouts is
+   hidden, Logged hours is the lone flex item and grows to full width.) */
+.hours-row--lists { flex-wrap: nowrap; align-items: stretch; }
+.hours-payouts, .hours-log { display: flex; flex-direction: column; }
+/* Fixed, identical height (min == max) so the two panels line up perfectly no
+   matter how long or short each list is — the body flexes to fill it and scrolls
+   its own overflow. */
+.hours-row--lists > * { min-height: 460px; max-height: 460px; }
+.hours-payouts .term__body,
+.hours-log .term__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.hours-payouts .term__body::-webkit-scrollbar,
+.hours-log .term__body::-webkit-scrollbar { width: 4px; }
+.hours-payouts .term__body::-webkit-scrollbar-thumb,
+.hours-log .term__body::-webkit-scrollbar-thumb { background: var(--color-border); }
 
 /* ── Stat bar ────────────────────────────────────────────────── */
 .hours-statbar {
@@ -1110,6 +1138,25 @@
   letter-spacing: -0.03em; color: var(--color-text); margin-top: 6px;
 }
 .hours-stat__sub { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px; }
+
+/* ---- Salary projection — a second stat-bar row ----
+   Renders with the SAME .hours-stat cells as the top stat bar, but as flex (not
+   the 4-col grid) so all five values fill one row and wrap on narrow screens. It
+   drops its top border so it shares a single hairline seam with the stat bar
+   directly above; the .hours-statwrap wrapper removes the page gap between them,
+   so the two read as one combined panel. Hidden until there's data. */
+.hours-statbar--salary {
+  display: flex; flex-wrap: wrap;
+  border-top: none;
+}
+.hours-statbar--salary .hours-stat { flex: 1 1 140px; }
+.hours-statbar--salary .hours-stat__value {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* net stays income-green, deductions expense-red; the rest match the top bar */
+.salary-cell__value--net { color: var(--color-income); }
+.salary-cell__value--ded { color: var(--color-expense); }
+.salary-note { font-size: 0.6875rem; color: var(--color-text-muted); padding: 4px 14px 0; line-height: 1.5; }
 
 /* ── Weekly goal ─────────────────────────────────────────────── */
 .goal-display { display: flex; align-items: center; gap: 16px; }
@@ -1148,6 +1195,12 @@
 .hours-bars__empty { color: var(--color-text-muted); font-size: 0.8125rem; padding: 60px 0; text-align: center; width: 100%; }
 
 /* ── Day-of-week distribution ────────────────────────────────── */
+/* Sharing a row with the taller Quick-log panel stretches the day-of-week
+   panel; centre its fixed-height bar chart in that extra space instead of
+   leaving it pinned to the top. */
+#dowPanel { display: flex; flex-direction: column; }
+#dowPanel .term__body { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
+
 .dow-grid { display: flex; align-items: flex-end; gap: 8px; height: 120px; }
 .dow-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
 .dow-col__track { flex: 1; width: 100%; display: flex; align-items: flex-end; }
@@ -1262,6 +1315,11 @@
 @media (max-width: 760px) {
   .hours-statbar { grid-template-columns: 1fr 1fr; }
   .hours-row--two { grid-template-columns: 1fr; }
+  /* stack the list pair on narrow screens (equal-height only matters when they
+     sit side by side); drop the fixed min-height so a stacked short panel isn't
+     padded out to 460px */
+  .hours-row--lists { flex-wrap: wrap; }
+  .hours-row--lists > * { min-height: 0; }
   .hours-stat__value { font-size: 1.25rem; }
 }
 @media (max-width: 600px) {

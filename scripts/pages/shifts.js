@@ -113,6 +113,44 @@ function renderStats() {
 }
 
 /* ============================================================
+   SALARY PROJECTION — annualise the average logged week, then show
+   gross (brut) vs net two ways: the REAL deductions from your payout
+   history, and an estimated Québec tax breakdown.
+   ============================================================ */
+function renderSalary() {
+  const panel = document.getElementById('salaryPanel');
+  if (!panel) return;
+
+  const { weekly } = ShiftEngine.averageWeeklyPay(_shifts, { weeks: 8, today: todayISO() });
+  if (weekly <= 0) { panel.hidden = true; return; }   /* nothing logged yet */
+  panel.hidden = false;
+
+  const proj = ShiftEngine.projectSalary(weekly);
+  setText('salWeekly',  formatCurrency(proj.weekly));
+  setText('salMonthly', formatCurrency(proj.monthly));
+  setText('salAnnual',  formatCurrency(proj.annual));
+
+  /* ---- Actual, from the estimate-vs-payout gap ---- */
+  const act = ShiftEngine.payoutDeductions(_payouts);
+  if (act.count && act.estimated > 0) {
+    const net    = proj.annual * (1 - act.rate);
+    const ded    = proj.annual - net;
+    const isBonus = act.deduction < -0.005;
+    const pct = `${(Math.abs(act.rate) * 100).toFixed(1)}%`;
+    setText('salActualNet', formatCurrency(net));
+    setText('salActualDedLabel', isBonus ? 'Extra' : 'Deductions');
+    setText('salActualDed', `${isBonus ? '+' : ded > 0.005 ? '−' : ''}${formatCurrency(Math.abs(ded))}`);
+    setText('salActualNote',
+      `${pct} ${isBonus ? 'over' : 'under'} estimate · from ${act.count} payout${act.count === 1 ? '' : 's'}: estimated ${formatCurrency(act.estimated)}, received ${formatCurrency(act.actual)}.`);
+  } else {
+    setText('salActualNet', '—');
+    setText('salActualDedLabel', 'Deductions');
+    setText('salActualDed', '—');
+    setText('salActualNote', 'Mark shifts as paid to see the real deductions from your pay.');
+  }
+}
+
+/* ============================================================
    UNPAID PANEL + MARK-AS-PAID  (estimate vs actual)
    ============================================================ */
 function renderUnpaid() {
@@ -1117,6 +1155,7 @@ async function renderPage() {
   _shifts.forEach(s => { s.paid = paidIds.has(s.id); });
   await loadJobs();
   renderStats();
+  renderSalary();
   renderUnpaid();
   renderGoal();
   renderQuickChips(_qlDate || todayISO());

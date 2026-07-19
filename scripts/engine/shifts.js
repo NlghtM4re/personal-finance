@@ -152,6 +152,44 @@ const ShiftEngine = {
     }
     return series;
   },
+
+  /* ---- salary projection -------------------------------------------------
+     Average pay of a typical WORKED week — the basis for the salary figures.
+     Averages only weeks that actually had shifts over the look-back window, so
+     an off week (no work) doesn't drag the number toward zero. Returns
+     { weekly, workedWeeks }; weekly is 0 when nothing was logged. */
+  averageWeeklyPay(shifts, opts = {}) {
+    const { weeks = 8, today = ymd(new Date()) } = opts;
+    const worked = this.weeklySeries(shifts, weeks, today).filter(w => w.count > 0);
+    if (!worked.length) return { weekly: 0, workedWeeks: 0 };
+    const total = worked.reduce((a, w) => a + w.pay, 0);
+    return { weekly: Math.round((total / worked.length) * 100) / 100, workedWeeks: worked.length };
+  },
+
+  /* Project a weekly pay to month and year. A month is 52/12 weeks so the
+     monthly figure is consistent with annual = weekly × 52. */
+  projectSalary(weekly) {
+    const w = Number(weekly) || 0;
+    return {
+      weekly:  Math.round(w * 100) / 100,
+      monthly: Math.round((w * 52 / 12) * 100) / 100,
+      annual:  Math.round(w * 52 * 100) / 100,
+    };
+  },
+
+  /* The REAL deductions visible in your own data: the gap between what your
+     shifts were estimated to pay and what you were actually paid out.
+       deduction > 0 → you received LESS than estimated (real deductions)
+       deduction < 0 → you received MORE (e.g. a boss who rounds up — a bonus)
+     `rate` is deduction / estimated. Zeros when there are no payouts. */
+  payoutDeductions(payouts) {
+    const list = payouts || [];
+    const r = n => Math.round(n * 100) / 100;
+    const estimated = r(list.reduce((a, p) => a + (Number(p.estimated) || 0), 0));
+    const actual    = r(list.reduce((a, p) => a + (Number(p.actual)    || 0), 0));
+    const deduction = r(estimated - actual);
+    return { count: list.length, estimated, actual, deduction, rate: estimated > 0 ? deduction / estimated : 0 };
+  },
 };
 
 /* Export for Node-based unit tests. Harmless in the browser, where there is

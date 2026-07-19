@@ -184,3 +184,56 @@ test('weeklySeries', async (t) => {
     assert.equal(series[0].pay, 0);                  // gap week present with zeros
   });
 });
+
+/* ---- salary projection ---- */
+test('projectSalary', async (t) => {
+  await t.test('weekly → monthly (×52/12) and annual (×52)', () => {
+    const p = ShiftEngine.projectSalary(850);
+    assert.equal(p.weekly, 850);
+    assert.equal(p.annual, 44200);
+    assert.equal(p.monthly, Math.round(850 * 52 / 12 * 100) / 100);
+  });
+  await t.test('zero / junk → zeros', () => {
+    assert.deepEqual(ShiftEngine.projectSalary(0), { weekly: 0, monthly: 0, annual: 0 });
+    assert.deepEqual(ShiftEngine.projectSalary('x'), { weekly: 0, monthly: 0, annual: 0 });
+  });
+});
+
+test('averageWeeklyPay', async (t) => {
+  const today = '2024-06-19';   /* a Wednesday */
+  await t.test('averages only weeks that had shifts', () => {
+    // two shifts in the current week (pay 100 + 200), none in prior weeks
+    const shifts = [
+      { date: '2024-06-17', hours: 5, rate: 20 },   // 100
+      { date: '2024-06-18', hours: 10, rate: 20 },  // 200
+    ];
+    const r = ShiftEngine.averageWeeklyPay(shifts, { weeks: 8, today });
+    assert.equal(r.workedWeeks, 1);
+    assert.equal(r.weekly, 300);
+  });
+  await t.test('no shifts → zero, no divide-by-zero', () => {
+    assert.deepEqual(ShiftEngine.averageWeeklyPay([], { today }), { weekly: 0, workedWeeks: 0 });
+  });
+});
+
+test('payoutDeductions', async (t) => {
+  await t.test('estimated > actual → positive deduction (you got less)', () => {
+    const r = ShiftEngine.payoutDeductions([
+      { estimated: 500, actual: 450 },
+      { estimated: 500, actual: 460 },
+    ]);
+    assert.equal(r.estimated, 1000);
+    assert.equal(r.actual, 910);
+    assert.equal(r.deduction, 90);
+    assert.equal(Math.round(r.rate * 1000) / 1000, 0.09);
+  });
+  await t.test('actual > estimated → negative deduction (a bonus)', () => {
+    const r = ShiftEngine.payoutDeductions([{ estimated: 100, actual: 110 }]);
+    assert.equal(r.deduction, -10);
+    assert.ok(r.rate < 0);
+  });
+  await t.test('no payouts → zeros', () => {
+    assert.deepEqual(ShiftEngine.payoutDeductions([]),
+      { count: 0, estimated: 0, actual: 0, deduction: 0, rate: 0 });
+  });
+});
