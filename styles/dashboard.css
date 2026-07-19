@@ -197,8 +197,14 @@
    to 239px. Pin the inner grid/flow to the top and let the slack sit at the
    bottom of the panel instead. Scoped to the locked templates; Classic's
    columns are flex, where this never applied. */
-.dash-body[data-design] .dash-panel.term-cells { align-content: start; }
-.dash-body[data-design] .dash-panel.dash-crypto .dash-tiles { align-content: start; }
+/* When a tile panel is taller than its content (it's stretched to match a
+   row-mate in the grid designs), let the tiles GROW to fill it — the grid's
+   default `align-content: stretch` does this — so there's no empty area, no
+   hole and no off-colour strip. Each tile then anchors its balance to the
+   bottom (see .acct-tile justify-content) so a tall tile looks intentional
+   rather than top-crammed. Classic panels sit at their natural height in a
+   flex column, so nothing stretches there. */
+.dash-tiles { align-content: stretch; }
 
 .dash-panel[data-slot="a"] { grid-area: a; }
 .dash-panel[data-slot="b"] { grid-area: b; }
@@ -387,6 +393,13 @@ body.dash-dragging { user-select: none; }
   display: flex;
   flex-direction: column;
   gap: 12px;
+  /* Keep the content top-aligned even when the tile is stretched taller than
+     its content (grid designs — see .dash-tiles align-content: stretch). The
+     tile fills its row so panel bottoms line up, and the extra height sits as
+     surface-coloured slack UNDER the balance. Do NOT space-between here: that
+     strands the balance at the very bottom and opens a hollow band in the
+     middle of the tile, which reads as a distorted, broken cell. */
+  justify-content: flex-start;
 }
 .acct-tile:hover { background: var(--color-surface-2); }
 
@@ -439,6 +452,32 @@ body.dash-dragging { user-select: none; }
 .acct-tile__row1 .acct-tile__chart { flex: 0 0 38%; max-width: 38%; height: 40px; }
 .acct-tile__row2 { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .acct-tile__row2 .acct-tile__figures { min-width: 0; }
+
+/* Grid designs (focus/tracker/compact) stretch a tile taller than its content
+   to line panel bottoms up. Instead of leaving that extra height as dead space
+   under the balance, let the sparkline OWN it: stack the identity row on top,
+   drop the chart to full width below it, and let the chart grow to fill the
+   slack — the card uses its whole height. Balance stays anchored at the bottom
+   (.acct-tile row2 + justify-content: flex-start). Scoped to the locked
+   templates so Classic's original "chart beside the name" tile is untouched
+   (Classic also carries data-design, so it must NOT be selected by [data-design]
+   alone). */
+.dash-body[data-design="focus"]   .acct-tile__row1,
+.dash-body[data-design="tracker"] .acct-tile__row1,
+.dash-body[data-design="compact"] .acct-tile__row1 {
+  flex-direction: column;
+  align-items: stretch;
+  flex: 1 1 auto;            /* grow so the chart, not empty space, fills the tile */
+}
+.dash-body[data-design="focus"]   .acct-tile__row1 .acct-tile__chart,
+.dash-body[data-design="tracker"] .acct-tile__row1 .acct-tile__chart,
+.dash-body[data-design="compact"] .acct-tile__row1 .acct-tile__chart {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  min-height: 40px;         /* never smaller than the classic chart */
+}
 
 .acct-tile__bal {
   font-size: 1.0625rem;
