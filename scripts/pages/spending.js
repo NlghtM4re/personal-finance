@@ -108,7 +108,7 @@ async function renderSpending() {
           if (row.dataset.cat) params.set('category', row.dataset.cat);
           if (from) params.set('from', from);
           if (to)   params.set('to', to);
-          window.location.href = `accounts?${params.toString()}`;
+          window.location.href = `/transactions?${params.toString()}`;
         };
         row.addEventListener('click', go);
         row.addEventListener('keydown', e => {

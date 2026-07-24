@@ -3,6 +3,35 @@
   "outputDirectory": ".",
   "framework": null,
   "cleanUrls": true,
+  "rewrites": [
+    { "source": "/transactions", "destination": "/pages/accounts.html" },
+    { "source": "/hours-tracker", "destination": "/pages/shifts.html" },
+    { "source": "/cash-flow", "destination": "/pages/spending.html" },
+    { "source": "/budget", "destination": "/pages/budget.html" },
+    { "source": "/subscriptions", "destination": "/pages/subscriptions.html" },
+    { "source": "/crypto", "destination": "/pages/crypto.html" },
+    { "source": "/insights", "destination": "/pages/insights.html" },
+    { "source": "/settings", "destination": "/pages/settings.html" },
+    { "source": "/import", "destination": "/pages/import.html" },
+    { "source": "/privacy", "destination": "/pages/privacy.html" },
+    { "source": "/terms", "destination": "/pages/terms.html" },
+    { "source": "/add-transaction", "destination": "/pages/add-transaction.html" }
+  ],
+  "redirects": [
+    { "source": "/pages/accounts", "destination": "/transactions", "permanent": true },
+    { "source": "/pages/transactions", "destination": "/transactions", "permanent": true },
+    { "source": "/pages/shifts", "destination": "/hours-tracker", "permanent": true },
+    { "source": "/pages/spending", "destination": "/cash-flow", "permanent": true },
+    { "source": "/pages/budget", "destination": "/budget", "permanent": true },
+    { "source": "/pages/subscriptions", "destination": "/subscriptions", "permanent": true },
+    { "source": "/pages/crypto", "destination": "/crypto", "permanent": true },
+    { "source": "/pages/insights", "destination": "/insights", "permanent": true },
+    { "source": "/pages/settings", "destination": "/settings", "permanent": true },
+    { "source": "/pages/import", "destination": "/import", "permanent": true },
+    { "source": "/pages/privacy", "destination": "/privacy", "permanent": true },
+    { "source": "/pages/terms", "destination": "/terms", "permanent": true },
+    { "source": "/pages/add-transaction", "destination": "/add-transaction", "permanent": true }
+  ],
   "headers": [
     {
       "source": "/(.*)",

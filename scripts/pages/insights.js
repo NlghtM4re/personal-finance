@@ -36,7 +36,7 @@ function copyFor(ins, catName) {
       return {
         icon: ICON.repeat,
         title: 'Possible untracked subscription',
-        text: `<strong>${escapeHTML(ins.name)}</strong> looks recurring — about ${formatCurrency(ins.amount)} every ${ins.cadenceDays} days, logged ${ins.count} times. <a href="subscriptions.html">Track it →</a>`,
+        text: `<strong>${escapeHTML(ins.name)}</strong> looks recurring — about ${formatCurrency(ins.amount)} every ${ins.cadenceDays} days, logged ${ins.count} times. <a href="/subscriptions">Track it →</a>`,
       };
     default:
       return null;

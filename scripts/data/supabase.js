@@ -15,10 +15,7 @@ const SupaAuth = {
   async requireAuth() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) {
-      const loginUrl = window.location.pathname.includes('/pages/')
-        ? '../login.html'
-        : 'login.html';
-      window.location.replace(loginUrl);
+      window.location.replace('/login');
       return null;
     }
     return session.user;
@@ -31,9 +28,6 @@ const SupaAuth = {
 
   async signOut() {
     await sb.auth.signOut();
-    const loginUrl = window.location.pathname.includes('/pages/')
-      ? '../login.html'
-      : 'login.html';
-    window.location.replace(loginUrl);
+    window.location.replace('/login');
   },
 };
