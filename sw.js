@@ -10,7 +10,7 @@
    Bump CACHE_VERSION when shipping changes to force a refresh.
    ============================================================ */
 
-const CACHE_VERSION = 'pf-v47';
+const CACHE_VERSION = 'pf-v48';
 
 /* Clean URLs (vercel.json cleanUrls:true / serve.json): pages are served
    without the ".html" suffix, and "/" serves the dashboard. Precache the
@@ -20,15 +20,15 @@ const PRECACHE = [
   '/',
   '/login',
   '/manifest.json',
-  '/pages/accounts',
-  '/pages/add-transaction',
-  '/pages/budget',
-  '/pages/settings',
-  '/pages/spending',
-  '/pages/subscriptions',
-  '/pages/crypto',
-  '/pages/insights',
-  '/pages/shifts',
+  '/transactions',
+  '/add-transaction',
+  '/budget',
+  '/settings',
+  '/cash-flow',
+  '/subscriptions',
+  '/crypto',
+  '/insights',
+  '/hours-tracker',
   '/styles/main.css',
   '/styles/layout.css',
   '/styles/components.css',
@@ -44,6 +44,7 @@ const PRECACHE = [
   '/scripts/components/nav.js',
   '/scripts/components/icons.js',
   '/scripts/components/ui.js',
+  '/scripts/components/add-modal.js',
   '/scripts/pages/dashboard.js',
   '/scripts/pages/insights.js',
   '/scripts/pages/shifts.js',

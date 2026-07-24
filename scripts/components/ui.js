@@ -123,8 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
     /* N — new transaction */
     if (e.key === 'n' || e.key === 'N') {
       e.preventDefault();
-      const isInPages = window.location.pathname.includes('/pages/');
-      navigateTo(isInPages ? 'add-transaction.html' : 'pages/add-transaction.html');
+      if (window.openAddTransaction) window.openAddTransaction();
+      else navigateTo('/add-transaction');
       return;
     }
 

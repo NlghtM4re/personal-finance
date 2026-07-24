@@ -5,19 +5,27 @@
 let selectedType     = 'expense';
 let selectedCategory = '';
 let editId           = null;
-let selectedTags     = [];
+let _txTags          = [];   /* kept only to preserve tags already on a tx (e.g. the internal 'subscription' marker) through an edit — tags are no longer user-editable */
 let _allTx           = [];   /* history, for category suggestions */
-let returnTo         = 'accounts.html';   /* where to go after edit/delete */
+let returnTo         = '/transactions';   /* where to go after edit/delete */
+
+/* Embed mode: the form is loaded inside the site-wide Add-Transaction modal
+   (add-modal.js) via an iframe with ?embed=1. On save/delete we post back to the
+   parent so it closes the popup and refreshes, instead of navigating away. */
+const EMBED = new URLSearchParams(window.location.search).get('embed') === '1';
+function closeEmbed(action) {
+  try { window.parent.postMessage({ type: 'pf:tx-changed', action }, window.location.origin); } catch (_) {}
+}
 
 async function initForm() {
   const params = new URLSearchParams(window.location.search);
   editId       = params.get('id');
-  returnTo     = params.get('from') || 'accounts.html';
-  if (/^(https?:)?\/\//i.test(returnTo)) returnTo = 'accounts.html';   /* internal only */
+  returnTo     = params.get('from') || '/transactions';
+  if (/^(https?:)?\/\//i.test(returnTo)) returnTo = '/transactions';   /* internal only */
 
   await populateAccountSelects();
   await renderCategoryPicker();
-  TransactionStore.getAll().then(txs => { _allTx = txs; populateTagSuggestions(); }).catch(() => {});
+  TransactionStore.getAll().then(txs => { _allTx = txs; }).catch(() => {});
 
   if (editId) {
     const tx = await TransactionStore.getById(editId);
@@ -172,39 +180,8 @@ async function prefillForm(tx) {
   setValue('txAccount',   tx.accountId);
   setValue('txToAccount', tx.toAccountId || '');
   selectedCategory = tx.categoryId || '';
-  selectedTags     = Array.isArray(tx.tags) ? [...tx.tags] : [];
-  renderTags();
+  _txTags          = Array.isArray(tx.tags) ? [...tx.tags] : [];
   setType(tx.type);
-}
-
-function renderTags() {
-  const list = document.getElementById('tagList');
-  if (!list) return;
-  list.innerHTML = selectedTags.map(tag => `
-    <span class="tag-pill">
-      ${escapeHTML(tag)}
-      <button type="button" class="tag-pill__remove" data-tag="${escapeHTML(tag)}" aria-label="Remove ${escapeHTML(tag)}">×</button>
-    </span>
-  `).join('');
-  list.querySelectorAll('.tag-pill__remove').forEach(btn => {
-    btn.addEventListener('click', () => {
-      selectedTags = selectedTags.filter(t => t !== btn.dataset.tag);
-      renderTags();
-    });
-  });
-}
-
-/* Fill the tag autocomplete list from tags used in past transactions. */
-function populateTagSuggestions() {
-  const dl = document.getElementById('tagSuggestions');
-  if (!dl) return;
-  const tags = [...new Set(_allTx.flatMap(t => Array.isArray(t.tags) ? t.tags : []))].sort();
-  dl.innerHTML = tags.map(t => `<option value="${escapeHTML(t)}"></option>`).join('');
-}
-
-function addTag(raw) {
-  const tag = raw.trim().toLowerCase().replace(/\s+/g, '-').slice(0, 24);
-  if (tag && !selectedTags.includes(tag)) { selectedTags.push(tag); renderTags(); }
 }
 
 /* ---- transaction templates (device-local quick re-logging) ---- */
@@ -237,8 +214,7 @@ function applyTemplate(tpl) {
   if (tpl.accountId)   setValue('txAccount',   tpl.accountId);
   if (tpl.toAccountId) setValue('txToAccount', tpl.toAccountId);
   selectedCategory = tpl.categoryId || '';
-  selectedTags     = Array.isArray(tpl.tags) ? [...tpl.tags] : [];
-  renderTags();
+  _txTags          = Array.isArray(tpl.tags) ? [...tpl.tags] : [];
   renderCategoryPicker();                     /* reflect the picked category */
   document.getElementById('txAmount')?.focus();
 }
@@ -258,7 +234,7 @@ async function saveCurrentAsTemplate() {
     accountId:   document.getElementById('txAccount').value || null,
     toAccountId: document.getElementById('txToAccount')?.value || null,
     categoryId:  selectedCategory || null,
-    tags:        [...selectedTags],
+    tags:        [..._txTags],
   });
   renderTemplates();
   showToast(`Template “${name}” saved`, 'success');
@@ -308,7 +284,7 @@ function todayISO() { return isoLocal(new Date()); }
 
 function showSaveSuccess() {
   const actions = document.getElementById('formActions');
-  if (!actions) { setTimeout(() => window.location.href = 'accounts.html', 500); return; }
+  if (!actions) { setTimeout(() => window.location.href = '/transactions', 500); return; }
   actions.innerHTML = `
     <div class="save-success">
       <div class="save-success__icon">
@@ -317,17 +293,16 @@ function showSaveSuccess() {
       <span class="save-success__label">Transaction saved!</span>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <a href="accounts.html" class="btn btn--ghost" style="flex:1;justify-content:center;">View Transactions</a>
+      <a href="/transactions" class="btn btn--ghost" style="flex:1;justify-content:center;">View Transactions</a>
       <button type="button" class="btn btn--primary" id="addAnotherBtn" style="flex:1;">Add Another</button>
     </div>
   `;
   document.getElementById('addAnotherBtn')?.addEventListener('click', () => {
     selectedType     = 'expense';
     selectedCategory = '';
-    selectedTags     = [];
+    _txTags          = [];
     document.getElementById('txForm')?.reset();
     setType('expense');
-    renderTags();
     document.getElementById('txDate').value = todayISO();
     actions.innerHTML = `
       <button type="submit" class="btn btn--primary" id="submitBtn" style="flex:1;">Add Transaction</button>
@@ -398,18 +373,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('cancelNewCat')?.addEventListener('click', () => document.getElementById('newCatModal')?.classList.remove('open'));
   document.getElementById('closeNewCatModal')?.addEventListener('click', () => document.getElementById('newCatModal')?.classList.remove('open'));
 
-  const tagInput = document.getElementById('tagInput');
-  tagInput?.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addTag(tagInput.value);
-      tagInput.value = '';
-    }
-  });
-  tagInput?.addEventListener('blur', () => {
-    if (tagInput.value.trim()) { addTag(tagInput.value); tagInput.value = ''; }
-  });
-
   document.getElementById('txForm')?.addEventListener('submit', async e => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -425,14 +388,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         toAccountId: document.getElementById('txToAccount')?.value || null,
         categoryId:  selectedCategory,
         type:        selectedType,
-        tags:        [...selectedTags],
+        tags:        [..._txTags],
       };
       if (editId) {
         await TransactionStore.update(editId, data);
         showToast('Transaction updated', 'success');
+        if (EMBED) { closeEmbed('saved'); return; }
         setTimeout(() => window.location.href = returnTo, 500);
       } else {
         await TransactionStore.add(data);
+        if (EMBED) { closeEmbed('saved'); return; }
         showSaveSuccess();
       }
     } catch (err) {
@@ -453,6 +418,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         await TransactionStore.delete(editId);
         showToast('Transaction deleted', 'success');
+        if (EMBED) { closeEmbed('deleted'); return; }
         setTimeout(() => window.location.href = returnTo, 500);
       } catch (err) {
         showToast(err.message || 'Failed to delete', 'error');
@@ -465,6 +431,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   document.getElementById('cancelBtn')?.addEventListener('click', () => {
-    history.length > 1 ? history.back() : window.location.href = 'accounts.html';
+    history.length > 1 ? history.back() : window.location.href = '/transactions';
   });
 });

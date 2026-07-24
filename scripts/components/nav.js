@@ -53,27 +53,39 @@
     { id: 'add',           label: 'Add Transaction', icon: 'add',           href: 'pages/add-transaction.html', sidebar: true, accent: true },
   ];
 
-  const IN_PAGES = window.location.pathname.includes('/pages/');
-
+  /* Clean, absolute section URLs. The files still live at /pages/*.html and are
+     exposed at these paths by rewrites (vercel.json / serve.json), so links
+     never carry the "pages/" folder or a ".html" suffix. The dashboard is "/". */
+  const CLEAN = {
+    'index.html':                 '/',
+    'pages/accounts.html':        '/transactions',
+    'pages/shifts.html':          '/hours-tracker',
+    'pages/spending.html':        '/cash-flow',
+    'pages/budget.html':          '/budget',
+    'pages/subscriptions.html':   '/subscriptions',
+    'pages/crypto.html':          '/crypto',
+    'pages/insights.html':        '/insights',
+    'pages/settings.html':        '/settings',
+    'pages/import.html':          '/import',
+    'pages/privacy.html':         '/privacy',
+    'pages/terms.html':           '/terms',
+    'pages/add-transaction.html': '/add-transaction',
+  };
   function resolve(href) {
-    /* Clean URLs (cleanUrls:true): no ".html" suffix. The dashboard lives at
-       the site root ("/"); other pages keep their path minus the extension.
-       Emitting clean links avoids a 301 redirect hop on every navigation. */
-    if (href === 'index.html') return '/';
-    const clean = href.replace(/\.html$/, '');
-    if (!IN_PAGES) return clean;             /* e.g. "pages/accounts" */
-    return clean.replace('pages/', '');      /* e.g. "accounts" */
+    return CLEAN[href] || '/' + href.replace(/^pages\//, '').replace(/\.html$/, '');
   }
 
-  /* current page filename, tolerant of clean URLs (".html" stripped) */
+  /* last URL segment (".html" stripped) — the key we match active state on */
   function pageKey(href) { return (href.split('/').pop() || 'index.html').replace(/\.html$/, '') || 'index'; }
-  const CURRENT = pageKey(window.location.pathname) === '' ? 'index' : pageKey(window.location.pathname || 'index.html');
+  const CURRENT = pageKey(window.location.pathname || '/');
 
-  function isActive(item) { return pageKey(item.href) === CURRENT; }
+  /* compare against the item's CLEAN url so renamed sections still match
+     (e.g. pages/shifts.html → /hours-tracker) */
+  function isActive(item) { return pageKey(resolve(item.href)) === CURRENT; }
 
   const moneyItems = NAV_ITEMS.filter(n => n.money);
   const onMoneyPage = moneyItems.some(isActive);
-  const moneyMatch = moneyItems.map(n => pageKey(n.href) + '.html').join(',');
+  const moneyMatch = moneyItems.map(n => resolve(n.href)).join(',');
 
   /* ---- sidebar ---- */
   function renderSidebar() {
@@ -203,4 +215,13 @@
   renderBottomNav();
   renderMoneyTabs();
   renderMoreSheet();
+
+  /* Load the site-wide Add-Transaction popup once. Skipped inside the embed
+     iframe (which is itself the add form) so it never nests. */
+  if (window.top === window.self && !document.getElementById('pf-add-modal-js')) {
+    const s = document.createElement('script');
+    s.id = 'pf-add-modal-js';
+    s.src = '/scripts/components/add-modal.js';
+    document.body.appendChild(s);
+  }
 })();

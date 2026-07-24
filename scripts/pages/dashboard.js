@@ -698,7 +698,7 @@ function renderAccounts(accounts, balanceMap, allTx) {
   if (!el) return;
 
   if (!accounts.length) {
-    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">No accounts yet. <a href="pages/accounts.html">Add one →</a></div>`;
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">No accounts yet. <a href="/transactions">Add one →</a></div>`;
     return;
   }
 
@@ -780,7 +780,7 @@ async function renderRecentTransactions(txs) {
   const el = document.getElementById('recentTransactions');
   if (!el) return;
   if (!txs.length) {
-    el.innerHTML = `<div class="empty-state">No transactions yet. <a href="pages/add-transaction.html">Add one →</a></div>`;
+    el.innerHTML = `<div class="empty-state">No transactions yet. <a href="/add-transaction">Add one →</a></div>`;
     return;
   }
   const cats = await Promise.all(txs.map(t => CategoryStore.getById(t.categoryId)));
@@ -789,7 +789,8 @@ async function renderRecentTransactions(txs) {
   el.querySelectorAll('.tx-item[data-id]').forEach(item => {
     item.style.cursor = 'pointer';
     item.addEventListener('click', () => {
-      window.location.href = `pages/add-transaction?id=${item.dataset.id}&from=${encodeURIComponent('/')}`;
+      if (window.openAddTransaction) window.openAddTransaction(item.dataset.id);
+      else window.location.href = `/add-transaction?id=${item.dataset.id}&from=${encodeURIComponent('/')}`;
     });
   });
 }

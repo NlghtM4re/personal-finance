@@ -1,6 +1,6 @@
 /* ============================================================
    transactions.js — Transaction list (the "Transactions" page,
-   served from accounts.html alongside the Accounts panel).
+   served from /transactions alongside the Accounts panel).
    Search · type tabs · category/account filters · date-range
    presets · sort · CSV export of the filtered view. The list is
    grouped by day with a per-day net subtotal. Account add/edit
@@ -96,7 +96,6 @@ function matchesSearch(t, term) {
   const toAcc = _accMap[t.toAccountId];
   const hay = [
     t.note, cat?.name, acc?.name, toAcc?.name,
-    ...(Array.isArray(t.tags) ? t.tags : []),
     t.amount != null ? String(t.amount) : '',
     t.amount != null ? Number(t.amount).toFixed(2) : '',
   ].filter(Boolean).join(' ').toLowerCase();
@@ -184,7 +183,7 @@ async function renderTransactions() {
         <div style="font-weight:600;color:var(--color-text);margin-bottom:6px;">${filtered ? 'No matches' : 'No transactions yet'}</div>
         <div style="font-size:.8125rem;">${filtered
           ? 'Try clearing or widening your filters.'
-          : '<a href="add-transaction.html" style="color:var(--color-text)">Add your first transaction →</a>'}</div>
+          : '<a href="/add-transaction" style="color:var(--color-text)">Add your first transaction →</a>'}</div>
       </div>`;
     renderLoadMore(0);
     return;
@@ -225,9 +224,6 @@ function txItemFullHTML(t, cat, acc, showDate = false) {
     meta = `${escapeHTML(cat?.name) || 'Uncategorized'} · ${escapeHTML(acc?.name) || 'No account'}`;
   }
   if (showDate) meta = `${formatDateShort(t.date)} · ${meta}`;
-  const tag = (t.tags && t.tags.length)
-    ? t.tags.map(tg => `<span class="tx-tag">${escapeHTML(tg)}</span>`).join('')
-    : '';
   const checkbox = selectMode
     ? `<input type="checkbox" class="tx-select" data-id="${t.id}" ${selectedIds.has(t.id) ? 'checked' : ''} style="margin-right:6px;flex-shrink:0;width:16px;height:16px;">`
     : '';
@@ -236,7 +232,7 @@ function txItemFullHTML(t, cat, acc, showDate = false) {
       ${checkbox}
       <div class="tx-icon tx-icon--${t.type}">${categoryIconHTML(cat, 18)}</div>
       <div class="tx-info">
-        <div class="tx-name">${escapeHTML(t.note) || escapeHTML(cat?.name) || (t.type === 'transfer' ? 'Transfer' : 'Transaction')}${tag}</div>
+        <div class="tx-name">${escapeHTML(t.note) || escapeHTML(cat?.name) || (t.type === 'transfer' ? 'Transfer' : 'Transaction')}</div>
         <div class="tx-meta">${meta}</div>
       </div>
       <div class="tx-amount tx-amount--${t.type}">${sign}${formatCurrency(t.amount)}</div>
@@ -284,7 +280,11 @@ function attachTxEvents() {
     return;
   }
   document.querySelectorAll('[data-action="edit"]').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); window.location.href = `add-transaction?id=${btn.dataset.id}`; });
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (window.openAddTransaction) window.openAddTransaction(btn.dataset.id);
+      else window.location.href = `/add-transaction?id=${btn.dataset.id}`;
+    });
   });
   document.querySelectorAll('[data-action="delete"]').forEach(btn => {
     btn.addEventListener('click', e => { e.stopPropagation(); openDeleteModal(btn.dataset.id); });
@@ -292,7 +292,8 @@ function attachTxEvents() {
   document.querySelectorAll('.tx-list-full .tx-item[data-id]').forEach(item => {
     item.addEventListener('click', e => {
       if (e.target.closest('.tx-actions')) return;
-      window.location.href = `add-transaction?id=${item.dataset.id}`;
+      if (window.openAddTransaction) window.openAddTransaction(item.dataset.id);
+      else window.location.href = `/add-transaction?id=${item.dataset.id}`;
     });
   });
 }

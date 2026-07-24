@@ -15,6 +15,27 @@
   <link rel="stylesheet" href="../styles/layout.css" />
   <link rel="stylesheet" href="../styles/components.css" />
   <link rel="stylesheet" href="../styles/pages.css" />
+  <!-- Embed mode: this page also renders inside the site-wide Add-Transaction
+       popup (add-modal.js) via <iframe src="/add-transaction?embed=1">. Strip
+       the app chrome so only the form shows; the parent modal frames it. -->
+  <script>if (new URLSearchParams(location.search).get('embed') === '1') document.documentElement.classList.add('embed');</script>
+  <style>
+    html.embed .sidebar,
+    html.embed .overlay,
+    html.embed .topbar,
+    html.embed .bottom-nav,
+    html.embed #app-loader { display: none !important; }
+    html.embed, html.embed body { background: transparent; }
+    html.embed .main-wrapper { margin-left: 0; min-height: 0; animation: none; }
+    html.embed .main-content { padding: 16px; }
+    html.embed .form-page { max-width: none; margin: 0; }
+    html.embed .form-card { padding: 0; border: none; background: transparent; box-shadow: none; }
+    /* The popup's iframe is ~600px wide — right at the point where .form-grid
+       collapses to one column. Keep the paired fields side-by-side in the modal
+       and only stack them on an actual phone-width screen. */
+    html.embed .form-grid { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 520px) { html.embed .form-grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body data-title="Add Transaction" data-title-id="formTitle">
 
@@ -48,12 +69,6 @@
         <div class="card form-card">
 
           <form id="txForm" novalidate>
-
-            <!-- Templates (device-local quick re-logging) -->
-            <div class="form-group form-group--full" id="tplRow" style="margin-bottom:16px;display:none;">
-              <p class="form-section-title" style="margin-bottom:8px;">Templates</p>
-              <div class="tpl-chips" id="tplChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-            </div>
 
             <!-- Type selector -->
             <div class="form-group form-group--full" style="margin-bottom:20px;">
@@ -89,36 +104,23 @@
               </div>
             </div>
 
-            <!-- Account -->
+            <!-- Account + Note -->
             <div class="form-grid" style="margin-top:16px;">
               <div class="form-group">
                 <label class="form-label" for="txAccount">Account *</label>
                 <select id="txAccount" class="form-control"></select>
               </div>
-              <div class="form-group" id="toAccountGroup" style="display:none;">
-                <label class="form-label" for="txToAccount">To Account *</label>
-                <select id="txToAccount" class="form-control"></select>
+              <div class="form-group">
+                <label class="form-label" for="txNote">Note</label>
+                <input type="text" id="txNote" class="form-control"
+                  placeholder="What was this for?" maxlength="120" />
               </div>
             </div>
 
-            <!-- Note -->
-            <div class="form-group form-group--full" style="margin-top:16px;">
-              <label class="form-label" for="txNote">Note</label>
-              <input type="text" id="txNote" class="form-control"
-                placeholder="What was this for?" maxlength="120" />
-              <div class="form-hint">Optional description for this transaction.</div>
-            </div>
-
-            <!-- Tags -->
-            <div class="form-group form-group--full" style="margin-top:16px;">
-              <label class="form-label" for="tagInput">Tags</label>
-              <div class="tag-input-wrap">
-                <div class="tag-list" id="tagList"></div>
-                <input type="text" id="tagInput" class="tag-input" list="tagSuggestions"
-                  placeholder="Add tag, press Enter…" maxlength="24" autocomplete="off" />
-                <datalist id="tagSuggestions"></datalist>
-              </div>
-              <div class="form-hint">Press Enter or comma to add. Click × to remove.</div>
+            <!-- To Account (transfers only) -->
+            <div class="form-group" id="toAccountGroup" style="display:none;margin-top:16px;">
+              <label class="form-label" for="txToAccount">To Account *</label>
+              <select id="txToAccount" class="form-control"></select>
             </div>
 
             <!-- Category picker -->
@@ -127,6 +129,12 @@
               <div class="cat-suggestion" id="catSuggestion" hidden></div>
               <div class="category-grid" id="categoryPicker"></div>
               <div id="budgetHint" hidden style="margin-top:10px;font-size:.8125rem;line-height:1.5;color:var(--color-text-muted);"></div>
+            </div>
+
+            <!-- Your saved templates (device-local quick re-logging) -->
+            <div class="form-group form-group--full" id="tplRow" style="margin-top:16px;display:none;">
+              <p class="form-section-title" style="margin-bottom:8px;">Templates</p>
+              <div class="tpl-chips" id="tplChips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
             </div>
 
             <!-- Save current form as a reusable template -->
@@ -154,7 +162,7 @@
         <div class="card" id="noAccountTip" style="display:none;margin-top:12px;">
           <p style="color:var(--color-text-muted);font-size:.875rem;">
             You don't have any accounts yet.
-            <a href="accounts.html">Create an account</a> before adding transactions.
+            <a href="/transactions">Create an account</a> before adding transactions.
           </p>
         </div>
       </div>
