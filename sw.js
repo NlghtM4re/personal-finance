@@ -10,7 +10,7 @@
    Bump CACHE_VERSION when shipping changes to force a refresh.
    ============================================================ */
 
-const CACHE_VERSION = 'pf-v48';
+const CACHE_VERSION = 'pf-v49';
 
 /* Clean URLs (vercel.json cleanUrls:true / serve.json): pages are served
    without the ".html" suffix, and "/" serves the dashboard. Precache the

@@ -14,20 +14,5 @@
     { "source": "/privacy", "destination": "/pages/privacy.html" },
     { "source": "/terms", "destination": "/pages/terms.html" },
     { "source": "/add-transaction", "destination": "/pages/add-transaction.html" }
-  ],
-  "redirects": [
-    { "source": "/pages/accounts", "destination": "/transactions", "type": 301 },
-    { "source": "/pages/transactions", "destination": "/transactions", "type": 301 },
-    { "source": "/pages/shifts", "destination": "/hours-tracker", "type": 301 },
-    { "source": "/pages/spending", "destination": "/cash-flow", "type": 301 },
-    { "source": "/pages/budget", "destination": "/budget", "type": 301 },
-    { "source": "/pages/subscriptions", "destination": "/subscriptions", "type": 301 },
-    { "source": "/pages/crypto", "destination": "/crypto", "type": 301 },
-    { "source": "/pages/insights", "destination": "/insights", "type": 301 },
-    { "source": "/pages/settings", "destination": "/settings", "type": 301 },
-    { "source": "/pages/import", "destination": "/import", "type": 301 },
-    { "source": "/pages/privacy", "destination": "/privacy", "type": 301 },
-    { "source": "/pages/terms", "destination": "/terms", "type": 301 },
-    { "source": "/pages/add-transaction", "destination": "/add-transaction", "type": 301 }
   ]
 }
