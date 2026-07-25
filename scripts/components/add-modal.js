@@ -40,7 +40,12 @@
   function open(id) {
     if (!overlay) build();
     lastFocus = document.activeElement;
-    frame.src = '/add-transaction?embed=1' + (id ? '&id=' + encodeURIComponent(id) : '');
+    /* cache-bust the frame URL: the embed page's headers (e.g. X-Frame-Options)
+       can change between deploys while the HTML stays byte-identical, so a plain
+       reload revalidates (304) and the browser reuses the STALE cached response —
+       which showed as a blocked, blank iframe. A unique query forces a fresh 200
+       with the current headers every time. */
+    frame.src = '/add-transaction?embed=1' + (id ? '&id=' + encodeURIComponent(id) : '') + '&_=' + Date.now();
     overlay.classList.add('open');
     document.body.classList.add('addtx-open');
     isOpen = true;
