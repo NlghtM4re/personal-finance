@@ -375,9 +375,9 @@ select.form-control {
 }
 body.addtx-open { overflow: hidden; }
 @media (max-width: 560px) {
-  .addtx-modal { padding: 0; }
-  .addtx-modal__panel { max-width: none; min-height: 100vh; border: none; }
-  .addtx-modal__frame { height: 100vh; }
+  .addtx-modal { padding: 14px; }
+  .addtx-modal__panel { max-width: none; }
+  .addtx-modal__frame { height: 90dvh; }
 }
 
 .modal-header {
