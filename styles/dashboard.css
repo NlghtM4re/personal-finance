@@ -166,6 +166,16 @@
   gap: 6px;
   min-width: 0;
 }
+/* Both columns are stretched to the taller one's height (align-items: stretch
+   above). The right column fills that height because its transactions feed
+   (.dash-feed, flex: 1) soaks up the slack, so its bottom reaches the shared
+   height. The left column had no flexible panel, so when it was the shorter of
+   the two its last panel (the balance chart) sat at its natural height and left
+   a gap beneath it — the two columns' bottoms went ragged across the gutter.
+   Let the left column's last panel absorb that slack too, so both column
+   bottoms line up. Only classic keeps .dash-col; the locked grid templates
+   unwrap the columns and align by construction. */
+.dash-col:first-child > .dash-panel:last-child { flex: 1 1 auto; }
 .dash-panel { min-width: 0; }
 .dash-panel.is-user-hidden { display: none; }
 
