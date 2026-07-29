@@ -348,7 +348,14 @@ select.form-control {
 /* Site-wide Add-Transaction popup — hosts /add-transaction?embed=1 in an iframe
    (the embedded page strips its own chrome so only the form shows). */
 .addtx-modal {
-  position: fixed; inset: 0; z-index: 900;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+  /* dvh, not inset:0 — a fixed inset:0 element is sized to the LARGE viewport
+     (the height with the mobile browser toolbar retracted), so its bottom, and
+     the popup panel with it, sits behind Chrome's toolbar and you have to scroll
+     the overlay to fish the form out. 100dvh tracks the CURRENTLY visible
+     viewport, so the popup always fits between the toolbars. Falls back to 100vh
+     where dvh is unsupported; on desktop dvh == vh. */
+  height: 100vh; height: 100dvh;
   display: none; align-items: flex-start; justify-content: center;
   padding: 24px 16px; overflow-y: auto;
   background: rgba(0,0,0,.78); backdrop-filter: blur(6px);
@@ -445,7 +452,13 @@ body.addtx-open { overflow: hidden; }
   }
   .tx-action-btn { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
   .category-btn { padding: 12px 8px; }
-  select.form-control, input.form-control { min-height: 44px; }
+  /* 16px min: mobile Safari/Chrome auto-zoom the page whenever a focused field's
+     text is smaller than 16px (the base .form-control is 14px). Bumping the font
+     to 16px on touch widths keeps focusing an input from zooming the viewport —
+     which, in the add-transaction popup, left the user having to pinch back out. */
+  select.form-control, input.form-control, textarea.form-control {
+    min-height: 44px; font-size: 16px;
+  }
 }
 
 /* --- Skeleton / Loading --- */
