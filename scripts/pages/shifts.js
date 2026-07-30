@@ -117,13 +117,34 @@ function renderStats() {
    gross (brut) vs net two ways: the REAL deductions from your payout
    history, and an estimated Québec tax breakdown.
    ============================================================ */
+/* The salary bar is collapsed behind a toggle so the stat area stays compact.
+   State is remembered per-device; default collapsed. */
+function salaryExpanded() {
+  try { return localStorage.getItem('pf_salary_expanded') === '1'; } catch (_) { return false; }
+}
+function applySalaryExpanded(expanded) {
+  const panel = document.getElementById('salaryPanel');
+  const toggle = document.getElementById('salaryToggle');
+  if (panel) panel.hidden = !expanded;
+  if (toggle) toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+}
+function toggleSalary() {
+  const next = !salaryExpanded();
+  try { localStorage.setItem('pf_salary_expanded', next ? '1' : '0'); } catch (_) {}
+  applySalaryExpanded(next);
+}
+
 function renderSalary() {
   const panel = document.getElementById('salaryPanel');
+  const toggle = document.getElementById('salaryToggle');
   if (!panel) return;
 
   const { weekly } = ShiftEngine.averageWeeklyPay(_shifts, { weeks: 8, today: todayISO() });
-  if (weekly <= 0) { panel.hidden = true; return; }   /* nothing logged yet */
-  panel.hidden = false;
+  if (weekly <= 0) {                                  /* nothing logged yet */
+    panel.hidden = true;
+    if (toggle) toggle.hidden = true;
+    return;
+  }
 
   const proj = ShiftEngine.projectSalary(weekly);
   setText('salWeekly',  formatCurrency(proj.weekly));
@@ -148,6 +169,13 @@ function renderSalary() {
     setText('salActualDed', '—');
     setText('salActualNote', 'Mark shifts as paid to see the real deductions from your pay.');
   }
+
+  /* reveal the toggle and preview the annual figure, then honour saved state */
+  if (toggle) {
+    toggle.hidden = false;
+    setText('salaryTogglePreview', `${formatCurrency(proj.annual)} / yr`);
+  }
+  applySalaryExpanded(salaryExpanded());
 }
 
 /* ============================================================
@@ -1187,6 +1215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   /* quick log + mark-as-paid */
   document.getElementById('quickLogForm')?.addEventListener('submit', quickLog);
   document.getElementById('markPaidBtn')?.addEventListener('click', openPaidModal);
+  document.getElementById('salaryToggle')?.addEventListener('click', toggleSalary);
   document.getElementById('paidActual')?.addEventListener('input', updatePaidBonus);
   document.getElementById('paidConfirm')?.addEventListener('click', confirmPaid);
   document.getElementById('paidCancel')?.addEventListener('click', closePaidModal);

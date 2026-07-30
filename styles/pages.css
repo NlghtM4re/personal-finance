@@ -1121,6 +1121,31 @@
 .salary-cell__value--ded { color: var(--color-expense); }
 .salary-note { font-size: 0.6875rem; color: var(--color-text-muted); padding: 4px 14px 0; line-height: 1.5; }
 
+/* Projected-salary toggle — the salary bar is collapsed behind this button so
+   the stat area stays compact. Reads as a continuation of the combined panel:
+   drops its top border to share the hairline seam with the stat bar above (and,
+   when expanded, the salary bar below shares the toggle's bottom seam). */
+.hours-salary-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; padding: 11px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border); border-top: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-display); font-size: 0.625rem;
+  text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600;
+  text-align: left; cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.hours-salary-toggle:hover { background: var(--color-surface-2); color: var(--color-text); }
+.hours-salary-toggle__right { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.hours-salary-toggle__preview {
+  font-family: var(--font-display); font-size: 0.8125rem; letter-spacing: -0.01em;
+  text-transform: none; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hours-salary-toggle__chev { flex-shrink: 0; line-height: 0; display: inline-flex; transition: transform var(--transition); }
+.hours-salary-toggle[aria-expanded="true"] .hours-salary-toggle__chev { transform: rotate(180deg); }
+
 /* ── Weekly goal ─────────────────────────────────────────────── */
 .goal-display { display: flex; align-items: center; gap: 16px; }
 .goal-ring { flex-shrink: 0; line-height: 0; }
