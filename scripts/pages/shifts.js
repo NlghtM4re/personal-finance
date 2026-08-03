@@ -21,7 +21,8 @@ let _incomeCats = [];
 let _payMode = 'hourly';
 let _goal = { metric: 'pay', target: 0 };
 let _chartMetric = 'pay';
-let _employerFilter = '';
+let _employerFilter = '';    /* Logged hours panel filter */
+let _chartJob = '';          /* Earnings chart filter (independent of the list) */
 let _qlDate = null;          /* quick-log selected day */
 let _paidContext = null;     /* snapshot of what the mark-as-paid modal is settling */
 let _jobs = [];              /* saved jobs (cross-device, from JobStore) */
@@ -614,13 +615,16 @@ function clearGoal() {
 function renderChart() {
   const el = document.getElementById('hoursBars');
   if (!el) return;
-  const series = ShiftEngine.weeklySeries(_shifts, 10, todayISO());
+  const shifts = _chartJob
+    ? _shifts.filter(s => (s.employer || '').trim() === _chartJob)
+    : _shifts;
+  const series = ShiftEngine.weeklySeries(shifts, 10, todayISO());
   const vals = series.map(w => _chartMetric === 'hours' ? w.hours : w.pay);
   const max = Math.max(...vals, 0);
   const thisWk = startOfWeek(todayISO());
 
   if (max <= 0) {
-    el.innerHTML = `<div class="hours-bars__empty">No earnings in the last 10 weeks yet.</div>`;
+    el.innerHTML = `<div class="hours-bars__empty">No earnings in the last 10 weeks${_chartJob ? ' for that job' : ''} yet.</div>`;
     return;
   }
   el.innerHTML = series.map((w, i) => {
@@ -806,14 +810,35 @@ async function toggleLogged(id) {
   }
 }
 
+/* distinct job/employer names across all logged shifts, sorted */
+function jobNames() {
+  return [...new Set(_shifts.map(s => (s.employer || '').trim()).filter(Boolean))].sort();
+}
+
+/* Populate a "All jobs" + per-job <select>. Hidden (and its filter reset) until
+   there's more than one job to choose between. Shared by the Logged hours list
+   and the Earnings chart; `current` is the panel's own selected value. */
+function fillJobFilter(sel, current) {
+  const names = jobNames();
+  if (names.length < 2) { sel.hidden = true; return false; }
+  sel.hidden = false;
+  sel.innerHTML = `<option value="">All jobs</option>` +
+    names.map(n => `<option value="${escapeHTML(n)}"${n === current ? ' selected' : ''}>${escapeHTML(n)}</option>`).join('');
+  return true;
+}
+
 function renderEmployerFilter() {
   const sel = document.getElementById('employerFilter');
   if (!sel) return;
-  const names = [...new Set(_shifts.map(s => (s.employer || '').trim()).filter(Boolean))].sort();
-  if (names.length < 2) { sel.hidden = true; return; }
-  sel.hidden = false;
-  sel.innerHTML = `<option value="">All jobs</option>` +
-    names.map(n => `<option value="${escapeHTML(n)}"${n === _employerFilter ? ' selected' : ''}>${escapeHTML(n)}</option>`).join('');
+  fillJobFilter(sel, _employerFilter);
+}
+
+function renderChartJobFilter() {
+  const sel = document.getElementById('chartJobFilter');
+  if (!sel) return;
+  /* drop a stale filter if we're back to a single job so the chart isn't
+     silently narrowed to a job that no longer stands apart */
+  if (!fillJobFilter(sel, _chartJob)) _chartJob = '';
 }
 
 function renderList() {
@@ -1188,6 +1213,7 @@ async function renderPage() {
   renderGoal();
   renderQuickChips(_qlDate || todayISO());
   renderQuickMeta();
+  renderChartJobFilter();
   renderChart();
   renderDayOfWeek();
   renderJobs();
@@ -1265,6 +1291,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('employerFilter')?.addEventListener('change', e => {
     _employerFilter = e.target.value;
     renderList();
+  });
+
+  /* earnings-chart job filter */
+  document.getElementById('chartJobFilter')?.addEventListener('change', e => {
+    _chartJob = e.target.value;
+    renderChart();
   });
 });
 

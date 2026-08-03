@@ -167,9 +167,14 @@
         <section class="term hours-chart" id="chartPanel">
           <div class="term__head">
             <span class="term__title">Earnings · last <span id="chartWeeks">10</span> weeks</span>
-            <div class="seg-toggle" id="chartMetricToggle">
-              <button type="button" class="seg-btn active" data-metric="pay">Pay</button>
-              <button type="button" class="seg-btn" data-metric="hours">Hours</button>
+            <div class="hours-chart__controls">
+              <!-- Filter the chart by job — same control as the Logged hours panel;
+                   appears once there's more than one job (renderChartJobFilter). -->
+              <select id="chartJobFilter" class="hours-filter" aria-label="Filter earnings by job" hidden></select>
+              <div class="seg-toggle" id="chartMetricToggle">
+                <button type="button" class="seg-btn active" data-metric="pay">Pay</button>
+                <button type="button" class="seg-btn" data-metric="hours">Hours</button>
+              </div>
             </div>
           </div>
           <div class="term__body">
