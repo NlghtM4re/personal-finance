@@ -65,12 +65,14 @@ const ShiftEngine = {
     return s.hours > 0 ? Math.round((s.pay / s.hours) * 100) / 100 : 0;
   },
 
-  /* Everything worked but not yet covered by a payout. A shift is "unpaid"
-     when its `paid` flag is falsy (the page sets this from payout coverage).
-     Returns { count, hours, estimated } where estimated = sum of pay()
-     (hours × rate, or the flat amount, plus tips). */
+  /* Days still waiting on pay: worked, but neither covered by a payout nor
+     already logged as income. A shift counts as settled when its `paid` flag is
+     set (the page derives that from payout coverage) OR it has a linked income
+     entry (`txId`) — logging as income books the money, so it needs no separate
+     "mark as paid" step. Returns { count, hours, estimated } where estimated =
+     sum of pay() (hours × rate, or the flat amount, plus tips). */
   unpaidSummary(shifts) {
-    const list = (shifts || []).filter(s => !s.paid);
+    const list = (shifts || []).filter(s => !s.paid && !s.txId);
     const sum = fn => Math.round(list.reduce((acc, s) => acc + fn(s), 0) * 100) / 100;
     return { count: list.length, hours: sum(s => this.hours(s)), estimated: sum(s => this.pay(s)) };
   },

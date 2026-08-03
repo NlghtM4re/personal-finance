@@ -207,7 +207,7 @@ function renderUnpaid() {
 function openPaidModal() {
   const u = ShiftEngine.unpaidSummary(_shifts);
   if (u.count === 0) return;
-  _paidContext = { hours: u.hours, estimated: u.estimated, shiftIds: _shifts.filter(s => !s.paid).map(s => s.id) };
+  _paidContext = { hours: u.hours, estimated: u.estimated, shiftIds: _shifts.filter(s => !s.paid && !s.txId).map(s => s.id) };
   document.getElementById('paidHours').textContent = fmtHours(u.hours);
   document.getElementById('paidEstimated').textContent = formatCurrency(u.estimated);
   const actual = document.getElementById('paidActual');
@@ -775,7 +775,7 @@ function shiftRowHTML(s) {
       ${s.paid
         ? `<span class="shift-row__badge shift-row__badge--paid" title="Settled in a payout — see Payouts below">paid</span>`
         : s.txId
-        ? `<button type="button" class="shift-row__badge shift-toggle" data-id="${s.id}" title="Logged as income — tap to mark unlogged">income</button>`
+        ? `<button type="button" class="shift-row__badge shift-toggle" data-id="${s.id}" title="Logged as income — you're paid. Tap to mark unlogged">paid</button>`
         : `<button type="button" class="shift-row__badge shift-row__badge--off shift-toggle" data-id="${s.id}" title="Not logged — tap to log as income">unlogged</button>`}
       <button type="button" class="btn btn--ghost btn--sm shift-edit" data-id="${s.id}">Edit</button>
     </div>`;

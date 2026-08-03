@@ -110,6 +110,14 @@ test('unpaidSummary', async (t) => {
     assert.deepEqual(ShiftEngine.unpaidSummary([{ hours: 8, rate: 17, paid: true }]),
       { count: 0, hours: 0, estimated: 0 });
   });
+  await t.test('a shift logged as income (txId) is settled, not unpaid', () => {
+    const mixed = [
+      { date: '2026-06-15', hours: 8, rate: 17 },                 // unpaid: 136
+      { date: '2026-06-16', hours: 7.5, rate: 17, txId: 'tx_1' }, // logged as income — settled
+      { date: '2026-06-10', hours: 8, rate: 17, paid: true },     // payout — settled
+    ];
+    assert.deepEqual(ShiftEngine.unpaidSummary(mixed), { count: 1, hours: 8, estimated: 136 });
+  });
 });
 
 test('settlePay (estimate vs actual)', async (t) => {
