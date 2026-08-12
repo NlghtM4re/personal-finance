@@ -274,7 +274,14 @@
           <div class="term dash-quicklog dash-panel" data-panel="quickLog" id="quickLog">
             <div class="term__head">
               <span class="term__title">Log hours</span>
-              <a href="/hours-tracker" class="link--sm">Open tracker →</a>
+              <div class="ql-head-actions">
+                <!-- Straight to the calendar view of these hours. Extensionless
+                     URL — cleanUrls would redirect a .html link. -->
+                <a href="/hours-calendar" class="ql-cal-link" aria-label="Hours calendar" title="See your hours on a calendar">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </a>
+                <a href="/hours-tracker" class="link--sm">Open tracker →</a>
+              </div>
             </div>
             <div class="term__body">
               <div class="ql-days" id="qlDays"></div>

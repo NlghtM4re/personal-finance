@@ -693,6 +693,20 @@ body.dash-dragging { user-select: none; }
 .dash-quicklog { flex: 0 0 auto; }
 .dash-quicklog .term__body { display: flex; flex-direction: column; gap: 9px; }
 
+/* Head actions — the calendar shortcut sits beside "Open tracker", grouped so
+   the head's space-between still reads as title-left / actions-right. */
+.ql-head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ql-cal-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; flex-shrink: 0; line-height: 0;
+  color: var(--color-text-muted); border: 1px solid var(--color-border);
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.ql-cal-link:hover {
+  background: var(--color-surface-2); color: var(--color-text);
+  border-color: var(--color-text-muted); text-decoration: none;
+}
+
 /* day-of-week chips (current week) */
 .ql-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .ql-day {
