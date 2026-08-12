@@ -41,7 +41,10 @@
     { id: 'overview',      label: 'Overview' },
     { id: 'moneyDuo',      label: 'Allocation & month' },
     { id: 'quickLog',      label: 'Log hours' },
-    { id: 'nwGoal',        label: 'Net-worth goal' },
+    /* conditional because it can be switched off in Settings → Goals, which
+       hides the panel exactly the way an empty data-driven panel hides: a
+       locked slot then auto-fills and the picker stops offering it. */
+    { id: 'nwGoal',        label: 'Net-worth goal',     conditional: true },
     { id: 'crypto',        label: 'Crypto',             conditional: true },
     { id: 'budgetWatch',   label: 'Over budget',        conditional: true },
     { id: 'upcomingBills', label: 'Upcoming bills',     conditional: true },
@@ -116,6 +119,7 @@
     v: SCHEMA,
     design: DESIGNS[0].id,                                   /* Classic = the live layout */
     byDesign: { [DESIGNS[0].id]: { ...DESIGNS[0].assign } },
+    evicted: {},
   });
 
   /* Validate one design's assignments: drop unknown/duplicate panels, then
@@ -152,7 +156,18 @@
       if (saved) byDesign[des.id] = normalizeAssign(des, saved);   /* keep only what's been used */
     }
     if (!byDesign[d.id]) byDesign[d.id] = normalizeAssign(d, d.assign);
-    return { v: SCHEMA, design: d.id, byDesign };
+    /* `evicted` is carried through as-is: it's an optional field, so configs
+       saved before it existed simply arrive without one (no schema bump, so
+       nobody's layout resets). Shape: { designId: { slot: panelId } }. */
+    const evicted = {};
+    for (const des of DESIGNS) {
+      const saved = raw.evicted && raw.evicted[des.id];
+      if (!saved || typeof saved !== 'object') continue;
+      const keep = {};
+      for (const s of des.slots) if (BY_ID[saved[s]]) keep[s] = saved[s];
+      if (Object.keys(keep).length) evicted[des.id] = keep;
+    }
+    return { v: SCHEMA, design: d.id, byDesign, evicted };
   }
 
   /* the active design's assignments, seeded on first use */
@@ -192,6 +207,23 @@
     const assign = curAssign();
     let changed = false;
     const used = new Set(d.slots.map(s => assign[s]).filter(Boolean));
+    if (!cfg.evicted) cfg.evicted = {};
+    const eviction = cfg.evicted[d.id] || (cfg.evicted[d.id] = {});
+
+    /* Reclaim first: a panel that was auto-swapped out gets its slot back once
+       it has data again — otherwise switching a goal off and on again (or a
+       wallet regaining a balance) would leave the panel gone for good, because
+       the substitution is saved. The stand-in simply becomes unplaced. */
+    for (const s of d.slots) {
+      const orig = eviction[s];
+      if (!orig || !hasData(orig) || used.has(orig)) continue;
+      used.delete(assign[s]);
+      assign[s] = orig;
+      used.add(orig);
+      delete eviction[s];
+      changed = true;
+    }
+
     for (const s of d.slots) {
       const cur = assign[s];
       if (cur && hasData(cur)) continue;
@@ -200,6 +232,7 @@
       used.delete(cur);
       assign[s] = rep.id;
       used.add(rep.id);
+      if (cur) eviction[s] = cur;      /* remember who to give the slot back to */
       changed = true;
     }
     return changed;
@@ -339,6 +372,14 @@
   const slotOf = el => el?.dataset.slot;
 
   /* ---- assignment ------------------------------------------------------ */
+  /* A slot the user has just set by hand is theirs: drop any auto-eviction
+     record for it, so the reclaim pass can't take it back off them later. */
+  function clearEviction(...slots) {
+    const e = cfg.evicted && cfg.evicted[cfg.design];
+    if (!e) return;
+    for (const s of slots) if (s) delete e[s];
+  }
+
   function assignToSlot(slot, panelId) {
     const d = designById(cfg.design);
     const assign = curAssign();
@@ -346,6 +387,7 @@
     const cur = assign[slot];
     assign[slot] = panelId;
     if (other && other !== slot) assign[other] = cur;   /* swap the two */
+    clearEviction(slot, other);
     apply({ animate: true, refit: true }); save();
   }
 
@@ -355,6 +397,7 @@
     const t = assign[s1];
     assign[s1] = assign[s2];
     assign[s2] = t;
+    clearEviction(s1, s2);
     apply({ animate: true, refit: true }); save();
   }
 

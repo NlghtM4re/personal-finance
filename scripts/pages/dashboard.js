@@ -358,6 +358,18 @@ function setNwGoal(target) {
 }
 function renderNwGoal(netWorth) {
   if (Number.isFinite(netWorth)) _lastNetWorth = netWorth;
+
+  /* Switched off in Settings → Goals: hide the whole panel. dashboard-layout
+     treats nwGoal as conditional, so flipping `hidden` is all it takes — the
+     classic column closes up and a locked slot auto-fills with another panel. */
+  const card = document.getElementById('nwGoalCard');
+  if (card) {
+    const off = typeof SettingsStore !== 'undefined' && SettingsStore.goalEnabled
+      && !SettingsStore.goalEnabled('netWorth');
+    card.hidden = !!off;
+    if (off) return;
+  }
+
   const ringEl   = document.getElementById('nwGoalRing');
   const pctEl    = document.getElementById('nwGoalPct');
   const detailEl = document.getElementById('nwGoalDetail');

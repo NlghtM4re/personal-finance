@@ -134,6 +134,42 @@
           </div>
         </section>
 
+        <!-- Goals — switch individual goal widgets off without losing their
+             target. Hiding a goal only hides its panel; the saved target stays,
+             so switching it back on restores it. -->
+        <section class="settings-section">
+          <div class="settings-section__label">Goals</div>
+          <div class="settings-group">
+            <div class="settings-row">
+              <span class="settings-row__icon settings-row__icon--muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              </span>
+              <div class="settings-row__info">
+                <div class="settings-row__title">Net-worth goal</div>
+                <div class="settings-row__sub">The progress ring on your dashboard</div>
+              </div>
+              <label class="settings-switch">
+                <input type="checkbox" id="goalNetWorthToggle" aria-label="Show the net-worth goal" />
+                <span class="settings-switch__track" aria-hidden="true"></span>
+              </label>
+            </div>
+            <div class="settings-divider"></div>
+            <div class="settings-row">
+              <span class="settings-row__icon settings-row__icon--muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
+              <div class="settings-row__info">
+                <div class="settings-row__title">Weekly hours goal</div>
+                <div class="settings-row__sub">The weekly target ring in the Hours Tracker</div>
+              </div>
+              <label class="settings-switch">
+                <input type="checkbox" id="goalHoursToggle" aria-label="Show the weekly hours goal" />
+                <span class="settings-switch__track" aria-hidden="true"></span>
+              </label>
+            </div>
+          </div>
+        </section>
+
         <!-- Job defaults (used by the dashboard quick-log) -->
         <section class="settings-section">
           <div class="settings-section__label">Job defaults</div>

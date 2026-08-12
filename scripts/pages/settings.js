@@ -162,6 +162,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  /* Goal switches — hide a goal widget without losing its saved target.
+     hydrateLocalDefaults() above has already pulled the synced value in. */
+  [['goalNetWorthToggle', 'netWorth', 'Net-worth goal'],
+   ['goalHoursToggle',    'hours',    'Weekly hours goal']].forEach(([elId, key, label]) => {
+    const box = document.getElementById(elId);
+    if (!box) return;
+    box.checked = SettingsStore.goalEnabled(key);
+    box.addEventListener('change', async () => {
+      const on = box.checked;
+      try {
+        await SettingsStore.setGoalPref(key, on);
+        showToast(`${label} ${on ? 'shown' : 'hidden'}`, 'success');
+      } catch (err) {
+        box.checked = !on;                       /* put the switch back */
+        showToast(err.message || 'Failed to save', 'error');
+      }
+    });
+  });
+
   /* Default account + Job defaults (local convenience) */
   try {
     const accounts  = await AccountStore.getAll();

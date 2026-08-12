@@ -532,6 +532,13 @@ function ringSVG(pct) {
 }
 
 function renderGoal() {
+  /* Switched off in Settings → Goals. The panel shares a flex row with the pay
+     period, whose `flex: 1 1 300px` simply takes the freed width. */
+  const panel = document.getElementById('goalPanel');
+  const off = !SettingsStore.goalEnabled('hours');
+  if (panel) panel.hidden = off;
+  if (off) return;
+
   const ring = document.getElementById('goalRing');
   const pctEl = document.getElementById('goalPct');
   const detail = document.getElementById('goalDetail');

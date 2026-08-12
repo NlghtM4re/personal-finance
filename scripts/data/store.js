@@ -480,6 +480,33 @@ const SettingsStore = {
     await this._putColumn('shift_presets', list);
   },
 
+  /* ---- goal switches ----------------------------------------------------
+     Which goal widgets are switched on: the dashboard's net-worth ring and the
+     Hours Tracker's weekly goal. Absent means ON, so existing users see no
+     change. Lives in the ui_prefs blob (no new column to migrate) and is
+     mirrored to localStorage because the render paths that need it run
+     synchronously, before any await. */
+  GOALS_KEY: 'pf_goals',
+  GOAL_IDS: ['netWorth', 'hours'],
+
+  getGoalPrefs() {
+    const on = { netWorth: true, hours: true };
+    try {
+      const raw = JSON.parse(localStorage.getItem(this.GOALS_KEY) || '{}');
+      for (const k of this.GOAL_IDS) if (raw[k] === false) on[k] = false;
+    } catch (_) {}
+    return on;
+  },
+  goalEnabled(id) { return this.getGoalPrefs()[id] !== false; },
+
+  async setGoalPref(id, enabled) {
+    if (!this.GOAL_IDS.includes(id)) return this.getGoalPrefs();
+    const next = { ...this.getGoalPrefs(), [id]: !!enabled };
+    try { localStorage.setItem(this.GOALS_KEY, JSON.stringify(next)); } catch (_) {}
+    await this.setUiPref({ goals: next });
+    return next;
+  },
+
   /* Misc UI prefs, e.g. { balanceMode } */
   async getUiPrefs() {
     const s = await this._load();
@@ -537,12 +564,19 @@ const SettingsStore = {
           else localStorage.removeItem('pf_nw_goal');
         }
         if (Array.isArray(up.txTemplates)) localStorage.setItem('pf_tx_templates', JSON.stringify(up.txTemplates));
+        if (up.goals && typeof up.goals === 'object') {
+          localStorage.setItem(this.GOALS_KEY, JSON.stringify(up.goals));
+        }
       } else {
         const seed = {};
         const bm = localStorage.getItem('pf_balance_mode');
         if (bm) seed.balanceMode = bm;
         const g = parseFloat(localStorage.getItem('pf_nw_goal'));
         if (Number.isFinite(g) && g > 0) seed.nwGoal = g;
+        try {
+          const goals = JSON.parse(localStorage.getItem(this.GOALS_KEY) || '{}');
+          if (goals && Object.keys(goals).length) seed.goals = goals;
+        } catch (_) {}
         try {
           const tpls = JSON.parse(localStorage.getItem('pf_tx_templates') || '[]');
           if (Array.isArray(tpls) && tpls.length) seed.txTemplates = tpls;
