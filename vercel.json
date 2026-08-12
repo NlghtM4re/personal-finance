@@ -6,6 +6,7 @@
   "rewrites": [
     { "source": "/transactions", "destination": "/pages/accounts" },
     { "source": "/hours-tracker", "destination": "/pages/shifts" },
+    { "source": "/hours-calendar", "destination": "/pages/hours-calendar" },
     { "source": "/cash-flow", "destination": "/pages/spending" },
     { "source": "/budget", "destination": "/pages/budget" },
     { "source": "/subscriptions", "destination": "/pages/subscriptions" },

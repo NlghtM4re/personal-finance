@@ -7,6 +7,7 @@
     { "source": "/", "destination": "/index.html" },
     { "source": "/transactions", "destination": "/pages/accounts.html" },
     { "source": "/hours-tracker", "destination": "/pages/shifts.html" },
+    { "source": "/hours-calendar", "destination": "/pages/hours-calendar.html" },
     { "source": "/cash-flow", "destination": "/pages/spending.html" },
     { "source": "/budget", "destination": "/pages/budget.html" },
     { "source": "/subscriptions", "destination": "/pages/subscriptions.html" },

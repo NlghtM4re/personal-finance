@@ -41,7 +41,9 @@
     { id: 'dashboard',     label: 'Dashboard',       icon: 'dashboard',     href: 'index.html',                sidebar: true, bottom: true },
     { id: 'transactions',  label: 'Transactions',    icon: 'transactions',  href: 'pages/accounts.html',       sidebar: true, bottom: true },
     { id: 'insights',      label: 'Insights',        icon: 'insights',      href: 'pages/insights.html' /* topbar icon only — see renderTopbar */ },
-    { id: 'shifts',        label: 'Hours Tracker',   icon: 'shifts',        href: 'pages/shifts.html',         sidebar: true, sheet: true },
+    /* `alt`: extra page keys that keep this item highlighted — the calendar is a
+       second view of the Hours Tracker, not its own section. */
+    { id: 'shifts',        label: 'Hours Tracker',   icon: 'shifts',        href: 'pages/shifts.html',         sidebar: true, sheet: true, alt: ['hours-calendar'] },
     /* "Money" is a hub: one sidebar/sheet entry that opens the money pages,
        which switch via the pill tabs at the top (Cash Flow · Budget · Subscriptions). */
     { id: 'money',         label: 'Money',           icon: 'money',         href: 'pages/spending.html',       sidebar: true, sheet: true, hub: true },
@@ -60,6 +62,7 @@
     'index.html':                 '/',
     'pages/accounts.html':        '/transactions',
     'pages/shifts.html':          '/hours-tracker',
+    'pages/hours-calendar.html':  '/hours-calendar',
     'pages/spending.html':        '/cash-flow',
     'pages/budget.html':          '/budget',
     'pages/subscriptions.html':   '/subscriptions',
@@ -81,7 +84,9 @@
 
   /* compare against the item's CLEAN url so renamed sections still match
      (e.g. pages/shifts.html → /hours-tracker) */
-  function isActive(item) { return pageKey(resolve(item.href)) === CURRENT; }
+  function isActive(item) {
+    return pageKey(resolve(item.href)) === CURRENT || (item.alt || []).includes(CURRENT);
+  }
 
   const moneyItems = NAV_ITEMS.filter(n => n.money);
   const onMoneyPage = moneyItems.some(isActive);

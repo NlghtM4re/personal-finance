@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+  <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+  <title>Flow — Hours Calendar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+  <link rel="stylesheet" href="../styles/layout.css" />
+  <link rel="stylesheet" href="../styles/components.css" />
+  <link rel="stylesheet" href="../styles/pages.css" />
+  <link rel="stylesheet" href="../styles/dashboard.css" />
+</head>
+<body data-title="Hours Calendar">
+
+  <!-- Minimalist boot screen — see styles/main.css (#app-loader). -->
+  <div id="app-loader" role="status" aria-label="Loading">
+    <div class="app-loader__card">
+      <div class="app-loader__mark">Flow</div>
+      <div class="app-loader__bar"></div>
+    </div>
+  </div>
+  <script>
+    window.hideAppLoader = function () {
+      var el = document.getElementById('app-loader');
+      if (el) el.classList.add('is-hidden');
+    };
+    window.addEventListener('load', function () {
+      requestAnimationFrame(function () { setTimeout(window.hideAppLoader, 120); });
+    });
+    setTimeout(function () { window.hideAppLoader(); }, 6000);
+  </script>
+
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="overlay" id="overlay"></div>
+
+  <div class="main-wrapper">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="main-content">
+      <div class="hours-page cal-page">
+
+        <!-- ── Period summary ───────────────────────────────────── -->
+        <div class="hours-statbar">
+          <div class="hours-stat">
+            <div class="hours-stat__label">Earnings</div>
+            <div class="hours-stat__value" id="calPay">—</div>
+            <div class="hours-stat__sub" id="calPaySub">this month</div>
+          </div>
+          <div class="hours-stat">
+            <div class="hours-stat__label">Hours</div>
+            <div class="hours-stat__value" id="calHours">—</div>
+            <div class="hours-stat__sub" id="calHoursSub">— shifts</div>
+          </div>
+          <div class="hours-stat">
+            <div class="hours-stat__label">Effective rate</div>
+            <div class="hours-stat__value" id="calRate">—</div>
+            <div class="hours-stat__sub">per hour</div>
+          </div>
+          <div class="hours-stat">
+            <div class="hours-stat__label">Days worked</div>
+            <div class="hours-stat__value" id="calDays">—</div>
+            <div class="hours-stat__sub" id="calDaysSub">none worked</div>
+          </div>
+        </div>
+
+        <!-- ── Calendar ─────────────────────────────────────────── -->
+        <section class="term cal-panel">
+          <div class="term__head term__head--stack">
+
+            <!-- period stepper: ‹ · label · › · Today -->
+            <div class="term__head-row">
+              <div class="cal-nav">
+                <button type="button" class="cal-nav__btn" id="calPrev" aria-label="Previous period">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <span class="cal-nav__label" id="calPeriod">—</span>
+                <button type="button" class="cal-nav__btn" id="calNext" aria-label="Next period">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <button type="button" class="btn btn--ghost btn--sm" id="calToday" hidden>Today</button>
+              </div>
+              <a href="/hours-tracker" class="btn btn--ghost btn--sm">← Tracker</a>
+            </div>
+
+            <!-- settings: week/month/year · pay/hours · job -->
+            <div class="term__head-row cal-controls">
+              <div class="seg-toggle" id="calViewToggle">
+                <button type="button" class="seg-btn" data-view="week">Week</button>
+                <button type="button" class="seg-btn active" data-view="month">Month</button>
+                <button type="button" class="seg-btn" data-view="year">Year</button>
+              </div>
+              <div class="cal-controls__right">
+                <select id="calJobFilter" class="hours-filter" aria-label="Filter by job" hidden></select>
+                <div class="seg-toggle" id="calMetricToggle">
+                  <button type="button" class="seg-btn active" data-metric="pay">Pay</button>
+                  <button type="button" class="seg-btn" data-metric="hours">Hours</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="term__body">
+            <div id="calBody">
+              <div class="empty-state">Loading…</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Selected-day detail ──────────────────────────────── -->
+        <section class="term" id="calDetail" hidden>
+          <div class="term__head">
+            <span class="term__title" id="calDetailTitle">Day</span>
+            <span class="term-label" id="calDetailSum"></span>
+            <button type="button" class="btn btn--ghost btn--sm" id="calDetailClose" aria-label="Close">✕</button>
+          </div>
+          <div class="term__body term__body--flush">
+            <div id="calDetailList"></div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <nav class="bottom-nav" id="bottomNav" aria-label="Main navigation"></nav>
+
+  <script src="../scripts/components/error-overlay.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="../scripts/data/supabase.js"></script>
+  <script src="../scripts/data/store.js"></script>
+  <script src="../scripts/components/icons.js"></script>
+  <script src="../scripts/engine/shifts.js"></script>
+  <script src="../scripts/components/nav.js"></script>
+  <script src="../scripts/components/ui.js"></script>
+  <script src="../scripts/pages/hours-calendar.js"></script>
+</body>
+</html>
